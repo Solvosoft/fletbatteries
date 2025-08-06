@@ -1,0 +1,9 @@
+# base
+flet
+# database
+sqlalchemy
+passlib[bcrypt]
+# variables de entorno
+python-dotenv
+# componentes
+flet-contrib

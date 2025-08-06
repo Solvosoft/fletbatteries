@@ -1,0 +1,28 @@
+[project]
+name = "Template"
+version = "0.1.0"
+description = "Aplicación de Template"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+    { name = "Wilfredo BH", email = "liwbarqueroh@gmail.com" },
+]
+dependencies = [
+    "flet",
+    "sqlmodel",
+    "pydantic>=1.10.0",
+    "pydantic-settings>=0.1.0",
+    "python-dotenv",
+]
+
+[tool.flet]
+org = "https://solvosoft.com/es/"
+product = "Template"
+company = "Solvo"
+copyright = "Copyright (C) 2025 by Solvo"
+
+[tool.flet.app]
+# ruta al directorio donde está main.py
+path = "./src/main.py"
+name = "Template"
+icon = "./assets/image/icon.png"
