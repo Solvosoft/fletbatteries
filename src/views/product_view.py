@@ -4,6 +4,7 @@ import shutil
 
 from controls.product.product_control import ProductControl
 from controls.product.product_form import ProductForm
+from components.shared.generic_card import GenericCard
 
 
 class ProductView:
@@ -160,48 +161,21 @@ class ProductView:
     def build_product_cards(self):
         self.products = self.product_control.get_all_products()
         return [
-            ft.Container(
-                content=ft.Card(
-                    ft.Container(
-                        content=ft.Column(
-                            controls=[
-                                ft.Image(
-                                    src=f"/image/{product.image}",
-                                    fit=ft.ImageFit.COVER,
-                                    width=300,
-                                    height=200,
-                                ),
-                                ft.Divider(color=ft.Colors.GREY_300),
-                                ft.Text(product.name, size=16, weight=ft.FontWeight.BOLD),
-                                ft.Text(f"${product.price:.2f}", size=14),
-                                ft.Text(product.code, size=12, color=ft.Colors.GREY_600),
-                                ft.Row(
-                                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                                    controls=[
-                                        ft.IconButton(
-                                            icon=ft.Icons.EDIT,
-                                            tooltip="Editar",
-                                            on_click=lambda e, p=product: self.on_select_product(p)
-                                        ),
-                                        ft.IconButton(
-                                            icon=ft.Icons.DELETE,
-                                            tooltip="Eliminar",
-                                            icon_color=ft.Colors.RED,
-                                            on_click=lambda e, p=product: self.on_delete_product(p)
-                                        ),
-                                    ]
-                                )
-                            ],
-                            spacing=5,
-                            alignment=ft.MainAxisAlignment.START,
-                            horizontal_alignment=ft.CrossAxisAlignment.CENTER
-                        ),
-                        padding=10,
+            GenericCard(
+                content=[
+                    ft.Image(
+                        src=f"/image/{product.image}",
+                        fit=ft.ImageFit.COVER,
                         width=300,
-                    )
-                ),
-                width=320,
-                padding=5,
+                        height=200,
+                    ),
+                    ft.Divider(color=ft.Colors.GREY_300),
+                    ft.Text(product.name, size=16, weight=ft.FontWeight.BOLD),
+                    ft.Text(f"${product.price:.2f}", size=14),
+                    ft.Text(product.code, size=12, color=ft.Colors.GREY_600),
+                ],
+                on_edit=lambda e, p=product: self.on_select_product(p),
+                on_delete=lambda e, p=product: self.on_delete_product(p),
             )
             for product in self.products
         ]
