@@ -107,6 +107,7 @@ class ProductView:
         self.form.code_field.value = product.code
         self.form.price_field.value = str(product.price)
         self.form.image_picker_controls.controls[1].value = f"Seleccionada: {product.image}"
+        self.form.selected_image_path = os.path.join("src/assets/image", product.image)
         self.dialog.open = True
         self.page.update()
         self.selected_product = product
@@ -200,7 +201,6 @@ class ProductView:
                     )
                 ),
                 width=320,
-                height=380,
                 padding=5,
             )
             for product in self.products
