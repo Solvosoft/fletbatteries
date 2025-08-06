@@ -1,11 +1,11 @@
 [project]
-name = "Template"
-version = "0.1.0"
-description = "Aplicación de Template"
+name = "FletBatteries"
+version = "0.0.1"
+description = "FletBatteries is a set of framework-like tools designed to simplify the development of applications with Flet."
 readme = "README.md"
 requires-python = ">=3.9"
 authors = [
-    { name = "Wilfredo BH", email = "liwbarqueroh@gmail.com" },
+    { name = "Solvo", email = "info@solvosoft.com" },
 ]
 dependencies = [
     "flet",
@@ -17,12 +17,12 @@ dependencies = [
 
 [tool.flet]
 org = "https://solvosoft.com/es/"
-product = "Template"
+product = "FletBatteries"
 company = "Solvo"
 copyright = "Copyright (C) 2025 by Solvo"
 
 [tool.flet.app]
 # ruta al directorio donde está main.py
 path = "./src/main.py"
-name = "Template"
+name = "FletBatteries"
 icon = "./assets/image/icon.png"
