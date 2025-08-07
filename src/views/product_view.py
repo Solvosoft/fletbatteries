@@ -176,19 +176,20 @@ class ProductView:
                 ],
                 on_edit=lambda e, p=product: self.on_select_product(p),
                 on_delete=lambda e, p=product: self.on_delete_product(p),
+                height=400,
             )
             for product in self.products
         ]
 
     def build_view_product(self) -> ft.Container:
 
-        self.product_list_container = ft.Column(
-            controls=self.build_product_cards(),
-            scroll=ft.ScrollMode.AUTO,
-            spacing=15,
-            wrap=False,
+        self.product_list_container = ft.GridView(
             expand=True,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER
+            max_extent=300,
+            child_aspect_ratio=0.6,
+            spacing=20,
+            run_spacing=15,
+            controls=self.build_product_cards()
         )
 
         return ft.Container(

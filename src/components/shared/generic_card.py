@@ -6,6 +6,7 @@ def GenericCard(
     on_edit=None,
     on_delete=None,
     width=300,
+    height=400,
 ):
     return ft.Container(
         content=ft.Card(
@@ -31,7 +32,7 @@ def GenericCard(
                         )
                     ],
                     spacing=5,
-                    alignment=ft.MainAxisAlignment.START,
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER
                 ),
                 padding=10,
@@ -39,5 +40,6 @@ def GenericCard(
             )
         ),
         width=width + 20,
+        height=height,
         padding=5,
     )
