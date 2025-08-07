@@ -8,7 +8,7 @@ class Footer(ft.Container):
             bgcolor=ft.Colors.BLUE_GREY_900,
             content=ft.Row(
                 [
-                    ft.Image(src="assets/image/icon.png", width=32, height=32),
+                    ft.Image(src="src/assets/image/icon.png", width=32, height=32),
                     ft.Text(
                         "© 2025 Solvo",
                         color=ft.Colors.WHITE,

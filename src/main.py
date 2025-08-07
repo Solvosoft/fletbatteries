@@ -44,7 +44,7 @@ class AppTemplate(ft.Container):
     def navbar_settings(self):
         return {
             "title": "Template",
-            "logo": "assets/image/icon.png",
+            "logo": "src/assets/image/icon.png",
             "color_bg": ft.Colors.LIGHT_BLUE_ACCENT_700,
             "color_text": ft.Colors.WHITE,
             "items": [
