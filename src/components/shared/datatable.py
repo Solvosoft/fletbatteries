@@ -61,7 +61,6 @@ def create_datatable(
         horizontal_lines=ft.border.BorderSide(border_width, border_color),
         columns=make_columns(columns, text_color),
         rows=make_rows(columns, data, text_color),
-
     )
 
 
@@ -82,7 +81,12 @@ def init_datatable():
     ]
 
 
-    return create_datatable(columns, data)
+    return ft.Container(
+        content=create_datatable(columns, data),
+        expand=True,
+        padding=10,
+        alignment=ft.alignment.center,
+    )
 
 
 
