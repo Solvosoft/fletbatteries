@@ -92,7 +92,6 @@ class ProductView:
 
     def cancel_delete(self):
         self.confirm_dialog.open = False
-        self.page.dialog = None
         self.page.update()
 
     def on_delete_product(self, product):
@@ -194,7 +193,6 @@ class ProductView:
 
         return ft.Container(
             expand=True,
-            bgcolor=ft.Colors.BLUE_GREY_50,
             content=ft.Column(
                 spacing=0,
                 controls=[
