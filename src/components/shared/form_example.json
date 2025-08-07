@@ -1,0 +1,36 @@
+{
+  "forms": [
+    {
+      "title": "Registro de Productos",
+      "name": "ProductForm",
+      "inputs": [
+        {
+          "name": "name",
+          "type": "CharField",
+          "label": "Nombre del producto",
+          "max_length": 150,
+          "required": true
+        },
+        {
+          "name": "code",
+          "type": "CharField",
+          "label": "Código del producto",
+          "max_length": 150,
+          "required": true
+        },
+        {
+          "name": "image",
+          "type": "ImageField",
+          "label": "Imagen del producto",
+          "required": false
+        },
+        {
+          "name": "price",
+          "type": "IntergerField",
+          "label": "Precio del producto",
+          "required": true
+        }
+      ]
+    }
+  ]
+}

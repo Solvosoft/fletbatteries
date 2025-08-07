@@ -5,10 +5,10 @@ import shutil
 from controls.product.product_control import ProductControl
 from controls.product.product_form import ProductForm
 from components.shared.generic_card import GenericCard
-
+from components.shared.generic_card_crud import GenericCardCRUD
 
 class ProductView:
-    def __init__(self, page: ft.Page):
+    def __init__(self, page: ft.Page, forms: []):
         self.page = page
         self.product_control = ProductControl()
         self.products = []
@@ -20,6 +20,7 @@ class ProductView:
         self.file_picker = ft.FilePicker(on_result=self.on_image_selected)
         self.page.overlay.append(self.file_picker)
         self.product_to_delete = None
+        self.forms = forms
 
         self.image_picker_controls = ft.Row(
             controls=[
@@ -145,7 +146,7 @@ class ProductView:
                 self.product_list_container.update()
                 self.page.update()
             except Exception as ex:
-                print(f"Error al agregar producto: {ex}")
+                print(f"Error al agregar producto view: {ex}")
                 self.dialog.title = ft.Text(ex, color=ft.Colors.RED)
                 self.page.update()
             try:
@@ -180,47 +181,39 @@ class ProductView:
             for product in self.products
         ]
 
+    def get_products(self):
+        return self.product_control.get_all_products()
+
+    def create_product(self, product):
+        return self.product_control.create_product(
+            product["name"],
+            product["code"],
+            product["price"],
+            product["image"]
+        )
+
     def build_view_product(self) -> ft.Container:
 
-        self.product_list_container = ft.GridView(
-            expand=True,
-            max_extent=300,
-            child_aspect_ratio=0.6,
-            spacing=20,
-            run_spacing=15,
-            controls=self.build_product_cards()
-        )
+        return GenericCardCRUD(
+            page=self.page,
+            title="Productos",
+            get_method=self.get_products,
+            create_method=self.create_product,
+            update_method=self.product_control.update_product,
+            delete_method=self.product_control.delete_product,
+            card_content=lambda item:[
+                ft.Image(
+                    src=f"/image/{item.image}",
+                    fit=ft.ImageFit.COVER,
+                    width=300,
+                    height=200,
+                ),
+                ft.Divider(color=ft.Colors.GREY_300),
+                ft.Text(item.name, size=16, weight=ft.FontWeight.BOLD),
+                ft.Text(f"${item.price:.2f}", size=14),
+                ft.Text(item.code, size=12, color=ft.Colors.GREY_600),
+            ],
+            form_name="ProductForm",
+            forms=self.forms,
 
-        return ft.Container(
-            expand=True,
-            content=ft.Column(
-                spacing=0,
-                controls=[
-                    ft.Container(
-                        bgcolor=ft.Colors.BLUE_GREY_900,
-                        padding=ft.Padding(20, 10, 20, 10),
-                        content=ft.Row(
-                            controls=[
-                                ft.Text("Productos", size=22, color=ft.Colors.WHITE, weight=ft.FontWeight.BOLD),
-                                ft.Container(expand=True),
-                                ft.ElevatedButton(
-                                    text="Agregar",
-                                    icon=ft.Icons.ADD,
-                                    bgcolor=ft.Colors.AMBER,
-                                    color=ft.Colors.BLACK,
-                                    on_click=self.on_add_product,
-                                )
-                            ],
-                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                        )
-                    ),
-                    ft.Container(
-                        expand=True,
-                        padding=20,
-                        content=self.product_list_container,
-                        alignment=ft.alignment.center,
-                    )
-                ]
-            )
-        )
+        ).build_view()

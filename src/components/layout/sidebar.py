@@ -4,7 +4,7 @@ from controls.router.views import Views
 
 class Sidebar(ft.Container):
 
-    def __init__(self, app_layout): #, store: DataStore):
+    def __init__(self, app_layout, views: []): #, store: DataStore):
         # self.store: DataStore = store
         self.app_layout = app_layout
         self.nav_rail_visible = True
@@ -15,7 +15,7 @@ class Sidebar(ft.Container):
                 icon=v.icon,
                 selected_icon=v.icon,
                 data=v.route,
-            ) for v in Views(self.app_layout.page).views if v.position == 1
+            ) for v in views if v.position == 1
         ]
 
         self.top_nav_rail = ft.NavigationRail(

@@ -26,10 +26,10 @@ class RouteView:
     position: int
 
 class Views:
-    def __init__(self, page):
+    def __init__(self, page, forms):
         self.views = [
             RouteView("Inicio", "/", ft.Icons.HOME, build_view_home(page), position["side"]),
-            RouteView("Products", "/products", ft.Icons.LOCAL_MALL, ProductView(page).build_view_product(), position["side"]),
+            RouteView("Products", "/products", ft.Icons.LOCAL_MALL, ProductView(page, forms).build_view_product(), position["side"]),
             RouteView("Users", "/users", ft.Icons.PERSON, build_view_user(page), position["side"]),
             RouteView("Customer", "/customers", ft.Icons.SUPERVISED_USER_CIRCLE, build_view_customer(page), position["side"]),
             RouteView("Login", "/login", ft.Icons.LOGIN, build_view_login(page), position["top"]),

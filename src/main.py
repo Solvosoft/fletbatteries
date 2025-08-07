@@ -4,6 +4,7 @@ from components.layout.layout import Layout
 from components.layout.footer import Footer
 from controls.router.views import Views
 from controls.router.router import router
+from components.shared.form import GenerateForms
 
 
 class AppTemplate(ft.Container):
@@ -16,10 +17,10 @@ class AppTemplate(ft.Container):
         self.page.theme = ft.Theme(font_family="Verdana", color_scheme_seed=ft.Colors.BLUE_GREY_500)
         self.page.theme.page_transitions.windows = ft.PageTransitionTheme.CUPERTINO
         self.page.fonts = {"Pacifico": "./fonts/Pacifico-Regular.ttf"}
-
-        self.views = Views(page=self.page).views
+        self.forms = GenerateForms(self.page).forms
+        self.views = Views(page=self.page, forms=self.forms).views
         self.navbar = Navbar(page, settings=self.navbar_settings())
-        self.layout = Layout(self.navbar, page, self.layout_settings())
+        self.layout = Layout(self.navbar, page, self.views)
         self.footer = Footer()
         self.layout_container = self.create_layout()
         self.page.add(self.create_layout())
@@ -56,10 +57,6 @@ class AppTemplate(ft.Container):
     def redirect_navbar(self, e):
         self.page.go(e.control.data)
 
-    def layout_settings(self):
-        return {
-
-        }
     
 if __name__ == "__main__":
     ft.app(target=AppTemplate, assets_dir="src/assets")

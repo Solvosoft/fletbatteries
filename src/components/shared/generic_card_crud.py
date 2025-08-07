@@ -5,8 +5,8 @@ from components.shared.generic_card import GenericCard
 
 class GenericCardCRUD:
     def __init__(self, page: ft.Page, title: str, get_method, create_method,
-                 update_method, delete_method, card_content: [], top_bar_color=ft.Colors.BLUE_GREY_900,
-                 add_button_color=ft.Colors.AMBER, add_button=None):
+                 update_method, delete_method, card_content: [], form_name: str, forms: [],
+                 top_bar_color=ft.Colors.BLUE_GREY_900,add_button_color=ft.Colors.AMBER, add_button=None):
         self.page = page
         self.title = title
         self.get_method = get_method
@@ -18,7 +18,13 @@ class GenericCardCRUD:
         self.card_content = card_content
         self.selected_item_to_delete = None
         self.selected_item_to_update = None
-        self.form_dialog = None
+        self.form_name = form_name
+        self.forms = forms
+        self.form = None
+        for form in self.forms:
+            if form.name == self.form_name:
+                self.form = form
+
 
         if not add_button:
             self.add_button = ft.ElevatedButton(
@@ -26,7 +32,7 @@ class GenericCardCRUD:
                 icon=ft.Icons.ADD,
                 bgcolor=add_button_color,
                 color=ft.Colors.BLACK,
-                on_click=self.create_method,
+                on_click=self.on_add_item,
             )
         else:
             self.add_button = add_button
@@ -45,13 +51,35 @@ class GenericCardCRUD:
             actions_alignment=ft.MainAxisAlignment.END,
         )
 
+        self.form_dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Text(f"Agregar {self.form.title}"),
+            content=ft.Column(
+                controls=self.form.get_inputs(),
+                tight=True,
+                spacing=10
+            ),
+            actions=[
+                ft.TextButton("Cancelar", on_click=lambda e: self.close_dialog()),
+                ft.ElevatedButton("Guardar", on_click=self.submit),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+
+        self.page.overlay.append(self.form_dialog)
+        self.page.overlay.append(self.delete_dialog)
+
     def on_add_item(self, e):
-        #Limpiar formulario
+        self.form.clean()
         self.form_dialog.open = True
         self.page.update()
 
     def cancel_delete(self):
         self.delete_dialog.open = False
+        self.page.update()
+
+    def close_dialog(self):
+        self.form_dialog.open = False
         self.page.update()
 
     def confirm_delete(self, e):
@@ -60,8 +88,8 @@ class GenericCardCRUD:
             try:
                 self.delete_method(item)
                 self.list_item.remove(item)
-                self.product_list_container.controls = self.build_product_cards()
-                self.product_list_container.update()
+                self.list_item_container.controls = self.build_item_cards()
+                self.list_item_container.update()
             except Exception as ex:
                 print(f"Error al eliminar producto: {ex}")
             finally:
@@ -74,25 +102,26 @@ class GenericCardCRUD:
         self.selected_item_to_delete = item
         self.delete_dialog.title = ft.Text(f"Eliminar {self.title}")
 
-    def submit(self):
-        #validar el fomulario
-        try:
-            item = None #Obtner el item del formulario
-            if not self.selected_item_to_update:
-                item = self.create_method(item)
-            else:
-                item = self.update_method(item)
-                self.list_item.remove(self.selected_item_to_update)
-
-            self.list_item.append(item)
-            self.form_dialog.open = False
-            self.product_list_container.controls = self.build_product_cards()
-            self.product_list_container.update()
-            self.page.update()
-        except Exception as ex:
-            print(f"Error al agregar producto: {ex}")
-            self.form_dialog.title = ft.Text(ex, color=ft.Colors.RED)
-            self.page.update()
+    def submit(self, e):
+        if self.form.is_valid():
+            try:
+                self.form.activate_on_upload()
+                item = self.form.get_item()
+                if not self.selected_item_to_update:
+                    item = self.create_method(item)
+                else:
+                    item = self.update_method(item)
+                    self.list_item.remove(self.selected_item_to_update)
+                self.list_item.append(item)
+                self.form_dialog.open = False
+                self.list_item_container.controls = self.build_item_cards()
+                self.list_item_container.update()
+                self.page.update()
+            except Exception as ex:
+                print(f"Error al agregar producto: {ex}")
+                self.form_dialog.title = ft.Text(ex, color=ft.Colors.RED)
+                self.page.update()
+        self.page.update()
 
     def build_item_cards(self):
         try:
@@ -103,7 +132,7 @@ class GenericCardCRUD:
 
         return [
             GenericCard(
-                content=self.card_content,
+                content=self.card_content(item),
                 on_edit=lambda e, i=item: self.on_select_item(i),
                 on_delete=lambda e, i=item: self.on_delete_item(i),
                 height=400,
