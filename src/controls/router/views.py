@@ -10,6 +10,7 @@ from views.product_view import ProductView
 from views.customer_view import build_view_customer
 from views.user_view import build_view_user
 from views.profile import build_view_profile
+from views.spinner import build_view_spinner
 
 
 position = {
@@ -33,6 +34,7 @@ class Views:
             RouteView("Products", "/products", ft.Icons.LOCAL_MALL, lambda:ProductView(page, forms).build_view_product(), position["side"]),
             RouteView("Users", "/users", ft.Icons.PERSON, lambda:build_view_user(page), position["side"]),
             RouteView("Customer", "/customers", ft.Icons.SUPERVISED_USER_CIRCLE, lambda:build_view_customer(page), position["side"]),
+            RouteView("Spinner", "/spinner", ft.Icons.CALL_TO_ACTION, lambda:build_view_spinner(page), position["side"]),
             RouteView("Login", "/login", ft.Icons.LOGIN, lambda:build_view_login(page), position["top"]),
             RouteView("Profile", "/profile", ft.Icons.PERSON, lambda:build_view_profile(page), position["top"]),
             RouteView("Settings", "/settings", ft.Icons.SETTINGS, lambda:build_view_settings(page), position["top"]),
