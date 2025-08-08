@@ -4,12 +4,13 @@ from components.shared.generic_card import GenericCard
 
 
 class GenericCardCRUD:
-    def __init__(self, page: ft.Page, title: str, get_method, create_method,
+    def __init__(self, page: ft.Page, title: str, get_method, get_method_by_id, create_method,
                  update_method, delete_method, card_content: [], form_name: str, forms: [],
                  top_bar_color=ft.Colors.BLUE_GREY_900,add_button_color=ft.Colors.AMBER, add_button=None):
         self.page = page
         self.title = title
         self.get_method = get_method
+        self.get_method_by_id = get_method_by_id
         self.create_method = create_method
         self.update_method = update_method
         self.delete_method = delete_method
@@ -67,7 +68,6 @@ class GenericCardCRUD:
         )
 
         self.page.overlay.append(self.form_dialog)
-        self.page.overlay.append(self.delete_dialog)
 
     def on_add_item(self, e):
         self.form.clean()
@@ -84,34 +84,46 @@ class GenericCardCRUD:
 
     def confirm_delete(self, e):
         item = self.selected_item_to_delete
-        if product:
+        if item:
             try:
                 self.delete_method(item)
                 self.list_item.remove(item)
                 self.list_item_container.controls = self.build_item_cards()
                 self.list_item_container.update()
+                self.delete_dialog.open = False
+                self.page.update()
             except Exception as ex:
                 print(f"Error al eliminar producto: {ex}")
             finally:
                 self.selected_item_to_delete = None
 
-    def on_select_item(self, item):
-        self.selected_item_to_update = item
-
     def on_delete_item(self, item):
+        self.page.overlay.append(self.delete_dialog)
         self.selected_item_to_delete = item
-        self.delete_dialog.title = ft.Text(f"Eliminar {self.title}")
+        self.delete_dialog.title = ft.Text(f"Eliminar")
+        self.delete_dialog.open = True
+        self.page.update()
+
+    def on_select_item(self, item):
+        self.selected_item_to_update = self.get_method_by_id(item['id'])
+        for field, value in item.items():
+            for input in self.form.inputs:
+                if input.name == field:
+                    input.set_value(value)
+        self.form_dialog.open = True
+        self.page.update()
 
     def submit(self, e):
         if self.form.is_valid():
             try:
-                self.form.activate_on_upload()
+
                 item = self.form.get_item()
-                if not self.selected_item_to_update:
+                if item["id"] == 0 or item["id"] == "":
                     item = self.create_method(item)
                 else:
                     item = self.update_method(item)
                     self.list_item.remove(self.selected_item_to_update)
+                self.form.activate_on_upload()
                 self.list_item.append(item)
                 self.form_dialog.open = False
                 self.list_item_container.controls = self.build_item_cards()

@@ -48,7 +48,7 @@ class Form:
         return item
 
 class Input:
-    def __init__(self, page: ft.Page, name: str, type: str, label: str, widget: str, required: bool, max_length: int, widget_flet: str ):
+    def __init__(self, page: ft.Page, name: str, type: str, label: str, widget: str, required: bool, max_length: int, widget_flet: str,  visible: bool = True ):
         self.page = page
         self.name = name
         self.type = type
@@ -57,16 +57,19 @@ class Input:
         self.required = required
         self.max_length = max_length
         self.widget_flet = widget_flet
+        self.visible = visible
         self.file_picker = ft.FilePicker(on_result=self.on_file_picked)
         self.widget = None
         if self.widget_flet == "TextField":
             self.widget = ft.TextField(
                 label=self.label,
+                visible=self.visible,
             )
         elif self.widget_flet == "IntergerField":
             self.widget = ft.TextField(
                 label=self.label,
                 keyboard_type=ft.KeyboardType.NUMBER,
+                visible=self.visible,
             )
         elif self.widget_flet == "ImageField":
             self.page.overlay.append(self.file_picker)
@@ -96,19 +99,24 @@ class Input:
                 self.widget.controls[0].data = {"path": "", "name": ""}
         self.page.update()
 
-
     def on_upload(self):
         if self.type == "ImageField":
             try:
                 os.makedirs("src/assets/image", exist_ok=True)
-                shutil.copy(self.widget.controls[0].data["path"],
-                            os.path.join("src/assets/image", self.widget.controls[0].data["name"]))
+                src_path = self.widget.controls[0].data["path"]
+                dest_path = os.path.join("src/assets/image", self.widget.controls[0].data["name"])
+                if os.path.abspath(src_path) != os.path.abspath(dest_path):
+                    shutil.copy(src_path, dest_path)
             except Exception as ex:
                 print(f"Error al copiar imagen: {ex}")
             self.page.update()
-        else:
-            pass
 
+    def set_value(self, value):
+        if self.widget_flet == "TextField" or self.widget_flet == "IntergerField":
+            self.widget.value = value
+        elif self.widget_flet == "ImageField":
+            self.widget.controls[0].data = {"path": "src/assets/image/"+value, "name": value}
+            self.widget.controls[1] = ft.Text("Seleccionada: " + value)
 
     def is_valid(self):
         if self.widget_flet == "TextField":
@@ -152,11 +160,14 @@ class GenerateForms:
             for input in form["inputs"]:
                 if input["type"] == "CharField":
                     inputs.append(Input(self.page, input["name"], input["type"], input["label"], "TextInput",
-                                        input["required"], input["max_length"], "TextField"))
+                                        input["required"], input["max_length"], "TextField",
+                                        input.get("visible", True)))
                 elif input["type"] == "IntergerField":
                     inputs.append(Input(self.page, input["name"], input["type"], input["label"], "IntergerField",
-                                        input["required"], 0, "IntergerField"))
+                                        input["required"], 0, "IntergerField",
+                                        input.get("visible", True)))
                 elif input["type"] == "ImageField":
                     inputs.append(Input(self.page, input["name"], input["type"], input["label"], "ImageField",
-                                        input["required"], 0, "ImageField"))
+                                        input["required"], 0, "ImageField",
+                                        input.get("visible", True)))
             self.forms.append(Form(form["title"], form["name"], inputs))

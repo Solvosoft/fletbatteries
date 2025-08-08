@@ -5,6 +5,13 @@
       "name": "ProductForm",
       "inputs": [
         {
+          "name": "id",
+          "type": "IntergerField",
+          "label": "ID del producto",
+          "required": false,
+          "visible": false
+        },
+        {
           "name": "name",
           "type": "CharField",
           "label": "Nombre del producto",

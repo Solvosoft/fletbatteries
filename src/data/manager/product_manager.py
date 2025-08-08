@@ -45,7 +45,33 @@ class ProductManager:
     def get_all_products(self):
         db = self.dbm.get_session()
         try:
-            return db.query(Product).all()
+            products = db.query(Product).all()
+            products_list = [
+                {
+                    "id": p.id,
+                    "code": p.code,
+                    "name": p.name,
+                    "price": p.price,
+                    "image": p.image
+                }
+                for p in products
+            ]
+            return products_list
+        finally:
+            self.dbm.close_session(db)
+
+    def get_product_by_id(self, id: int):
+        db = self.dbm.get_session()
+        try:
+            product = db.query(Product).filter(Product.id == id).first()
+            product_dict = {
+                "id": product.id,
+                "code": product.code,
+                "name": product.name,
+                "price": product.price,
+                "image": product.image
+            }
+            return product_dict
         finally:
             self.dbm.close_session(db)
 

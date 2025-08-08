@@ -8,6 +8,9 @@ class ProductControl:
     def get_all_products(self):
         return self.manager.get_all_products()
 
+    def get_product_by_id(self, id):
+        return self.manager.get_product_by_id(id)
+
     def create_product(self, name, code, price, image):
         return self.manager.create_product(code, name, price, image)
 
