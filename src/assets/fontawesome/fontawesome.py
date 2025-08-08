@@ -2561,6 +2561,7 @@ def get_icon(name, color=None, size=40):
     full_path = os.path.join("src/assets/fontawesome", path)
 
     if color:
+        print(f"Applying color {color} to {full_path}")
         full_path = apply_color_to_svg(full_path, color)
 
     return ft.Image(
@@ -2587,3 +2588,12 @@ def social_item(name, link, tooltip="", color=None, width=100, height=100, size=
         ),
         elevation=4,
     )
+
+
+def get_button_icon(name, color="black", size=15, callback=None, height=20, width=60):
+    return  ft.ElevatedButton(
+            content=get_icon(name, color=color, size=size),
+            width=width,
+            height=height,
+            on_click=callback,
+        )

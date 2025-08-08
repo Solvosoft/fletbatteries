@@ -4,14 +4,15 @@ import typing as t
 
 from dataclasses import dataclass
 from views.home_view import build_view_home
-from views.login import build_view_login
+from views.login_view import build_view_login
 from views.settings_view import build_view_settings
 from views.product_view import ProductView
 from views.customer_view import build_view_customer
 from views.user_view import build_view_user
-from views.profile import build_view_profile
-from views.spinner import build_view_spinner
-from views.modals import build_view_modals
+from views.profile_view import build_view_profile
+from views.spinner_view import build_view_spinner
+from views.modals_view import build_view_modals
+from views.fontawesome_view import build_view_fontawesome
 
 
 position = {
@@ -37,6 +38,7 @@ class Views:
             RouteView("Customer", "/customers", ft.Icons.SUPERVISED_USER_CIRCLE, lambda:build_view_customer(page), position["side"]),
             RouteView("Spinner", "/spinner", ft.Icons.CALL_TO_ACTION, lambda:build_view_spinner(page), position["side"]),
             RouteView("Modals", "/modals", ft.Icons.CALL_TO_ACTION, lambda:build_view_modals(page), position["side"]),
+            RouteView("Fontawesome", "/fontawesome", ft.Icons.CALL_TO_ACTION, lambda:build_view_fontawesome(page), position["side"]),
             RouteView("Login", "/login", ft.Icons.LOGIN, lambda:build_view_login(page), position["top"]),
             RouteView("Profile", "/profile", ft.Icons.PERSON, lambda:build_view_profile(page), position["top"]),
             RouteView("Settings", "/settings", ft.Icons.SETTINGS, lambda:build_view_settings(page), position["top"]),
