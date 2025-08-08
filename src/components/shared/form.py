@@ -132,6 +132,8 @@ class Input:
             if self.required and self.widget.value == "":
                 self.widget.error = ft.Text("Este campo es requerido", color=ft.Colors.RED)
                 return False
+            if not self.required and self.widget.value == "":
+                return True
             try:
                 parsed = int(self.widget.value)
                 if parsed < 0:

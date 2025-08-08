@@ -116,9 +116,8 @@ class GenericCardCRUD:
     def submit(self, e):
         if self.form.is_valid():
             try:
-
                 item = self.form.get_item()
-                if item["id"] == 0 or item["id"] == "":
+                if item["id"] == 0 or item["id"] is None:
                     item = self.create_method(item)
                 else:
                     item = self.update_method(item)
