@@ -6,7 +6,7 @@ from components.shared.generic_card import GenericCard
 class GenericCardCRUD:
     def __init__(self, page: ft.Page, title: str, get_method, get_method_by_id, create_method,
                  update_method, delete_method, card_content: [], form_name: str, forms: [],
-                 top_bar_color=ft.Colors.BLUE_GREY_900,add_button_color=ft.Colors.AMBER, add_button=None):
+                 top_bar_color=ft.Colors.BLUE_GREY_900,add_button_color=ft.Colors.GREEN_700, add_color=ft.Colors.WHITE, add_button=None):
         self.page = page
         self.title = title
         self.get_method = get_method
@@ -26,13 +26,12 @@ class GenericCardCRUD:
             if form.name == self.form_name:
                 self.form = form
 
-
         if not add_button:
             self.add_button = ft.ElevatedButton(
                 text="Agregar",
                 icon=ft.Icons.ADD,
                 bgcolor=add_button_color,
-                color=ft.Colors.BLACK,
+                color=add_color,
                 on_click=self.on_add_item,
             )
         else:
@@ -100,7 +99,6 @@ class GenericCardCRUD:
     def on_delete_item(self, item):
         self.page.overlay.append(self.delete_dialog)
         self.selected_item_to_delete = item
-        self.delete_dialog.title = ft.Text(f"Eliminar")
         self.delete_dialog.open = True
         self.page.update()
 
@@ -130,7 +128,7 @@ class GenericCardCRUD:
                 self.page.update()
             except Exception as ex:
                 print(f"Error al agregar producto: {ex}")
-                self.form_dialog.title = ft.Text(ex, color=ft.Colors.RED)
+                self.form_dialog.title = ft.Text(str(ex), color=ft.Colors.RED)
                 self.page.update()
         self.page.update()
 
