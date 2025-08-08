@@ -9,6 +9,14 @@ header_style: dict = {
     "expand": False,
 }
 
+header_cols_style: dict = {
+    "border_radius": 8,
+    "border": ft.border.all(1, "#ebebeb"),
+    "bgcolor": ft.Colors.WHITE10,
+    "padding": 10,
+    "expand": True,
+}
+
 class Header(ft.Container):
 
     def __init__(self, title, datatable):
@@ -88,15 +96,6 @@ class Header(ft.Container):
 
         self.datatable.fill_data_table(results)
 
-
-header_cols_style: dict = {
-    "border_radius": 8,
-    "border": ft.border.all(1, "#ebebeb"),
-    "bgcolor": ft.Colors.WHITE10,
-    "padding": 10,
-    "expand": True,
-}
-
 class HeaderColumn(ft.Container):
     def __init__(self, columns, header):
         super().__init__(**header_cols_style)
@@ -133,12 +132,12 @@ class HeaderColumn(ft.Container):
         self.dd_page_size = ft.Dropdown(
             width=90,
             options=[
-                ft.dropdown.Option("1"),
+                ft.dropdown.Option("5"),
                 ft.dropdown.Option("10"),
                 ft.dropdown.Option("25"),
                 ft.dropdown.Option("50")
             ],
-            value="1",
+            value="10",
             on_change=lambda e: self._change_page_size(int(e.control.value)),
         )
 
@@ -293,7 +292,6 @@ class HeaderColumn(ft.Container):
     def _go_last(self):
         self.header.datatable.last_page()
 
-
 class DataTable(ft.DataTable):
     def __init__(
         self,
@@ -430,7 +428,7 @@ class DataTable(ft.DataTable):
     def fill_data_table(self, data=None):
         if data is not None:
             self.current_data = list(data)
-            self.current_page = 1
+            self.current_page = 10
         self.rows = self.create_rows(self._get_page_items())
         self.update()
         try:
@@ -438,7 +436,6 @@ class DataTable(ft.DataTable):
                 self.on_pagination_update()
         except Exception as ex:
             print(f"Error al actualizar paginación: {ex}")
-
 
 class FBDataTable(ft.Container):
 
@@ -470,29 +467,4 @@ class FBDataTable(ft.Container):
             alignment=ft.alignment.top_center,
         )
 
-def init_datatable():
 
-    data = [
-        {"id": 1, "name": "Ana", "last_name": "Gómez", "phone": 88888888, "email": "ana@gmail.com"},
-        {"id": 2, "name": "Luis", "last_name": "Rojas", "phone": 55555555, "email": "luis@gmail.com"},
-        {"id": 3, "name": "Eva", "last_name": "Zamora", "phone": 66666666, "email": "eva@gmail.com"},
-        {"id": 4, "name": "Juan", "last_name": "Perez", "phone": 77777777, "email": "juan@gmail.com"},
-        {"id": 5, "name": "Maria", "last_name": "Rodríguez", "phone": 88888888, "email": "maria@gmail.com"},
-    ]
-
-    columns_names = [
-        {"name": "ID", "type": "filter", "expand": True},
-        {"name": "Name", "type": "filter", "expand": True},
-        {"name": "Last Name", "type": "text", "expand": True},
-        {"name": "Phone", "type": "filter", "expand": True},
-        {"name": "Email", "type": "text", "expand": True},
-    ]
-
-    datatable = FBDataTable(data, columns_names, title="Customers")
-
-    return ft.Container(
-        content=datatable,
-        expand=True,
-        padding=10,
-        alignment=ft.alignment.center,
-    )
