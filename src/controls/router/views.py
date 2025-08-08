@@ -11,6 +11,7 @@ from views.customer_view import build_view_customer
 from views.user_view import build_view_user
 from views.profile import build_view_profile
 from views.spinner import build_view_spinner
+from views.modals import build_view_modals
 
 
 position = {
@@ -35,6 +36,7 @@ class Views:
             RouteView("Users", "/users", ft.Icons.PERSON, lambda:build_view_user(page), position["side"]),
             RouteView("Customer", "/customers", ft.Icons.SUPERVISED_USER_CIRCLE, lambda:build_view_customer(page), position["side"]),
             RouteView("Spinner", "/spinner", ft.Icons.CALL_TO_ACTION, lambda:build_view_spinner(page), position["side"]),
+            RouteView("Modals", "/modals", ft.Icons.CALL_TO_ACTION, lambda:build_view_modals(page), position["side"]),
             RouteView("Login", "/login", ft.Icons.LOGIN, lambda:build_view_login(page), position["top"]),
             RouteView("Profile", "/profile", ft.Icons.PERSON, lambda:build_view_profile(page), position["top"]),
             RouteView("Settings", "/settings", ft.Icons.SETTINGS, lambda:build_view_settings(page), position["top"]),
