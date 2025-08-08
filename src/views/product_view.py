@@ -6,6 +6,7 @@ from controls.product.product_control import ProductControl
 from controls.product.product_form import ProductForm
 from components.shared.generic_card import GenericCard
 from components.shared.generic_card_crud import GenericCardCRUD
+from controls.utils import text_with_truncate
 
 class ProductView:
     def __init__(self, page: ft.Page, forms: []):
@@ -209,7 +210,8 @@ class ProductView:
                     height=200,
                 ),
                 ft.Divider(color=ft.Colors.GREY_300),
-                ft.Text(item.name, size=16, weight=ft.FontWeight.BOLD),
+                text_with_truncate(item.name, size=14, bold=True, max_length=15, max_line=1),
+                # ft.Text(item.name, size=16, weight=ft.FontWeight.BOLD),
                 ft.Text(f"${item.price:.2f}", size=14),
                 ft.Text(item.code, size=12, color=ft.Colors.GREY_600),
             ],
