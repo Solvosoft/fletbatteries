@@ -1,5 +1,6 @@
 import flet as ft
 from components.shared.rotating_boxes_loader import RotatingBoxesLoader
+from components.shared.loader import SpinnerLoader
 
 def build_view_spinner(page: ft.Page) -> ft.Container:
 
@@ -16,6 +17,20 @@ def build_view_spinner(page: ft.Page) -> ft.Container:
         border_width=2.5,
     )
 
+    spinner = SpinnerLoader(
+        steps=12,
+        size=120,
+        arm_length=34,
+        thickness=10,
+        base_color="#333333",
+        min_opacity=0.2,
+        interval=0.08,
+        text="LOADING...",
+        text_size=16,
+        text_weight=ft.FontWeight.W_600,
+        text_color="#666666",
+    )
+
     return ft.Container(
         expand=True,
         content=ft.Column(
@@ -24,6 +39,12 @@ def build_view_spinner(page: ft.Page) -> ft.Container:
                 ft.Divider(),
                 ft.Container(
                     content=loader,
+                    expand=True,
+                    alignment=ft.alignment.center,
+                ),
+                ft.Divider(),
+                ft.Container(
+                    content=spinner,
                     expand=True,
                     alignment=ft.alignment.center,
                 ),
