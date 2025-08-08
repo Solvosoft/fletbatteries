@@ -2558,7 +2558,7 @@ def get_icon(name, color=None, size=40):
         print(f"[get_icon] Icono no encontrado: {name}")
         return None
 
-    full_path = os.path.join("assets/fontwesome", path)
+    full_path = os.path.join("src/assets/fontawesome", path)
 
     if color:
         full_path = apply_color_to_svg(full_path, color)

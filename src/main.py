@@ -17,6 +17,8 @@ class AppTemplate(ft.Container):
         self.page.theme = ft.Theme(font_family="Verdana", color_scheme_seed=ft.Colors.BLUE_GREY_500)
         self.page.theme.page_transitions.windows = ft.PageTransitionTheme.CUPERTINO
         self.page.fonts = {"Pacifico": "./fonts/Pacifico-Regular.ttf"}
+        # self.page.scroll = ft.ScrollMode.AUTO
+        self.page.expand = True
         self.forms = GenerateForms(self.page).forms
         self.views = Views(page=self.page, forms=self.forms).views
         self.navbar = Navbar(page, settings=self.navbar_settings())
