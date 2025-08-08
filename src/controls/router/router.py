@@ -7,7 +7,9 @@ from components.layout.footer import Footer
 def router(self, route, views):
     # Busca en la lista de vistas la que coincida con la ruta actual; si no encuentra ninguna, usa la primera por defecto
 
-    content = next((v.view for v in views if v.route == route), views[0].view)
+    rv = next((v for v in views if v.route == route), views[0])
+
+    content = rv.builder()
 
     # Limpia todos los controles actuales de la página
     if route == "/login" :
