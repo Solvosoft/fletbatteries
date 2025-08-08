@@ -12,8 +12,8 @@ class ProductView:
         self.product_control = ProductControl()
         self.forms = forms
 
-    def get_products(self):
-        return self.product_control.get_all_products()
+    def get_products(self, page_number, page_size):
+        return self.product_control.get_products_paginated(page_number, page_size)
 
     def get_product_by_id(self, id):
         return self.product_control.get_product_by_id(id)
@@ -63,5 +63,7 @@ class ProductView:
             ],
             form_name="ProductForm",
             forms=self.forms,
+            card_width=500,
+            card_height=400,
 
         ).build_view()

@@ -60,6 +60,41 @@ class ProductManager:
         finally:
             self.dbm.close_session(db)
 
+    def get_products_paginated(self, page_number=1, page_size=10, order_by_attr="id", descending=False):
+        db = self.dbm.get_session()
+        try:
+            # Verifica que el atributo exista en el modelo
+            if not hasattr(Product, order_by_attr):
+                raise ValueError(f"Atributo '{order_by_attr}' no existe en Product")
+
+            order_column = getattr(Product, order_by_attr)
+            if descending:
+                order_column = order_column.desc()
+
+            # Calcular el offset (paginación)
+            offset_value = (page_number - 1) * page_size
+
+            products = (
+                db.query(Product)
+                .order_by(order_column)
+                .offset(offset_value)
+                .limit(page_size)
+                .all()
+            )
+
+            return [
+                {
+                    "id": p.id,
+                    "code": p.code,
+                    "name": p.name,
+                    "price": p.price,
+                    "image": p.image
+                }
+                for p in products
+            ]
+        finally:
+            self.dbm.close_session(db)
+
     def get_product_by_id(self, id: int):
         db = self.dbm.get_session()
         try:

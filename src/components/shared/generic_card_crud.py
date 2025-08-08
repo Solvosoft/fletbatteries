@@ -1,12 +1,13 @@
 import flet as ft
 
 from components.shared.generic_card import GenericCard
-
+from components.shared.rotating_boxes_loader import RotatingBoxesLoader
 
 class GenericCardCRUD:
     def __init__(self, page: ft.Page, title: str, get_method, get_method_by_id, create_method,
                  update_method, delete_method, card_content: [], form_name: str, forms: [],
-                 top_bar_color=ft.Colors.BLUE_GREY_900,add_button_color=ft.Colors.GREEN_700, add_color=ft.Colors.WHITE, add_button=None):
+                 top_bar_color=ft.Colors.BLUE_GREY_900, add_button_color=ft.Colors.GREEN_700, add_color=ft.Colors.WHITE,
+                 add_button=None, page_size = 25, card_width=300, card_height=400, aspect_ratio=0.7):
         self.page = page
         self.title = title
         self.get_method = get_method
@@ -16,12 +17,32 @@ class GenericCardCRUD:
         self.delete_method = delete_method
         self.list_item = []
         self.list_item_container = None
+        self.page_number = 1
+        self.page_size = page_size
+        self.more_items = True
+        self.is_loading = False
         self.card_content = card_content
         self.selected_item_to_delete = None
         self.selected_item_to_update = None
         self.form_name = form_name
         self.forms = forms
         self.form = None
+        self.card_width = card_width
+        self.card_height = card_height
+        self.aspect_ratio = aspect_ratio
+        self.spinner = RotatingBoxesLoader(
+                size=40,
+                color_a_border="#e9665a",
+                color_b_border="#7df6dd",
+                color_a_bg=None,
+                color_b_bg="#1f262f",
+                text="Loading...",
+                text_size=7,
+                text_color="white",
+                step_seconds=0.7,
+                border_width=2.5,
+            )
+        self.spinner.visible = False
         for form in self.forms:
             if form.name == self.form_name:
                 self.form = form
@@ -46,7 +67,7 @@ class GenericCardCRUD:
             content=ft.Text("¿Estás seguro de que deseas eliminar este item?"),
             actions=[
                 ft.TextButton("Cancelar", on_click=lambda e: self.cancel_delete()),
-                ft.TextButton("Eliminar", on_click= self.confirm_delete),
+                ft.TextButton("Eliminar", on_click=self.confirm_delete),
             ],
             actions_alignment=ft.MainAxisAlignment.END,
         )
@@ -132,31 +153,60 @@ class GenericCardCRUD:
                 self.page.update()
         self.page.update()
 
-    def build_item_cards(self):
-        try:
-            self.list_item = self.get_method()
-        except Exception as ex:
-            print(f"Error al obtener {self.title}: {ex}")
-            self.list_item = []
+    def load_next_page(self):
+        if not self.is_loading and self.more_items:
+            self.is_loading = True
+            self.spinner.visible = True
+            self.page.update()
+            try:
+                self.page_number += 1
+                result = self.get_method(self.page_number, self.page_size)
+                if not result:
+                    self.more_items = False
+                    self.spinner.visible = False
+                    self.page.update()
+                    return
+                if len(result) < self.page_size:
+                    self.more_items = False
+                self.list_item.extend(result)
+                self.list_item_container.controls = self.build_item_cards()
+                self.list_item_container.update()
+                self.spinner.visible = False
+                self.page.update()
+            finally:
+                self.is_loading = False
 
+    def _on_grid_scroll(self, e: ft.OnScrollEvent):
+        threshold = 200
+        if e.pixels is not None and e.max_scroll_extent is not None:
+            if e.pixels >= e.max_scroll_extent - threshold:
+                self.load_next_page()
+
+    def build_item_cards(self):
         return [
             GenericCard(
                 content=self.card_content(item),
                 on_edit=lambda e, i=item: self.on_select_item(i),
                 on_delete=lambda e, i=item: self.on_delete_item(i),
-                height=400,
+                width=self.card_width,
+                height=self.card_height,
             )
             for item in self.list_item
+
         ]
 
     def build_view(self) -> ft.Container:
 
+        self.list_item = self.get_method(self.page_number, self.page_size)
+
         self.list_item_container = ft.GridView(
             expand=True,
-            max_extent=300,
-            child_aspect_ratio=0.6,
+            max_extent=self.card_width,
+            child_aspect_ratio=self.aspect_ratio,
             spacing=20,
             run_spacing=15,
+            on_scroll=self._on_grid_scroll,
+            on_scroll_interval=100,
             controls=self.build_item_cards()
         )
 
@@ -170,7 +220,12 @@ class GenericCardCRUD:
                         padding=ft.Padding(20, 10, 20, 10),
                         content=ft.Row(
                             controls=[
-                                ft.Text(self.title, size=22, color=ft.Colors.WHITE, weight=ft.FontWeight.BOLD),
+                                ft.Row(
+                                    controls=[
+                                        ft.Text(self.title, size=22, color=ft.Colors.WHITE, weight=ft.FontWeight.BOLD),
+                                        self.spinner,
+                                    ]
+                                ),
                                 ft.Container(expand=True),
                                 self.add_button,
                             ],
@@ -183,7 +238,7 @@ class GenericCardCRUD:
                         padding=20,
                         content=self.list_item_container,
                         alignment=ft.alignment.center,
-                    )
+                    ),
                 ]
             )
         )

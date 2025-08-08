@@ -37,7 +37,8 @@ def GenericCard(
                 ),
                 padding=10,
                 width=width,
-            )
+            ),
+            width=500,
         ),
         width=width + 20,
         height=height,
