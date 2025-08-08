@@ -2,12 +2,13 @@ import flet as ft
 
 from components.shared.generic_card import GenericCard
 from components.shared.rotating_boxes_loader import RotatingBoxesLoader
+from assets.fontawesome.fontawesome import get_icon
 
 class GenericCardCRUD:
     def __init__(self, page: ft.Page, title: str, get_method, get_method_by_id, create_method,
-                 update_method, delete_method, card_content: [], form_name: str, forms: [],
+                 update_method, delete_method, card_content: [], form_name: str, forms: [], filters: [],
                  top_bar_color=ft.Colors.BLUE_GREY_900, add_button_color=ft.Colors.GREEN_700, add_color=ft.Colors.WHITE,
-                 add_button=None, page_size = 25, card_width=300, card_height=400, aspect_ratio=0.7):
+                 add_button=None, page_size=25, card_width=300, card_height=400, aspect_ratio=0.7):
         self.page = page
         self.title = title
         self.get_method = get_method
@@ -26,22 +27,23 @@ class GenericCardCRUD:
         self.selected_item_to_update = None
         self.form_name = form_name
         self.forms = forms
+        self.filters = filters
         self.form = None
         self.card_width = card_width
         self.card_height = card_height
         self.aspect_ratio = aspect_ratio
         self.spinner = RotatingBoxesLoader(
-                size=40,
-                color_a_border="#e9665a",
-                color_b_border="#7df6dd",
-                color_a_bg=None,
-                color_b_bg="#1f262f",
-                text="Loading...",
-                text_size=7,
-                text_color="white",
-                step_seconds=0.7,
-                border_width=2.5,
-            )
+            size=40,
+            color_a_border="#e9665a",
+            color_b_border="#7df6dd",
+            color_a_bg=None,
+            color_b_bg="#1f262f",
+            text="Loading...",
+            text_size=7,
+            text_color="white",
+            step_seconds=0.7,
+            border_width=2.5,
+        )
         self.spinner.visible = False
         for form in self.forms:
             if form.name == self.form_name:
@@ -86,7 +88,7 @@ class GenericCardCRUD:
             ],
             actions_alignment=ft.MainAxisAlignment.END,
         )
-
+        self.form.activate_on_filter(self.filter_list)
         self.page.overlay.append(self.form_dialog)
 
     def on_add_item(self, e):
@@ -195,6 +197,48 @@ class GenericCardCRUD:
 
         ]
 
+    def filter_list(self, value, key):
+        print("filter_list")
+        print(value)
+
+        filter_item_list = []
+
+        if value is None or value == "":
+            self.list_item = []
+            self.page_number = 1
+            self.more_items = True
+            self.load_next_page()
+            self.list_item_container.controls = self.build_item_cards()
+            self.list_item_container.update()
+            return
+
+        for item in self.list_item:
+            if key in item:
+                item_val = item[key]
+                if isinstance(value, (int, float)) and isinstance(item_val, (int, float)):
+                    if item_val == value:
+                        filter_item_list.append(item)
+                    continue
+                value_str = str(value).lower()
+                item_val_str = str(item_val).lower() if item_val is not None else ""
+
+                if value_str in item_val_str:
+                    filter_item_list.append(item)
+
+        self.list_item = filter_item_list
+        self.list_item_container.controls = self.build_item_cards()
+        self.list_item_container.update()
+
+    def clear_filters(self):
+        self.form.clear_filters()
+        self.page.update()
+        self.list_item = []
+        self.page_number = 1
+        self.more_items = True
+        self.load_next_page()
+        self.list_item_container.controls = self.build_item_cards()
+        self.list_item_container.update()
+
     def build_view(self) -> ft.Container:
 
         self.list_item = self.get_method(self.page_number, self.page_size)
@@ -209,7 +253,6 @@ class GenericCardCRUD:
             on_scroll_interval=100,
             controls=self.build_item_cards()
         )
-
         return ft.Container(
             expand=True,
             content=ft.Column(
@@ -232,6 +275,22 @@ class GenericCardCRUD:
                             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                             vertical_alignment=ft.CrossAxisAlignment.CENTER,
                         )
+                    ),
+                    ft.Container(
+                        expand=False,
+                        padding=5,
+                        content=ft.Row(
+                            controls=[
+                                ft.ElevatedButton(
+                                    content=get_icon("eraser", color="black", size=15),
+                                    on_click=lambda e: self.clear_filters(),
+                                ),
+                                ft.Row(
+                                    controls=self.form.get_filters()
+                                ),
+                            ],
+                        ),
+                        alignment=ft.alignment.center,
                     ),
                     ft.Container(
                         expand=True,

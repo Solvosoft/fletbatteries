@@ -52,8 +52,8 @@ class ProductView:
                 ft.Image(
                     src=f"/image/{item['image']}",
                     fit=ft.ImageFit.COVER,
-                    width=300,
-                    height=200,
+                    width=400,
+                    height=300,
                 ),
                 ft.Divider(color=ft.Colors.GREY_300),
                 text_with_truncate(item['name'], size=14, bold=True, max_length=15, max_line=1),
@@ -65,5 +65,6 @@ class ProductView:
             forms=self.forms,
             card_width=500,
             card_height=400,
+            filters=[]
 
         ).build_view()

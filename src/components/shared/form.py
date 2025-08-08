@@ -21,10 +21,30 @@ class Form:
                 widgets.append(input.widget)
         return widgets
 
+    def get_filters(self):
+        filters = []
+        for input in self.inputs:
+            if input.filter:
+                filters.append(input.filter)
+        return filters
+
+    def clear_filters(self):
+        print("clear_filters")
+        for input in self.inputs:
+            if input.filter:
+                input.filter.controls[1].value = ""
+
     def activate_on_upload(self):
         for input in self.inputs:
             if input.type == "ImageField":
                 input.on_upload()
+
+    def activate_on_filter(self, function):
+        for input in self.inputs:
+            if input.filter:
+                input.filter.controls[1].on_change = (
+                    lambda e, _input=input: function(_input.filter.controls[1].value, _input.name)
+                )
 
     def clean(self):
         for input in self.inputs:
@@ -59,17 +79,30 @@ class Input:
         self.widget_flet = widget_flet
         self.visible = visible
         self.file_picker = ft.FilePicker(on_result=self.on_file_picked)
+        self.filter = None
         self.widget = None
         if self.widget_flet == "TextField":
             self.widget = ft.TextField(
                 label=self.label,
                 visible=self.visible,
             )
+            self.filter = ft.Row(
+                controls=[
+                    ft.Text(self.name),
+                    ft.TextField(),
+                ],
+            )
         elif self.widget_flet == "IntergerField":
             self.widget = ft.TextField(
                 label=self.label,
                 keyboard_type=ft.KeyboardType.NUMBER,
                 visible=self.visible,
+            )
+            self.filter = ft.Row(
+                controls=[
+                    ft.Text(self.name),
+                    ft.TextField(),
+                ],
             )
         elif self.widget_flet == "ImageField":
             self.page.overlay.append(self.file_picker)
