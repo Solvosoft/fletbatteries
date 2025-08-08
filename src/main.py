@@ -11,7 +11,7 @@ class AppTemplate(ft.Container):
     def __init__(self, page):
         super().__init__()
         self.page = page
-        self.page.title = "Template"
+        self.page.title = "FletBatteries"
         self.page.padding = 0
         self.page.theme_mode = ft.ThemeMode.LIGHT
         self.page.theme = ft.Theme(font_family="Verdana", color_scheme_seed=ft.Colors.BLUE_GREY_500)
@@ -46,7 +46,7 @@ class AppTemplate(ft.Container):
 
     def navbar_settings(self):
         return {
-            "title": "Template",
+            "title": "FletBatteries",
             "logo": "src/assets/image/icon.png",
             "color_bg": ft.Colors.LIGHT_BLUE_ACCENT_700,
             "color_text": ft.Colors.WHITE,

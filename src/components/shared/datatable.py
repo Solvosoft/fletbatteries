@@ -388,19 +388,9 @@ def init_datatable():
         {"name": "Email", "type": "text", "expand": True},
     ]
 
-    container2 = ft.Container(
+    return ft.Container(
         content=create_datatable_filter(data, columns_names),
         expand=True,
         padding=10,
-        alignment=ft.alignment.center,
-    )
-
-    return ft.Column(
-        controls=[
-            ft.Text("Datatable Filter"),
-            ft.Divider(),
-            container2,
-        ],
-        expand=True,
         alignment=ft.alignment.center,
     )

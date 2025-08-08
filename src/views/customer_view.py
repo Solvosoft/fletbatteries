@@ -9,6 +9,7 @@ def build_view_customer(page: ft.Page) -> ft.Container:
         content=ft.Column(
             controls=[
                 ft.Text("Customer", size=20),
+                ft.Divider(),
                 init_datatable(),
             ],
             alignment=ft.alignment.top_center,
