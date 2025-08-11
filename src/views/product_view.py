@@ -15,6 +15,9 @@ class ProductView:
     def get_products(self, page_number, page_size):
         return self.product_control.get_products_paginated(page_number, page_size)
 
+    def get_all_products(self,):
+        return self.product_control.get_all_products()
+
     def get_product_by_id(self, id):
         return self.product_control.get_product_by_id(id)
 
@@ -44,6 +47,7 @@ class ProductView:
             page=self.page,
             title="Productos",
             get_method=self.get_products,
+            get_filtered_method=self.get_all_products,
             get_method_by_id=self.get_product_by_id,
             create_method=self.create_product,
             update_method=self.update_product,

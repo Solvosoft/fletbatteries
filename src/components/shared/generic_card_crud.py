@@ -5,12 +5,12 @@ from components.shared.rotating_boxes_loader import RotatingBoxesLoader
 from assets.fontawesome.fontawesome import get_icon
 
 class GenericCardCRUD:
-    def __init__(self, page: ft.Page, title: str, get_method, get_method_by_id, create_method,
+    def __init__(self, page: ft.Page, title: str, get_method,get_filtered_method, get_method_by_id, create_method,
                  update_method, delete_method, card_content: [], form_name: str, forms: [], filters: [],
-                 top_bar_color=ft.Colors.BLUE_GREY_900, add_button_color=ft.Colors.GREEN_700, add_color=ft.Colors.WHITE,
-                 add_button=None, page_size=25, card_width=300, card_height=400, aspect_ratio=0.7):
+                 top_bar_color=ft.Colors.BLUE_GREY_900, page_size=25, card_width=300, card_height=400, aspect_ratio=0.7):
         self.page = page
         self.title = title
+        self.get_filtered_method = get_filtered_method
         self.get_method = get_method
         self.get_method_by_id = get_method_by_id
         self.create_method = create_method
@@ -33,13 +33,13 @@ class GenericCardCRUD:
         self.card_height = card_height
         self.aspect_ratio = aspect_ratio
         self.spinner = RotatingBoxesLoader(
-            size=40,
+            size=30,
             color_a_border="#e9665a",
             color_b_border="#7df6dd",
             color_a_bg=None,
             color_b_bg="#1f262f",
             text="Loading...",
-            text_size=7,
+            text_size=6,
             text_color="white",
             step_seconds=0.7,
             border_width=2.5,
@@ -48,20 +48,7 @@ class GenericCardCRUD:
         for form in self.forms:
             if form.name == self.form_name:
                 self.form = form
-
-        if not add_button:
-            self.add_button = ft.ElevatedButton(
-                text="Agregar",
-                icon=ft.Icons.ADD,
-                bgcolor=add_button_color,
-                color=add_color,
-                on_click=self.on_add_item,
-            )
-        else:
-            self.add_button = add_button
-
         self.top_bar_color = top_bar_color
-        self.add_button_color = add_button_color
 
         self.delete_dialog = ft.AlertDialog(
             modal=True,
@@ -201,6 +188,7 @@ class GenericCardCRUD:
         print("filter_list")
         print(value)
 
+        self.list_item = self.get_filtered_method()
         filter_item_list = []
 
         if value is None or value == "":
@@ -270,7 +258,6 @@ class GenericCardCRUD:
                                     ]
                                 ),
                                 ft.Container(expand=True),
-                                self.add_button,
                             ],
                             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                             vertical_alignment=ft.CrossAxisAlignment.CENTER,
@@ -279,16 +266,29 @@ class GenericCardCRUD:
                     ft.Container(
                         expand=False,
                         padding=5,
-                        content=ft.Row(
+                        content=ft.Column(
                             controls=[
-                                ft.ElevatedButton(
-                                    content=get_icon("eraser", color="black", size=15),
-                                    on_click=lambda e: self.clear_filters(),
+                                ft.Row(
+                                    controls=[
+                                        ft.ElevatedButton(
+                                            content=get_icon("eraser", color="black", size=15),
+                                            on_click=lambda e: self.clear_filters(),
+                                        ),
+                                        ft.ElevatedButton(
+                                            "Agregar", icon=ft.Icons.ADD,
+                                            on_click=self.on_add_item,
+                                        ),
+                                    ],
+                                    alignment=ft.MainAxisAlignment.CENTER,
+                                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
                                 ),
                                 ft.Row(
-                                    controls=self.form.get_filters()
+                                    controls=self.form.get_filters(),
+                                    wrap=True,
                                 ),
                             ],
+                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                            alignment=ft.MainAxisAlignment.CENTER,
                         ),
                         alignment=ft.alignment.center,
                     ),

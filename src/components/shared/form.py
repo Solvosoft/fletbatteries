@@ -42,8 +42,8 @@ class Form:
     def activate_on_filter(self, function):
         for input in self.inputs:
             if input.filter:
-                input.filter.controls[1].on_change = (
-                    lambda e, _input=input: function(_input.filter.controls[1].value, _input.name)
+                input.filter.on_change = (
+                    lambda e, _input=input: function(_input.filter.value, _input.name)
                 )
 
     def clean(self):
@@ -86,24 +86,14 @@ class Input:
                 label=self.label,
                 visible=self.visible,
             )
-            self.filter = ft.Row(
-                controls=[
-                    ft.Text(self.name),
-                    ft.TextField(),
-                ],
-            )
+            self.filter = ft.TextField(label=self.name, width=250)
         elif self.widget_flet == "IntergerField":
             self.widget = ft.TextField(
                 label=self.label,
                 keyboard_type=ft.KeyboardType.NUMBER,
                 visible=self.visible,
             )
-            self.filter = ft.Row(
-                controls=[
-                    ft.Text(self.name),
-                    ft.TextField(),
-                ],
-            )
+            self.filter = ft.TextField(label=self.name, width=250)
         elif self.widget_flet == "ImageField":
             self.page.overlay.append(self.file_picker)
             self.widget = ft.Row(
