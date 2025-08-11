@@ -16,7 +16,14 @@ class ProductManager:
             db.add(product)
             db.commit()
             db.refresh(product)
-            return product
+
+            return {
+                "id": product.id,
+                "code": product.code,
+                "name": product.name,
+                "price": product.price,
+                "image": product.image
+            }
         finally:
             self.dbm.close_session(db)
 
@@ -38,7 +45,14 @@ class ProductManager:
 
             db.commit()
             db.refresh(product)
-            return product
+
+            return {
+                "id": product.id,
+                "code": product.code,
+                "name": product.name,
+                "price": product.price,
+                "image": product.image
+            }
         finally:
             self.dbm.close_session(db)
 

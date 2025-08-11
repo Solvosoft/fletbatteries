@@ -29,7 +29,7 @@
           "name": "image",
           "type": "ImageField",
           "label": "Imagen del producto",
-          "required": false
+          "required": true
         },
         {
           "name": "price",

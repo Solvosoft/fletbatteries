@@ -98,7 +98,8 @@ class CrudModal:
             result = False
         self._set_processing(False)
 
-        self._close()
+        if result:
+            self._close()
 
         if result is True:
             self._show_snackbar(self._success_text, success=True)

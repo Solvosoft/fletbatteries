@@ -3,6 +3,8 @@ import flet as ft
 from components.shared.generic_card import GenericCard
 from components.shared.rotating_boxes_loader import RotatingBoxesLoader
 from assets.fontawesome.fontawesome import get_icon
+from components.shared.modals import CrudModal
+
 
 class GenericCardCRUD:
     def __init__(self, page: ft.Page, title: str, get_method,get_filtered_method, get_method_by_id, create_method,
@@ -50,6 +52,7 @@ class GenericCardCRUD:
                 self.form = form
         self.top_bar_color = top_bar_color
 
+        """
         self.delete_dialog = ft.AlertDialog(
             modal=True,
             title=ft.Text("¿ELiminar?"),
@@ -60,7 +63,10 @@ class GenericCardCRUD:
             ],
             actions_alignment=ft.MainAxisAlignment.END,
         )
+        """
 
+        self.form_dialog = CrudModal(self.page)
+        """
         self.form_dialog = ft.AlertDialog(
             modal=True,
             title=ft.Text(f"Agregar {self.form.title}"),
@@ -75,42 +81,54 @@ class GenericCardCRUD:
             ],
             actions_alignment=ft.MainAxisAlignment.END,
         )
+        """
         self.form.activate_on_filter(self.filter_list)
-        self.page.overlay.append(self.form_dialog)
+
+        #self.page.overlay.append(self.form_dialog)
 
     def on_add_item(self, e):
         self.form.clean()
-        self.form_dialog.open = True
+        self.form_dialog.open(
+            kind="create",
+            title=f"Agregar {self.form.title}",
+            content_controls=self.form.get_inputs(),
+            on_accept=self.submit,
+            success_text="Producto guardado",
+            error_text="Error al guardar producto",
+            width=600,
+        )
         self.page.update()
 
-    def cancel_delete(self):
-        self.delete_dialog.open = False
-        self.page.update()
-
-    def close_dialog(self):
-        self.form_dialog.open = False
-        self.page.update()
-
-    def confirm_delete(self, e):
+    def confirm_delete(self):
         item = self.selected_item_to_delete
         if item:
             try:
-                self.delete_method(item)
+                result = self.delete_method(item)
                 self.list_item.remove(item)
                 self.list_item_container.controls = self.build_item_cards()
                 self.list_item_container.update()
-                self.delete_dialog.open = False
                 self.page.update()
+                return result
             except Exception as ex:
                 print(f"Error al eliminar producto: {ex}")
+                return False
             finally:
                 self.selected_item_to_delete = None
+        return False
 
     def on_delete_item(self, item):
-        self.page.overlay.append(self.delete_dialog)
         self.selected_item_to_delete = item
-        self.delete_dialog.open = True
+        self.form_dialog.open(
+            kind="delete",
+            title=f"Eliminar {self.form.title}",
+            content_controls=[ft.Text("¿Estás seguro de eliminar este registro?")],
+            on_accept=self.confirm_delete,
+            success_text="Producto eliminado",
+            error_text="Error al eliminar producto",
+            width=600,
+        )
         self.page.update()
+
 
     def on_select_item(self, item):
         self.selected_item_to_update = self.get_method_by_id(item['id'])
@@ -118,10 +136,18 @@ class GenericCardCRUD:
             for input in self.form.inputs:
                 if input.name == field:
                     input.set_value(value)
-        self.form_dialog.open = True
+        self.form_dialog.open(
+            kind="edit",
+            title=f"Agregar {self.form.title}",
+            content_controls=self.form.get_inputs(),
+            on_accept=self.submit,
+            success_text="Producto guardado",
+            error_text="Error al guardar producto",
+            width=600,
+        )
         self.page.update()
 
-    def submit(self, e):
+    def submit(self):
         if self.form.is_valid():
             try:
                 item = self.form.get_item()
@@ -132,15 +158,18 @@ class GenericCardCRUD:
                     self.list_item.remove(self.selected_item_to_update)
                 self.form.activate_on_upload()
                 self.list_item.append(item)
-                self.form_dialog.open = False
+                #self.form_dialog.open = False
                 self.list_item_container.controls = self.build_item_cards()
                 self.list_item_container.update()
                 self.page.update()
+                return True
             except Exception as ex:
                 print(f"Error al agregar producto: {ex}")
                 self.form_dialog.title = ft.Text(str(ex), color=ft.Colors.RED)
                 self.page.update()
+                return False
         self.page.update()
+        return False
 
     def load_next_page(self):
         if not self.is_loading and self.more_items:
