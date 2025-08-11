@@ -39,7 +39,7 @@ looking to create applications efficiently and quickly
 
    ```bash
    git clone https://github.com/Solvosoft/fletbatteries.git
-   cd template
+   cd fletbatteries
    ```
 
 2. Create and activate a virtual environment:
@@ -59,7 +59,9 @@ looking to create applications efficiently and quickly
    ```bash
    make init_db
    ```
-   
+
+Si no tiene una base de datos
+
 ---
 
 ## 📦 Usage
