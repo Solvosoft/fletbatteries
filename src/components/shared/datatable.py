@@ -194,9 +194,11 @@ class HeaderColumn(ft.Container):
     def clear_filter(self, e):
         self.header.search_value.value = ""
         self.header.search_value.update()
+
         for tv in self.filters_values:
             tv.value = ""
             tv.update()
+
         self.header.datatable.fill_data_table(self.header.datatable.data_values)
 
     def text_column(self, name, expand=True):
@@ -310,7 +312,7 @@ class DataTable(ft.DataTable):
         self.color_text = color_text
 
         self.current_data = list(data)
-        self.page_size = 1
+        self.page_size = 10
         self.current_page = 1
 
         cols = self.create_columns()
@@ -428,7 +430,7 @@ class DataTable(ft.DataTable):
     def fill_data_table(self, data=None):
         if data is not None:
             self.current_data = list(data)
-            self.current_page = 10
+            self.current_page = 1
         self.rows = self.create_rows(self._get_page_items())
         self.update()
         try:
