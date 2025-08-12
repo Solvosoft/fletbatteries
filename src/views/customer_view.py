@@ -1,26 +1,19 @@
 import flet as ft
 from components.shared.datatable import FBDataTable
 from components.shared.modals import CrudModal
+from controls.customer.customer_control import CustomerControl
+from data.models.customer import Customer
+
 
 def build_view_customer(page: ft.Page, forms: []) -> ft.Container:
-
     form = None
     for form in forms:
         if form.name == "CustomerForm":
             form = form
     form_dialog = CrudModal(page)
-    data = [
-        {"id": 1, "name": "Ana", "last_name": "Gómez", "phone": 88888888, "email": "ana@gmail.com"},
-        {"id": 2, "name": "Luis", "last_name": "Rojas", "phone": 55555555, "email": "luis@gmail.com"},
-        {"id": 3, "name": "Eva", "last_name": "Zamora", "phone": 66666666, "email": "eva@gmail.com"},
-        {"id": 4, "name": "Juan", "last_name": "Perez", "phone": 77777777, "email": "juan@gmail.com"},
-        {"id": 5, "name": "Maria", "last_name": "Rodríguez", "phone": 88888888, "email": "maria@gmail.com"},
-        {"id": 6, "name": "Ana", "last_name": "Gómez", "phone": 88888888, "email": "ana@gmail.com"},
-        {"id": 7, "name": "Luis", "last_name": "Rojas", "phone": 55555555, "email": "luis@gmail.com"},
-        {"id": 8, "name": "Eva", "last_name": "Zamora", "phone": 66666666, "email": "eva@gmail.com"},
-        {"id": 9, "name": "Juan", "last_name": "Perez", "phone": 77777777, "email": "juan@gmail.com"},
-        {"id": 10, "name": "Maria", "last_name": "Rodríguez", "phone": 88888888, "email": "maria@gmail.com"},
-    ]
+    control = CustomerControl()
+    customers = control.get_all_customers()
+    data = [c.to_dict() for c in customers]
 
     def create_method():
         form.clean()
@@ -53,9 +46,11 @@ def build_view_customer(page: ft.Page, forms: []) -> ft.Container:
         page.update()
 
     def confirm_delete(item):
-            data.remove(item)
-            datatable.reload(data)
-            return True
+        customer = Customer.from_dict(item)
+        control.delete_customer(customer.id)
+        data.remove(item)
+        datatable.reload(data)
+        return True
 
     def delete_method(item):
         form_dialog.open(
@@ -72,14 +67,17 @@ def build_view_customer(page: ft.Page, forms: []) -> ft.Container:
     def submit():
         if form.is_valid():
             try:
-                customer = form.get_item()
-                if customer["id"] == 0 or customer["id"] is None:
-                    data.append(customer)
+                customer = Customer.from_dict(form.get_item())
+                if customer.id == 0 or customer.id is None:
+                    customer = control.create_customer(customer.name, customer.last_name, customer.phone,
+                                                       customer.email)
+                    data.append(customer.to_dict())
                 else:
-                    for i, item in enumerate(data):
-                        if item["id"] == customer["id"]:
-                            data[i] = customer
-                            break
+                    customer = control.update_customer(customer.id, customer.name, customer.last_name, customer.phone,
+                                                       customer.email)
+                    for i, item in enumerate(data):  # actualizar en la tabla
+                        if item["id"] == customer.id:
+                            data[i] = customer.to_dict()
                 datatable.reload(data)
                 return True
             except Exception as ex:

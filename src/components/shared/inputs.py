@@ -5,17 +5,15 @@ import shutil
 
 class Input:
     def __init__(self, page: ft.Page, name: str, type: str, label: str,
-                 widget: str, required: bool, max_length: int, widget_flet: str,
+                 required: bool, max_length: int,
                  visible_form: bool = True, visible_table: bool = True, active_filter: bool = True,
                  tooltip: str = ""):
         self.page = page
         self.name = name
         self.type = type
         self.label = label
-        self.widget = widget
         self.required = required
         self.max_length = max_length
-        self.widget_flet = widget_flet
         self.visible_form = visible_form
         self.visible_table = visible_table
         self.file_picker = ft.FilePicker(on_result=self.on_file_picked)
@@ -23,20 +21,20 @@ class Input:
         self.widget = None
         self.tooltip = tooltip
         self.active_filter = active_filter
-        if self.widget_flet == "TextField":
+        if self.type == "CharField":
             self.widget = ft.TextField(
                 label=self.label,
                 visible=self.visible_form,
             )
             self.filter = ft.TextField(label=self.name, width=250)
-        elif self.widget_flet == "IntergerField":
+        elif self.type == "IntergerField":
             self.widget = ft.TextField(
                 label=self.label,
                 keyboard_type=ft.KeyboardType.NUMBER,
                 visible=self.visible_form,
             )
             self.filter = ft.TextField(label=self.name, width=250)
-        elif self.widget_flet == "ImageField":
+        elif self.type == "ImageField":
             self.page.overlay.append(self.file_picker)
             self.widget = ft.Row(
                 controls=[
@@ -52,9 +50,16 @@ class Input:
                 ],
                 spacing=10
             )
+        elif self.type == "EmailField":
+            self.widget = ft.TextField(
+                label=self.label,
+                visible=self.visible_form,
+                keyboard_type=ft.KeyboardType.EMAIL,
+            )
+            self.filter = ft.TextField(label=self.name, width=250)
 
     def on_file_picked(self, e: ft.FilePickerResultEvent):
-        if self.widget_flet == "ImageField":
+        if self.type == "ImageField":
             if e.files:
                 file_name = os.path.basename(e.files[0].path)
                 self.widget.controls[0].data = {"path": e.files[0].path, "name": file_name}
@@ -86,14 +91,13 @@ class Input:
             self.page.update()
 
     def set_value(self, value):
-        if self.widget_flet == "TextField" or self.widget_flet == "IntergerField":
-            self.widget.value = value
-        elif self.widget_flet == "ImageField":
+        if self.type == "ImageField":
             self.widget.controls[0].data = {"path": "src/assets/image/"+value, "name": value}
             self.widget.controls[1] = ft.Text("Seleccionada: " + value)
-
+        else:
+            self.widget.value = value
     def is_valid(self):
-        if self.widget_flet == "TextField":
+        if self.type == "CharField":
             self.widget.error = None
             if self.required and self.widget.value == "":
                 self.widget.error = ft.Text("Este campo es requerido", color=ft.Colors.RED)
@@ -101,7 +105,7 @@ class Input:
             if self.max_length and len(self.widget.value) > self.max_length:
                 self.widget.error = ft.Text(f"El valor debe tener menos de {self.max_length} caracteres", color=ft.Colors.RED)
                 return False
-        elif self.widget_flet == "IntergerField":
+        elif self.type == "IntergerField":
             self.widget.error = None
             if self.required and self.widget.value == "":
                 self.widget.error = ft.Text("Este campo es requerido", color=ft.Colors.RED)
@@ -116,11 +120,22 @@ class Input:
             except ValueError:
                 self.widget.error = ft.Text("El valor debe ser un número", color=ft.Colors.RED)
                 return False
-        elif self.widget_flet == "ImageField":
+        elif self.type == "ImageField":
             if self.required and (
                     self.widget.controls[0].data is None or
                     self.widget.controls[0].data.get('path', '') == ''
             ):
                 self.widget.controls[1] = ft.Text("Ninguna imagen seleccionada", color=ft.Colors.RED)
                 return False
+        elif self.type == "EmailField":
+            self.widget.error = None
+            if self.required and self.widget.value == "":
+                self.widget.error = ft.Text("Este campo es requerido", color=ft.Colors.RED)
+                return False
+            if self.widget.value:
+                import re
+                patron = r"^[\w\.-]+@[\w\.-]+\.\w+$"
+                if not re.match(patron, self.widget.value):
+                    self.widget.error = ft.Text("El correo no es válido", color=ft.Colors.RED)
+                    return False
         return True

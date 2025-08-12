@@ -31,7 +31,6 @@ class Form:
         return filters
 
     def clear_filters(self):
-        print("clear_filters")
         for input in self.inputs:
             if input.filter:
                 input.filter.controls[1].value = ""
@@ -50,22 +49,22 @@ class Form:
 
     def clean(self):
         for input in self.inputs:
-            if input.widget_flet == "TextField":
+            if input.type == "CharField" or input.type == "EmailField":
                 input.widget.value = ""
-            if input.widget_flet == "IntergerField":
+            if input.type == "IntergerField":
                 input.widget.value = ""
-            if input.widget_flet == "ImageField":
+            if input.type == "ImageField":
                 input.widget.controls[0].data = {"path": "", "name": ""}
                 input.widget.controls[1].value = "Ninguna imagen seleccionada"
 
     def get_item(self):
         item = {}
         for input in self.inputs:
-            if input.widget_flet == "TextField":
+            if input.type == "CharField" or input.type == "EmailField":
                 item[input.name] = input.widget.value
-            elif input.widget_flet == "IntergerField":
+            elif input.type == "IntergerField":
                 item[input.name] = int(input.widget.value) if input.widget.value else None
-            elif input.widget_flet == "ImageField":
+            elif input.type == "ImageField":
                 item[input.name] = input.widget.controls[0].data["name"]
         return item
 
@@ -79,19 +78,10 @@ class GenerateForms:
 
     def generate_forms(self):
         for form in self.data["forms"]:
-            input_type = ""
             inputs = []
-
             for input in form["inputs"]:
-                if input["type"] == "CharField":
-                    input_type = "TextField"
-                elif input["type"] == "IntergerField":
-                    input_type = "IntergerField"
-                elif input["type"] == "ImageField":
-                   input_type = "ImageField"
-                inputs.append(Input(self.page, input["name"], input["type"], input["label"], input_type,
-                                    input["required"], 0, input_type,
-                                    input.get("visible_form", True), input.get("visible_table", True),
+                inputs.append(Input(self.page, input["name"], input["type"], input["label"],
+                                    input["required"], input.get("max_length", 255), input.get("visible_form", True), input.get("visible_table", True),
                                     input.get("filter", False), input.get("tooltip", "")))
 
             self.forms.append(Form(form["title"], form["name"], inputs))

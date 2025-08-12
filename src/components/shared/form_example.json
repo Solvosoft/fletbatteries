@@ -82,7 +82,7 @@
         },
         {
           "name": "email",
-          "type": "CharField",
+          "type": "EmailField",
           "label": "Correo",
           "required": true,
           "filter": true
