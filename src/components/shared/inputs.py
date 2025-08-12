@@ -4,7 +4,10 @@ import os
 import shutil
 
 class Input:
-    def __init__(self, page: ft.Page, name: str, type: str, label: str, widget: str, required: bool, max_length: int, widget_flet: str,  visible: bool = True ):
+    def __init__(self, page: ft.Page, name: str, type: str, label: str,
+                 widget: str, required: bool, max_length: int, widget_flet: str,
+                 visible_form: bool = True, visible_table: bool = True, active_filter: bool = True,
+                 tooltip: str = ""):
         self.page = page
         self.name = name
         self.type = type
@@ -13,21 +16,24 @@ class Input:
         self.required = required
         self.max_length = max_length
         self.widget_flet = widget_flet
-        self.visible = visible
+        self.visible_form = visible_form
+        self.visible_table = visible_table
         self.file_picker = ft.FilePicker(on_result=self.on_file_picked)
         self.filter = None
         self.widget = None
+        self.tooltip = tooltip
+        self.active_filter = active_filter
         if self.widget_flet == "TextField":
             self.widget = ft.TextField(
                 label=self.label,
-                visible=self.visible,
+                visible=self.visible_form,
             )
             self.filter = ft.TextField(label=self.name, width=250)
         elif self.widget_flet == "IntergerField":
             self.widget = ft.TextField(
                 label=self.label,
                 keyboard_type=ft.KeyboardType.NUMBER,
-                visible=self.visible,
+                visible=self.visible_form,
             )
             self.filter = ft.TextField(label=self.name, width=250)
         elif self.widget_flet == "ImageField":

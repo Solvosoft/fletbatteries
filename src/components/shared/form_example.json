@@ -7,35 +7,85 @@
         {
           "name": "id",
           "type": "IntergerField",
-          "label": "ID del producto",
+          "label": "ID",
           "required": false,
-          "visible": false
+          "visible": false,
+          "filter": true
         },
         {
           "name": "name",
           "type": "CharField",
-          "label": "Nombre del producto",
+          "label": "Nombre",
           "max_length": 150,
-          "required": true
+          "required": true,
+          "filter": true
         },
         {
           "name": "code",
           "type": "CharField",
-          "label": "Código del producto",
+          "label": "Código",
           "max_length": 150,
-          "required": true
+          "required": true,
+          "filter": true
         },
         {
           "name": "image",
           "type": "ImageField",
-          "label": "Imagen del producto",
-          "required": true
+          "label": "Imagen",
+          "required": true,
+          "filter": false
         },
         {
           "name": "price",
           "type": "IntergerField",
-          "label": "Precio del producto",
-          "required": true
+          "label": "Precio",
+          "required": true,
+          "filter": true
+        }
+      ]
+    },
+    {
+      "title": "Registro de Clientes",
+      "name": "CustomerForm",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "IntergerField",
+          "label": "ID",
+          "required": false,
+          "visible_form": false,
+          "visible_table": false ,
+          "filter": true
+        },
+        {
+          "name": "name",
+          "type": "CharField",
+          "label": "Nombre",
+          "max_length": 150,
+          "required": true,
+          "filter": false
+        },
+        {
+          "name": "last_name",
+          "type": "CharField",
+          "label": "Apellido",
+          "max_length": 150,
+          "required": true,
+          "filter": true
+        },
+        {
+          "name": "phone",
+          "type": "IntergerField",
+          "label": "Telefono",
+          "required": true,
+          "filter": false
+        },
+        {
+          "name": "email",
+          "type": "CharField",
+          "label": "Correo",
+          "required": true,
+          "filter": true
         }
       ]
     }

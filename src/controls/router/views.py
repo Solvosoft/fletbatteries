@@ -36,7 +36,7 @@ class Views:
             RouteView("Inicio", "/", ft.Icons.HOME, lambda:build_view_home(page), position["side"]),
             RouteView("Products", "/products", ft.Icons.LOCAL_MALL, lambda:ProductView(page, forms).build_view_product(), position["side"]),
             RouteView("Users", "/users", ft.Icons.PERSON, lambda:build_view_user(page), position["side"]),
-            RouteView("Customer", "/customers", ft.Icons.SUPERVISED_USER_CIRCLE, lambda:build_view_customer(page), position["side"]),
+            RouteView("Customer", "/customers", ft.Icons.SUPERVISED_USER_CIRCLE, lambda:build_view_customer(page, forms), position["side"]),
             RouteView("Spinner", "/spinner", ft.Icons.CALL_TO_ACTION, lambda:build_view_spinner(page), position["side"]),
             RouteView("Modals", "/modals", ft.Icons.CALL_TO_ACTION, lambda:build_view_modals(page), position["side"]),
             RouteView("Fontawesome", "/fontawesome", ft.Icons.CALL_TO_ACTION, lambda:build_view_fontawesome(page), position["side"]),

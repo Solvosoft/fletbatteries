@@ -79,18 +79,19 @@ class GenerateForms:
 
     def generate_forms(self):
         for form in self.data["forms"]:
+            input_type = ""
             inputs = []
+
             for input in form["inputs"]:
                 if input["type"] == "CharField":
-                    inputs.append(Input(self.page, input["name"], input["type"], input["label"], "TextInput",
-                                        input["required"], input["max_length"], "TextField",
-                                        input.get("visible", True)))
+                    input_type = "TextField"
                 elif input["type"] == "IntergerField":
-                    inputs.append(Input(self.page, input["name"], input["type"], input["label"], "IntergerField",
-                                        input["required"], 0, "IntergerField",
-                                        input.get("visible", True)))
+                    input_type = "IntergerField"
                 elif input["type"] == "ImageField":
-                    inputs.append(Input(self.page, input["name"], input["type"], input["label"], "ImageField",
-                                        input["required"], 0, "ImageField",
-                                        input.get("visible", True)))
+                   input_type = "ImageField"
+                inputs.append(Input(self.page, input["name"], input["type"], input["label"], input_type,
+                                    input["required"], 0, input_type,
+                                    input.get("visible_form", True), input.get("visible_table", True),
+                                    input.get("filter", False), input.get("tooltip", "")))
+
             self.forms.append(Form(form["title"], form["name"], inputs))

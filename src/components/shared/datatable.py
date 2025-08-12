@@ -97,11 +97,12 @@ class Header(ft.Container):
         self.datatable.fill_data_table(results)
 
 class HeaderColumn(ft.Container):
-    def __init__(self, columns, header):
+    def __init__(self, columns, header, top_actions ):
         super().__init__(**header_cols_style)
         self.header = header
         self.columns = columns
         self.filters_values = []
+        self.top_actions = top_actions
 
         self.btn_clear = ft.ElevatedButton(
             content=get_icon("eraser", color="black", size=15),
@@ -153,6 +154,9 @@ class HeaderColumn(ft.Container):
         self.row_actions = ft.Row(
             controls=[
                 self.btn_clear,
+                ft.Row(
+                    controls=self.top_actions,
+                ),
                 ft.Container(expand=True),
                 ft.Text("Rows:", size=12),
                 self.dd_page_size,
@@ -182,13 +186,15 @@ class HeaderColumn(ft.Container):
     def create_columns(self):
         cols = []
         for col in self.columns:
-            if col.get("type") == "text":
-                cols.append(self.text_column(col.get("name")))
-            elif col.get("type") == "filter":
-                cols.append(self.filter_column(col.get("name")))
+            if col.active_filter:
+                cols.append(self.filter_column(col.label))
+            else:
+                cols.append(self.text_column(col.label))
+            """
             else:
                 print(f"This column not supported type: {col.get('type')}")
                 continue
+            """
         return cols
 
     def clear_filter(self, e):
@@ -305,7 +311,8 @@ class DataTable(ft.DataTable):
         border_color=ft.Colors.BLACK,
         border_radius=5,
         sort_as=True,
-        sort_index=0
+        sort_index=0,
+        actions: list = None,
     ):
         self.data_values = data
         self.columns_names = columns_names
@@ -315,8 +322,11 @@ class DataTable(ft.DataTable):
         self.page_size = 10
         self.current_page = 1
 
+        self.actions = actions
+
         cols = self.create_columns()
         rows = self.create_rows(self._get_page_items())
+
 
         super().__init__(
             columns=cols,
@@ -333,54 +343,64 @@ class DataTable(ft.DataTable):
 
     def create_columns(self):
         cols = []
-        for n, column in enumerate(self.columns_names):
-            name = column.get("name")
-            if not name:
-                print(f"Skipping column {n}")
-                continue
+        effective_cols = [
+            c for c in self.columns_names
+            if c.visible_table and c.label
+        ]
+
+        for column in effective_cols:
             col = ft.DataColumn(
-                label=ft.Text(name, color=self.color_text, weight=ft.FontWeight.BOLD),
-                numeric=column.get("numeric", False),
+                label=ft.Text(column.label, color=self.color_text, weight=ft.FontWeight.BOLD),
+                numeric=(column.type == "IntergerField"),
             )
-            tip = column.get("tooltip")
-            if tip:
-                col.tooltip = tip
+            if getattr(column, "tooltip", None):
+                col.tooltip = column.tooltip
             cols.append(col)
+
+        if self.actions:
+            cols.append(
+                ft.DataColumn(
+                    label=ft.Text("Acciones", color=self.color_text, weight=ft.FontWeight.BOLD),
+                    numeric=False,
+                )
+            )
+        self._effective_cols = effective_cols
         return cols
 
     def create_rows(self, data=None):
         if data is None:
             data = []
+
+        effective_cols = getattr(self, "_effective_cols", [
+            c for c in self.columns_names if c.visible_table and c.label
+        ])
+        keys = [c.name.lower().replace(" ", "_") for c in effective_cols]
+
         rows = []
-        keys = [
-            (col.get("key") or col["name"].lower().replace(" ", "_"))
-            for col in self.columns_names
-        ]
         if len(data) == 0:
-            rows.append(
-                ft.DataRow(
-                    cells=[
-                        ft.DataCell(
-                            ft.Container(
-                                content=ft.Text("-"),
-                                alignment=ft.alignment.center,
-                            )
-                        )
-                        for _ in keys
-                    ]
+            base_cells = [
+                ft.DataCell(
+                    ft.Container(content=ft.Text("-"), alignment=ft.alignment.center)
                 )
-            )
+                for _ in keys
+            ]
+            if self.actions:
+                base_cells.append(ft.DataCell(ft.Container()))
+            rows.append(ft.DataRow(cells=base_cells))
         else:
             for item in data:
                 cells = [
-                    ft.DataCell(
-                        ft.Text(
-                            str(item.get(k, "")),
-                            color=self.color_text
-                        )
-                    )
+                    ft.DataCell(ft.Text(str(item.get(k, "")), color=self.color_text))
                     for k in keys
                 ]
+                if self.actions:
+                    action_controls = [factory(item) for factory in
+                                       self.actions]  # cada fábrica devuelve un Control nuevo
+                    cells.append(
+                        ft.DataCell(
+                            ft.Row(controls=action_controls, spacing=6, alignment=ft.MainAxisAlignment.START)
+                        )
+                    )
                 rows.append(ft.DataRow(cells=cells))
         return rows
 
@@ -441,17 +461,19 @@ class DataTable(ft.DataTable):
 
 class FBDataTable(ft.Container):
 
-    def __init__(self, data, columns_names,title="My DataTable",
+    def __init__(self, data, form, title="My DataTable",
                  color_text=ft.Colors.BLACK, bgcolor=ft.Colors.WHITE10,
                  border_width=1, border_color=ft.Colors.BLACK,
-                 border_radius=5, sort_as=True, sort_index=0
-                 ):
+                 border_radius=5, sort_as=True, sort_index=0,
+                 actions: list = None, top_actions: list = None):
         self.data= data
-        self.columns_names = columns_names
-        self.table = DataTable(data, columns_names, color_text, bgcolor, border_width, border_color, border_radius, sort_as, sort_index)
+        self.form = form
+        self.actions = actions
+        self.top_actions = top_actions
+        self.columns_names = self.form.inputs
+        self.table = DataTable(data, self.columns_names, color_text, bgcolor, border_width, border_color, border_radius, sort_as, sort_index, actions)
         self.header = Header(title, self.table)
-        self.header_cols = HeaderColumn(columns_names, self.header)
-
+        self.header_cols = HeaderColumn(self.columns_names, self.header, self.top_actions)
         self.content = ft.Column(
             expand=True,
             scroll=ft.ScrollMode.AUTO,
@@ -469,4 +491,5 @@ class FBDataTable(ft.Container):
             alignment=ft.alignment.top_center,
         )
 
-
+    def reload(self, data):
+        self.header.datatable.fill_data_table(data)
