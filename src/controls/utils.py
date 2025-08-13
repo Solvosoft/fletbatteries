@@ -32,3 +32,9 @@ def text_with_truncate(data, size=12, bold=False, color=ft.Colors.BLACK, max_len
         text.tooltip = tooltip
 
     return text
+
+def get_form(forms, name):
+    for form in forms:
+        if form.name == name:
+            return form
+    return None

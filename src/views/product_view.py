@@ -6,6 +6,7 @@ from controls.product.product_control import ProductControl
 from components.shared.generic_card_crud import GenericCardCRUD
 from controls.utils import text_with_truncate
 from components.shared.modals import CrudModal
+from controls.utils import get_form
 
 class ProductView:
     def __init__(self, page: ft.Page, forms: []):
@@ -29,10 +30,7 @@ class ProductView:
                 on_click=lambda e, it=item: self.on_delete_item(it),
             ),
         ]
-        self.form = None
-        for form in self.forms:
-            if form.name == "ProductForm":
-                self.form = form
+        self.form = get_form(self.forms, "ProductForm")
         self.crud_view = None
     def get_all_products(self,):
         return self.product_control.get_all_products()

@@ -3,13 +3,11 @@ from components.shared.datatable import FBDataTable
 from components.shared.modals import CrudModal
 from controls.customer.customer_control import CustomerControl
 from data.models.customer import Customer
+from controls.utils import get_form
 
 
 def build_view_customer(page: ft.Page, forms: []) -> ft.Container:
-    form = None
-    for form in forms:
-        if form.name == "CustomerForm":
-            form = form
+    form = get_form(forms, "CustomerForm")
     form_dialog = CrudModal(page)
     control = CustomerControl()
     customers = control.get_all_customers()
