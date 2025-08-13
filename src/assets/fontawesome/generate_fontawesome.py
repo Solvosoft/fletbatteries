@@ -1,6 +1,6 @@
 import os
 
-# Ruta base (ajústala si este script no está en la misma carpeta que brands/, regular/, solid/)
+# Ruta base
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 # Diccionario que guardará iconos como: "facebook": "brands/facebook.svg"

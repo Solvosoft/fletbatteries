@@ -2561,7 +2561,7 @@ def get_icon(name, color=None, size=40):
     full_path = os.path.join("src/assets/fontawesome", path)
 
     if color:
-        print(f"Applying color {color} to {full_path}")
+        # print(f"Applying color {color} to {full_path}")
         full_path = apply_color_to_svg(full_path, color)
 
     return ft.Image(

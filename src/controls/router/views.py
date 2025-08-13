@@ -14,6 +14,7 @@ from views.spinner_view import build_view_spinner
 from views.modals_view import build_view_modals
 from views.fontawesome_view import build_view_fontawesome
 from views.animation_view import build_view_animation
+from views.friconix_view import build_view_friconix
 
 
 position = {
@@ -40,6 +41,7 @@ class Views:
             RouteView("Spinner", "/spinner", ft.Icons.CALL_TO_ACTION, lambda:build_view_spinner(page), position["side"]),
             RouteView("Modals", "/modals", ft.Icons.CALL_TO_ACTION, lambda:build_view_modals(page), position["side"]),
             RouteView("Fontawesome", "/fontawesome", ft.Icons.CALL_TO_ACTION, lambda:build_view_fontawesome(page), position["side"]),
+            RouteView("Friconix", "/friconix", ft.Icons.CALL_TO_ACTION, lambda:build_view_friconix(page), position["side"]),
             RouteView("Animations", "/animations", ft.Icons.CALL_TO_ACTION, lambda:build_view_animation(page), position["side"]),
             RouteView("Login", "/login", ft.Icons.LOGIN, lambda:build_view_login(page), position["top"]),
             RouteView("Profile", "/profile", ft.Icons.PERSON, lambda:build_view_profile(page), position["top"]),
