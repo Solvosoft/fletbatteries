@@ -3,8 +3,7 @@ import flet as ft
 
 def GenericCard(
     content: list[ft.Control],
-    on_edit=None,
-    on_delete=None,
+    actions: list[ft.Control],
     width=300,
     height=400,
 ):
@@ -16,19 +15,7 @@ def GenericCard(
                         *content,
                         ft.Row(
                             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                            controls=[
-                                ft.IconButton(
-                                    icon=ft.Icons.EDIT,
-                                    tooltip="Editar",
-                                    on_click=on_edit
-                                ),
-                                ft.IconButton(
-                                    icon=ft.Icons.DELETE,
-                                    tooltip="Eliminar",
-                                    icon_color=ft.Colors.RED,
-                                    on_click=on_delete
-                                ),
-                            ]
+                            controls=actions,
                         )
                     ],
                     spacing=5,

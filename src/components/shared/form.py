@@ -33,7 +33,7 @@ class Form:
     def clear_filters(self):
         for input in self.inputs:
             if input.filter:
-                input.filter.controls[1].value = ""
+                input.filter.value = ""
 
     def activate_on_upload(self):
         for input in self.inputs:

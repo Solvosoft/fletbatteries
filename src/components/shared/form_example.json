@@ -9,7 +9,7 @@
           "type": "IntergerField",
           "label": "ID",
           "required": false,
-          "visible": false,
+          "visible_form": false,
           "filter": true
         },
         {

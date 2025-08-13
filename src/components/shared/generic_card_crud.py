@@ -3,34 +3,24 @@ import flet as ft
 from components.shared.generic_card import GenericCard
 from components.shared.rotating_boxes_loader import RotatingBoxesLoader
 from assets.fontawesome.fontawesome import get_icon
-from components.shared.modals import CrudModal
+
 
 
 class GenericCardCRUD:
-    def __init__(self, page: ft.Page, title: str, get_method,get_filtered_method, get_method_by_id, create_method,
-                 update_method, delete_method, card_content: [], form_name: str, forms: [], filters: [],
+    def __init__(self, page: ft.Page, data, title: str, form, card_content: [], card_actions, top_actions,
                  top_bar_color=ft.Colors.BLUE_GREY_900, page_size=25, card_width=300, card_height=400, aspect_ratio=0.7):
         self.page = page
         self.title = title
-        self.get_filtered_method = get_filtered_method
-        self.get_method = get_method
-        self.get_method_by_id = get_method_by_id
-        self.create_method = create_method
-        self.update_method = update_method
-        self.delete_method = delete_method
-        self.list_item = []
+        self.data = data
         self.list_item_container = None
-        self.page_number = 1
+        self.page_number = 0
         self.page_size = page_size
         self.more_items = True
         self.is_loading = False
         self.card_content = card_content
-        self.selected_item_to_delete = None
-        self.selected_item_to_update = None
-        self.form_name = form_name
-        self.forms = forms
-        self.filters = filters
-        self.form = None
+        self.card_actions = card_actions
+        self.top_actions = top_actions
+        self.form = form
         self.card_width = card_width
         self.card_height = card_height
         self.aspect_ratio = aspect_ratio
@@ -47,129 +37,30 @@ class GenericCardCRUD:
             border_width=2.5,
         )
         self.spinner.visible = False
-        for form in self.forms:
-            if form.name == self.form_name:
-                self.form = form
         self.top_bar_color = top_bar_color
-
-        """
-        self.delete_dialog = ft.AlertDialog(
-            modal=True,
-            title=ft.Text("¿ELiminar?"),
-            content=ft.Text("¿Estás seguro de que deseas eliminar este item?"),
-            actions=[
-                ft.TextButton("Cancelar", on_click=lambda e: self.cancel_delete()),
-                ft.TextButton("Eliminar", on_click=self.confirm_delete),
-            ],
-            actions_alignment=ft.MainAxisAlignment.END,
-        )
-        """
-
-        self.form_dialog = CrudModal(self.page)
-        """
-        self.form_dialog = ft.AlertDialog(
-            modal=True,
-            title=ft.Text(f"Agregar {self.form.title}"),
-            content=ft.Column(
-                controls=self.form.get_inputs(),
-                tight=True,
-                spacing=10
-            ),
-            actions=[
-                ft.TextButton("Cancelar", on_click=lambda e: self.close_dialog()),
-                ft.ElevatedButton("Guardar", on_click=self.submit),
-            ],
-            actions_alignment=ft.MainAxisAlignment.END,
-        )
-        """
         self.form.activate_on_filter(self.filter_list)
 
-        #self.page.overlay.append(self.form_dialog)
+    def _materialize_items(self):
+        if isinstance(self.data, list):
+            items = self.data
+        else:
+            items = list(self.data.values())
+        self._all_items = items
+        self._total = len(items)
+        self.more_items = self._total > (self.page_number * self.page_size)
 
-    def on_add_item(self, e):
-        self.form.clean()
-        self.form_dialog.open(
-            kind="create",
-            title=f"Agregar {self.form.title}",
-            content_controls=self.form.get_inputs(),
-            on_accept=self.submit,
-            success_text="Producto guardado",
-            error_text="Error al guardar producto",
-            width=600,
-        )
-        self.page.update()
+    def reset_pagination(self):
+        self.page_number = 0
+        self.more_items = True
+        self.spinner.visible = False
+        self._materialize_items()
+        self.load_next_page()
 
-    def confirm_delete(self):
-        item = self.selected_item_to_delete
-        if item:
-            try:
-                result = self.delete_method(item)
-                self.list_item.remove(item)
-                self.list_item_container.controls = self.build_item_cards()
-                self.list_item_container.update()
-                self.page.update()
-                return result
-            except Exception as ex:
-                print(f"Error al eliminar producto: {ex}")
-                return False
-            finally:
-                self.selected_item_to_delete = None
-        return False
-
-    def on_delete_item(self, item):
-        self.selected_item_to_delete = item
-        self.form_dialog.open(
-            kind="delete",
-            title=f"Eliminar {self.form.title}",
-            content_controls=[ft.Text("¿Estás seguro de eliminar este registro?")],
-            on_accept=self.confirm_delete,
-            success_text="Producto eliminado",
-            error_text="Error al eliminar producto",
-            width=600,
-        )
-        self.page.update()
-
-
-    def on_select_item(self, item):
-        self.selected_item_to_update = self.get_method_by_id(item['id'])
-        for field, value in item.items():
-            for input in self.form.inputs:
-                if input.name == field:
-                    input.set_value(value)
-        self.form_dialog.open(
-            kind="edit",
-            title=f"Agregar {self.form.title}",
-            content_controls=self.form.get_inputs(),
-            on_accept=self.submit,
-            success_text="Producto guardado",
-            error_text="Error al guardar producto",
-            width=600,
-        )
-        self.page.update()
-
-    def submit(self):
-        if self.form.is_valid():
-            try:
-                item = self.form.get_item()
-                if item["id"] == 0 or item["id"] is None:
-                    item = self.create_method(item)
-                else:
-                    item = self.update_method(item)
-                    self.list_item.remove(self.selected_item_to_update)
-                self.form.activate_on_upload()
-                self.list_item.append(item)
-                #self.form_dialog.open = False
-                self.list_item_container.controls = self.build_item_cards()
-                self.list_item_container.update()
-                self.page.update()
-                return True
-            except Exception as ex:
-                print(f"Error al agregar producto: {ex}")
-                self.form_dialog.title = ft.Text(str(ex), color=ft.Colors.RED)
-                self.page.update()
-                return False
-        self.page.update()
-        return False
+    def reload(self, data = None):
+        if data is not None:
+            self.data = data
+        self.list_item_container.controls = []
+        self.reset_pagination()
 
     def load_next_page(self):
         if not self.is_loading and self.more_items:
@@ -177,89 +68,91 @@ class GenericCardCRUD:
             self.spinner.visible = True
             self.page.update()
             try:
+                if not hasattr(self, "_all_items"):
+                    self._materialize_items()
+
                 self.page_number += 1
-                result = self.get_method(self.page_number, self.page_size)
-                if not result:
+
+                start = (self.page_number - 1) * self.page_size
+                end = start + self.page_size
+                page_items = self._all_items[start:end]
+
+                if not page_items:
                     self.more_items = False
                     self.spinner.visible = False
                     self.page.update()
                     return
-                if len(result) < self.page_size:
+
+                if end >= self._total:
                     self.more_items = False
-                self.list_item.extend(result)
-                self.list_item_container.controls = self.build_item_cards()
-                self.list_item_container.update()
+
+                new_controls = self.build_item_cards(page_items)
+
+                self.list_item_container.controls.extend(new_controls)
+                if self.list_item_container.page:
+                    self.list_item_container.update()
+            finally:
                 self.spinner.visible = False
                 self.page.update()
-            finally:
                 self.is_loading = False
 
     def _on_grid_scroll(self, e: ft.OnScrollEvent):
         threshold = 200
         if e.pixels is not None and e.max_scroll_extent is not None:
             if e.pixels >= e.max_scroll_extent - threshold:
+                print("on_grid_scroll")
                 self.load_next_page()
 
-    def build_item_cards(self):
+    def build_item_cards(self, items):
         return [
             GenericCard(
                 content=self.card_content(item),
-                on_edit=lambda e, i=item: self.on_select_item(i),
-                on_delete=lambda e, i=item: self.on_delete_item(i),
+                actions=[factory(item) for factory in self.card_actions],
                 width=self.card_width,
                 height=self.card_height,
             )
-            for item in self.list_item
+            for item in items
 
         ]
 
     def filter_list(self, value, key):
-        print("filter_list")
-        print(value)
+        source = getattr(self, "data", []) or []
+        filtered = []
 
-        self.list_item = self.get_filtered_method()
-        filter_item_list = []
+        is_value_number = isinstance(value, (int, float)) and not isinstance(value, bool)
+        value_str = str(value).lower() if not is_value_number else None
 
-        if value is None or value == "":
-            self.list_item = []
-            self.page_number = 1
-            self.more_items = True
-            self.load_next_page()
-            self.list_item_container.controls = self.build_item_cards()
-            self.list_item_container.update()
-            return
+        for item in source:
+            if not isinstance(item, dict) or key not in item:
+                continue
 
-        for item in self.list_item:
-            if key in item:
-                item_val = item[key]
-                if isinstance(value, (int, float)) and isinstance(item_val, (int, float)):
-                    if item_val == value:
-                        filter_item_list.append(item)
-                    continue
-                value_str = str(value).lower()
-                item_val_str = str(item_val).lower() if item_val is not None else ""
+            item_val = item[key]
 
-                if value_str in item_val_str:
-                    filter_item_list.append(item)
+            if is_value_number and isinstance(item_val, (int, float)) and not isinstance(item_val, bool):
+                if item_val == value:
+                    filtered.append(item)
+                continue
 
-        self.list_item = filter_item_list
-        self.list_item_container.controls = self.build_item_cards()
+            item_val_str = "" if item_val is None else str(item_val)
+            try:
+                if value_str in item_val_str.lower():
+                    filtered.append(item)
+            except Exception:
+                continue
+
+        self.list_item_container.controls = self.build_item_cards(filtered)
         self.list_item_container.update()
 
     def clear_filters(self):
         self.form.clear_filters()
         self.page.update()
-        self.list_item = []
         self.page_number = 1
         self.more_items = True
         self.load_next_page()
-        self.list_item_container.controls = self.build_item_cards()
+        self.reset_pagination()
         self.list_item_container.update()
 
     def build_view(self) -> ft.Container:
-
-        self.list_item = self.get_method(self.page_number, self.page_size)
-
         self.list_item_container = ft.GridView(
             expand=True,
             max_extent=self.card_width,
@@ -268,9 +161,9 @@ class GenericCardCRUD:
             run_spacing=15,
             on_scroll=self._on_grid_scroll,
             on_scroll_interval=100,
-            controls=self.build_item_cards()
+            controls=[],
         )
-        return ft.Container(
+        container =  ft.Container(
             expand=True,
             content=ft.Column(
                 spacing=0,
@@ -303,10 +196,10 @@ class GenericCardCRUD:
                                             content=get_icon("eraser", color="black", size=15),
                                             on_click=lambda e: self.clear_filters(),
                                         ),
-                                        ft.ElevatedButton(
-                                            "Agregar", icon=ft.Icons.ADD,
-                                            on_click=self.on_add_item,
-                                        ),
+                                        ft.Row(
+                                            controls=self.top_actions,
+                                        )
+
                                     ],
                                     alignment=ft.MainAxisAlignment.CENTER,
                                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
@@ -330,3 +223,5 @@ class GenericCardCRUD:
                 ]
             )
         )
+        self.load_next_page()
+        return container
