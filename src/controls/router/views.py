@@ -15,6 +15,8 @@ from views.modals_view import build_view_modals
 from views.fontawesome_view import build_view_fontawesome
 from views.animation_view import build_view_animation
 from views.friconix_view import build_view_friconix
+from views.charts_view import build_view_charts
+from assets.icons.friconix.frx_flet import frx_icon
 
 
 position = {
@@ -39,10 +41,11 @@ class Views:
             RouteView("Users", "/users", ft.Icons.PERSON, lambda:build_view_user(page), position["side"]),
             RouteView("Customer", "/customers", ft.Icons.SUPERVISED_USER_CIRCLE, lambda:build_view_customer(page, forms), position["side"]),
             RouteView("Spinner", "/spinner", ft.Icons.CALL_TO_ACTION, lambda:build_view_spinner(page), position["side"]),
-            RouteView("Modals", "/modals", ft.Icons.CALL_TO_ACTION, lambda:build_view_modals(page), position["side"]),
-            RouteView("Fontawesome", "/fontawesome", ft.Icons.CALL_TO_ACTION, lambda:build_view_fontawesome(page), position["side"]),
-            RouteView("Friconix", "/friconix", ft.Icons.CALL_TO_ACTION, lambda:build_view_friconix(page), position["side"]),
-            RouteView("Animations", "/animations", ft.Icons.CALL_TO_ACTION, lambda:build_view_animation(page), position["side"]),
+            RouteView("Modals", "/modals", ft.Icons.SELECT_ALL, lambda:build_view_modals(page), position["side"]),
+            RouteView("Fontawesome", "/fontawesome", ft.Icons.NOW_WALLPAPER, lambda:build_view_fontawesome(page), position["side"]),
+            RouteView("Friconix", "/friconix", ft.Icons.NOW_WALLPAPER, lambda:build_view_friconix(page), position["side"]),
+            RouteView("Charts", "/charts", ft.Icons.DONUT_SMALL_ROUNDED, lambda:build_view_charts(page), position["side"]),
+            RouteView("Animations", "/animations", ft.Icons.SPORTS_HANDBALL_ROUNDED, lambda:build_view_animation(page), position["side"]),
             RouteView("Login", "/login", ft.Icons.LOGIN, lambda:build_view_login(page), position["top"]),
             RouteView("Profile", "/profile", ft.Icons.PERSON, lambda:build_view_profile(page), position["top"]),
             RouteView("Settings", "/settings", ft.Icons.SETTINGS, lambda:build_view_settings(page), position["top"]),
