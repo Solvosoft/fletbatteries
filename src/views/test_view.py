@@ -2,7 +2,7 @@ import flet as ft
 from components.shared.modals import CrudModal
 from controls.utils import get_form, show_snackbar
 from components.shared.formset import Formset
-
+import traceback
 
 class TestView:
     def __init__(self, page: ft.Page, forms: []):
@@ -49,7 +49,9 @@ class TestView:
                 ok = False
             self.page.open(show_snackbar("Guardado" if ok else "Error al guardar", ok))
         except Exception as ex:
-            print(f"Error al guardar: {ex}")
+            print(f"[handle_submit_click] Error al guardar: {ex!r}")
+            traceback.print_exc()
+            raise
 
 
     def handle_delete_click(self, form):
@@ -65,7 +67,7 @@ class TestView:
         )
 
     def delete_item(self, form):
-        data.remove(form.get_item())
+        self.formset.formset.remove(form)
         self.formset.refresh_view()
         return True
 

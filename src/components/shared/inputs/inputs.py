@@ -179,7 +179,7 @@ class Input:
                                                 color=ft.Colors.RED)
                     return False
         elif self.type == "DateField":
-            self.widget.error = None
+            self.widget.controls[0].error = None
             value = self.widget.controls[0].value
             if value == "":
                 self.widget.controls[0].error = ft.Text("Este campo es requerido", color=ft.Colors.RED)
@@ -199,7 +199,7 @@ class Input:
                     if isinstance(selected_date, datetime):
                         selected_date = selected_date.date()
                     if min_date and selected_date < min_date:
-                        self.widget.controls[0].error = ft.Text(f"La fecha no puede ser menor a {min_date.date()}",
+                        self.widget.controls[0].error = ft.Text(f"La fecha no puede ser menor a {min_date}",
                                                                 color=ft.Colors.RED)
                         return False
                 if self.max_date:
@@ -209,12 +209,12 @@ class Input:
                     if isinstance(selected_date, datetime):
                         selected_date = selected_date.date()
                     if max_date and selected_date > max_date:
-                        self.widget.controls[0].error = ft.Text(f"La fecha no puede ser mayor a {max_date.date()}",
+                        self.widget.controls[0].error = ft.Text(f"La fecha no puede ser mayor a {max_date}",
                                                                 color=ft.Colors.RED)
                         return False
         elif self.type == "DateTimeField":
             print("Entrando a DateTimeField")
-            self.widget.error = None
+            self.widget.controls[0].error = None
             value = self.widget.controls[0].value
             if value == "":
                 self.widget.controls[0].error = ft.Text("Este campo es requerido", color=ft.Colors.RED)
