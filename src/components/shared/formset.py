@@ -28,15 +28,6 @@ class Formset:
             return [self.data]
         return []
 
-
-    def delete_item(self, form):
-        if self.delete_method is None:
-            return
-        ok = self.delete_method(form)
-        show_snackbar("Eliminado" if ok else "Error al eliminar", ok)
-        self.formset.remove(form)
-        self.refresh_view()
-
     def _build_card(self, form) -> ft.Card:
         return ft.Card(
             content=ft.Container(

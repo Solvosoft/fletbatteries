@@ -88,7 +88,8 @@ class UserView:
     Returns True if the deletion is triggered successfully."""
     def delete_user(self, form):
         self.control.delete_user(form.get_item()["id"])
-        self.formset.refresh_view(new_data=self.get_all_users())
+        self.formset.formset.remove(form)
+        self.formset.refresh_view()
         return True
 
     """Builds and returns the main users view.

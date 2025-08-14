@@ -12,6 +12,7 @@ class Form:
         self.title = title
         self.name = name
         self.inputs = inputs
+        self.id = uuid4().hex
 
     def is_valid(self):
         for input in self.inputs:
