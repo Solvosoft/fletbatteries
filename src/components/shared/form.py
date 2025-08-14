@@ -55,7 +55,7 @@ class Form:
             if input.type == "ImageField":
                 input.widget.controls[0].data = {"path": "", "name": ""}
                 input.widget.controls[1].value = "Ninguna imagen seleccionada"
-            elif input.type == "DateField":
+            elif input.type == "DateField" or input.type == "DateTimeField":
                 input.widget.controls[0].value = ""
             else:
                 input.widget.value = ""
@@ -67,7 +67,7 @@ class Form:
                 item[input.name] = int(input.widget.value) if input.widget.value else None
             elif input.type == "ImageField":
                 item[input.name] = input.widget.controls[0].data["name"]
-            elif input.type == "DateField":
+            elif input.type == "DateField" or input.type == "DateTimeField":
                 item[input.name] = input.widget.controls[0].value
             else:
                 item[input.name] = input.widget.value

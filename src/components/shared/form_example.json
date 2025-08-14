@@ -152,6 +152,15 @@
           "filter": true,
           "min_date": "d0",
           "max_date": "d0"
+        },
+        {
+          "name": "datetime",
+          "type": "DateTimeField",
+          "label": "Fecha y hora",
+          "required": true,
+          "filter": true,
+          "min_date": "d0",
+          "max_date": "d0"
         }
       ]
     }

@@ -10,12 +10,12 @@ class TestView:
         self.formset = None
         self.form = get_form(forms, "TestForm")
         self.data = [
-            {"date": "01-01-2023", "name": "Test 1"},
-            {"date": "01-02-2023", "name": "Test 2"},
-            {"date": "01-03-2023", "name": "Test 3"},
-            {"date": "01-04-2023", "name": "Test 4"},
-            {"date": "01-05-2023", "name": "Test 5"},
-            {"date": "01-06-2023", "name": "Test 6"},
+            {"date": "01-01-2023", "datetime": "01-01-2023 12:00:00", "name": "Test 1"},
+            {"date": "02-01-2023", "datetime": "02-01-2023 12:00:00", "name": "Test 2"},
+            {"date": "03-01-2023", "datetime": "03-01-2023 12:00:00", "name": "Test 3"},
+            {"date": "04-01-2023", "datetime": "04-01-2023 12:00:00", "name": "Test 4"},
+            {"date": "05-01-2023", "datetime": "05-01-2023 12:00:00", "name": "Test 5"},
+            {"date": "06-01-2023", "datetime": "06-01-2023 12:00:00", "name": "Test 6"},
         ]
         self.actions = [
             lambda form: ft.ElevatedButton(
@@ -31,14 +31,14 @@ class TestView:
         self.modal = CrudModal(self.page)
 
     def handle_submit_click(self, form):
-        ok = False
         try:
             if form.is_valid():
+                print("Form is valid")
                 item = form.get_item()
                 if item["id"] == 0 or item["id"] is None:
                     self.data.append(item)
                 else:
-                    for i in range(len(data)):
+                    for i in range(len(self.data)):
                         if self.data[i]["id"] == item["id"]:
                             self.data[i] = item
                             break

@@ -4,6 +4,7 @@ import shutil
 from components.shared.inputs.inputs_type import InputType
 from datetime import datetime, timedelta
 
+
 class Input:
     def __init__(self, page: ft.Page, name: str, type: str, label: str,
                  required: bool, max_length: int,
@@ -22,7 +23,7 @@ class Input:
         self.picker = None
         if self.type == "ImageField":
             self.picker = ft.FilePicker(on_result=self.on_file_picked)
-        elif self.type == "DateField":
+        elif self.type == "DateField" or self.type == "DateTimeField":
             self.picker = ft.DatePicker(on_change=self.on_date_picked)
         self.filter = None
         self.widget = None
@@ -46,11 +47,16 @@ class Input:
 
     def on_date_picked(self, e):
         value = e.control.value
-        if self.type == "DateField":
-            if hasattr(value, "strftime"):
+        if hasattr(value, "strftime"):
+            if self.type == "DateField":
                 self.widget.controls[0].value = value.strftime("%d-%m-%Y")
-            else:
-                self.widget.controls[0].value = str(value)
+            elif self.type == "DateTimeField":
+                now = datetime.now().time()
+                combined = datetime.combine(value, now)
+                self.widget.controls[0].value = combined.strftime("%d-%m-%Y %H:%M:%S")
+        else:
+            self.widget.controls[0].value = str(value)
+
         self.widget.controls[0].update()
 
     def on_upload(self):
@@ -78,7 +84,7 @@ class Input:
         if self.type == "ImageField":
             self.widget.controls[0].data = {"path": "src/assets/image/" + value, "name": value}
             self.widget.controls[1] = ft.Text("Seleccionada: " + value)
-        elif self.type == "DateField":
+        elif self.type == "DateField" or self.type == "DateTimeField":
             self.widget.controls[0].value = value
         else:
             self.widget.value = value
@@ -183,7 +189,8 @@ class Input:
                     selected_date = datetime.strptime(value, "%d-%m-%Y")
                 except ValueError as ex:
                     print(f"Error al parsear fecha: {ex}")
-                    self.widget.controls[0].error = ft.Text("La fecha debe tener el formato dd-mm-aaaa", color=ft.Colors.RED)
+                    self.widget.controls[0].error = ft.Text("La fecha debe tener el formato dd-mm-aaaa",
+                                                            color=ft.Colors.RED)
                     return False
                 if self.min_date:
                     min_date = self.parse_relative_date(self.min_date, True)
@@ -192,7 +199,8 @@ class Input:
                     if isinstance(selected_date, datetime):
                         selected_date = selected_date.date()
                     if min_date and selected_date < min_date:
-                        self.widget.controls[0].error = ft.Text(f"La fecha no puede ser menor a {min_date.date()}", color=ft.Colors.RED)
+                        self.widget.controls[0].error = ft.Text(f"La fecha no puede ser menor a {min_date.date()}",
+                                                                color=ft.Colors.RED)
                         return False
                 if self.max_date:
                     max_date = self.parse_relative_date(self.max_date, False)
@@ -201,8 +209,47 @@ class Input:
                     if isinstance(selected_date, datetime):
                         selected_date = selected_date.date()
                     if max_date and selected_date > max_date:
-                        self.widget.controls[0].error = ft.Text(f"La fecha no puede ser mayor a {max_date.date()}", color=ft.Colors.RED)
+                        self.widget.controls[0].error = ft.Text(f"La fecha no puede ser mayor a {max_date.date()}",
+                                                                color=ft.Colors.RED)
                         return False
+        elif self.type == "DateTimeField":
+            print("Entrando a DateTimeField")
+            self.widget.error = None
+            value = self.widget.controls[0].value
+            if value == "":
+                self.widget.controls[0].error = ft.Text("Este campo es requerido", color=ft.Colors.RED)
+                return False
+            if value:
+                try:
+                    selected_date = datetime.strptime(value, "%d-%m-%Y %H:%M:%S")
+                except ValueError as ex:
+                    print(f"Error al parsear fecha: {ex}")
+                    self.widget.controls[0].error = ft.Text("La fecha y hora debe tener el formato dd-mm-aaaa hh:mm:ss",
+                                                            color=ft.Colors.RED)
+                    return False
+                try:
+                    print("Entrando a las validaciones de rango")
+                    if self.min_date:
+                        min_date = self.parse_relative_date(self.min_date, True)
+                        if isinstance(min_date, datetime):
+                            min_date = min_date.date()
+                        if isinstance(selected_date, datetime):
+                            selected_date = selected_date.date()
+                        if min_date and selected_date < min_date:
+                            self.widget.controls[0].error = ft.Text(
+                                f"La fecha y hora no puede ser menor a {min_date}", color=ft.Colors.RED)
+                            return False
+                    if self.max_date:
+                        max_date = self.parse_relative_date(self.max_date, False)
+                        if isinstance(max_date, datetime):
+                            max_date = max_date.date()
+                        if isinstance(selected_date, datetime):
+                            selected_date = selected_date.date()
+                        if max_date and selected_date > max_date:
+                            self.widget.controls[0].error = ft.Text(
+                                f"La fecha y hora no puede ser mayor a {max_date}", color=ft.Colors.RED)
+                            return False
+                except ValueError as ex:
+                    print(f"Error al parsear fecha: {ex}")
+                    return False
         return True
-
-

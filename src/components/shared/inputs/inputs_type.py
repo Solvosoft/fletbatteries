@@ -66,4 +66,17 @@ class InputType:
                 spacing=10,
                 visible=self.visible_form,
             )
+        elif self.type == "DateTimeField":
+            widget = ft.Row(
+                controls=[
+                    ft.TextField(label=self.label,read_only=True,visible=self.visible_form, width=250),
+                    ft.IconButton(
+                        icon=ft.Icons.CALENDAR_MONTH,
+                        tooltip="Seleccionar fecha y hora",
+                        on_click=lambda e: self.page.open(self.picker)
+                    ),
+                ],
+                spacing=10,
+                visible=self.visible_form,
+            )
         return widget
