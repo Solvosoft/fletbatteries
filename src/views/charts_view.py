@@ -4,10 +4,10 @@ from components.shared.charts import GenericPieChart
 
 def build_view_charts(page: ft.Page) -> ft.Container:
     data1 = [
-        {"value": 40, "color": ft.Colors.BLUE, "title_position": 0.5},
-        {"value": 30, "color": ft.Colors.YELLOW, "title_position": 0.5, },
-        {"value": 15, "color": ft.Colors.PURPLE, "title_position": 0.5},
-        {"value": 15, "color": ft.Colors.GREEN, "title_position": 0.5},
+        {"value": 40, "color": ft.Colors.BLUE, "title_position": 0.5, "label": "Costa Rica"},
+        {"value": 30, "color": ft.Colors.YELLOW, "title_position": 0.5, "label": "Panama"},
+        {"value": 15, "color": ft.Colors.PURPLE, "title_position": 0.5, "label": "Salvador"},
+        {"value": 15, "color": ft.Colors.GREEN, "title_position": 0.5, "label": "Guatemala"},
     ]
 
     data2 = [
@@ -47,6 +47,15 @@ def build_view_charts(page: ft.Page) -> ft.Container:
         hover_radius=120,
     )
 
+    pie_chart_4 = GenericPieChart(
+        data1,
+        expand=True,
+        sections_space=0,
+        center_space_radius=0,
+        normal_radius=100,
+        hover_radius=120,
+    ).get_with_labels()
+
     return ft.Container(
         expand=True,
         content=ft.Column(
@@ -57,6 +66,7 @@ def build_view_charts(page: ft.Page) -> ft.Container:
                 pie_chart_1,
                 pie_chart_2,
                 pie_chart_3,
+                pie_chart_4,
             ],
             alignment=ft.alignment.center,
             expand=True,

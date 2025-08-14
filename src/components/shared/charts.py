@@ -47,7 +47,7 @@ class GenericPieChart(ft.PieChart):
         self.on_chart_event = self.chart_event or callback_event
         self.sections = self.build_sections()
         self.show_snackbar = show_snackbar
-        self._page = page
+        self.page = page
         self.snackbar_time = snackbar_time
 
     def build_sections(self):
@@ -133,3 +133,39 @@ class GenericPieChart(ft.PieChart):
         self.sections = self._build_sections()
         self.update()
 
+    def get_labels_column(self):
+        labels = []
+
+        for i, section in enumerate(self.sections):
+            if self.values[i].get("label", None) is not None:
+                labels.append(
+                    ft.Row(
+                        controls=[
+                            ft.Icon(ft.Icons.SQUARE, color=section.color),
+                            ft.Text(self.values[i].get("label")),
+                        ],
+                        alignment=ft.alignment.center,
+                        expand=True,
+                        spacing=5,
+                    )
+                )
+
+
+        return ft.Column(
+            controls=labels,
+            alignment=ft.alignment.center,
+            expand=True,
+            scroll=ft.ScrollMode.AUTO,
+        )
+
+    def get_with_labels(self):
+
+        return ft.Row(
+            controls=[
+                self,
+                self.get_labels_column(),
+            ],
+            alignment=ft.alignment.center,
+            expand=True,
+            spacing=10,
+        )
