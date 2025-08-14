@@ -1,5 +1,5 @@
 import flet as ft
-from components.shared.charts import GenericPieChart
+from components.shared.charts import GenericPieChart, GenericBarChart, GenericLineChart
 
 
 def build_view_charts(page: ft.Page) -> ft.Container:
@@ -56,6 +56,44 @@ def build_view_charts(page: ft.Page) -> ft.Container:
         hover_radius=120,
     ).get_with_labels()
 
+    # BarChart
+    labels_bottom = ["Apple", "Blueberry", "Cherry", "Orange"]
+    data_bar = [
+        {"value": 40, "label": "Apple", "color": ft.Colors.GREEN},
+        {"value": 100, "label": "Blueberry", "color": ft.Colors.BLUE},
+        {"value": 30, "label": "Cherry", "color": ft.Colors.RED},
+        {"value": 60, "label": "Orange", "color": ft.Colors.ORANGE},
+    ]
+    bar_chart_1 = GenericBarChart(
+        title="Fruit supply",
+        labels_bottom=labels_bottom,
+        data=data_bar,
+        expand=True,
+        interactive=True,
+        max_y=110,
+        height=500,
+    )
+
+    # LineChart
+    data_line = [
+        {"points": [{"x": 0, "y": 40}, {"x": 10, "y": 80}, {"x": 40, "y": 30}, {"x": 80, "y": 80}], "color": ft.Colors.RED},
+        {"points": [{"x": 0, "y": 20}, {"x": 10, "y": 50}, {"x": 20, "y": 30}, {"x": 80, "y": 60}], "color": ft.Colors.BLUE},
+        {"points": [{"x": 0, "y": 10}, {"x": 10, "y": 30}, {"x": 40, "y": 20}, {"x": 60, "y": 60}], "color": ft.Colors.GREEN},
+        {"points": [{"x": 0, "y": 25}, {"x": 10, "y": 20}, {"x": 30, "y": 30}, {"x": 70, "y": 70}], "color": ft.Colors.ORANGE},
+    ]
+    labels_left = [{"value": 20, "label": "20K"}, {"value": 40, "label": "40K"}, {"value": 60, "label": "60K"}, {"value": 80, "label": "80K"}, {"value": 100, "label": "100K"}]
+    labels_bottom = [{"value": 0, "label": "2020"}, {"value": 20, "label": "2022"}, {"value": 40, "label": "2024"}, {"value": 60, "label": "2026"}, {"value": 80, "label": "2028"}, {"value": 100, "label": "2030"}]
+    line_chart_1 = GenericLineChart(
+        data_line,
+        expand=True,
+        interactive=True,
+        max_y=110, # always add a one more point
+        max_x=110, # always add a one more point
+        height=500,
+        labels_left=labels_left,
+        labels_bottom=labels_bottom,
+    )
+
     return ft.Container(
         expand=True,
         content=ft.Column(
@@ -67,6 +105,12 @@ def build_view_charts(page: ft.Page) -> ft.Container:
                 pie_chart_2,
                 pie_chart_3,
                 pie_chart_4,
+                ft.Text("BarChart", size=14),
+                ft.Container(height=10, expand=True),# divider
+                bar_chart_1,
+                ft.Text("LineChart", size=14),
+                ft.Container(height=10, expand=True),  # divider
+                line_chart_1,
             ],
             alignment=ft.alignment.center,
             expand=True,
