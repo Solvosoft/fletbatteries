@@ -2,13 +2,13 @@ import flet as ft
 import os
 import shutil
 from components.shared.inputs.inputs_type import InputType
-
+from datetime import datetime, timedelta
 
 class Input:
     def __init__(self, page: ft.Page, name: str, type: str, label: str,
                  required: bool, max_length: int,
                  visible_form: bool = True, visible_table: bool = True, active_filter: bool = True,
-                 tooltip: str = ""):
+                 tooltip: str = "", min_date: str = "", max_date: str = ""):
         self.page = page
         self.name = name
         self.type = type
@@ -17,13 +17,19 @@ class Input:
         self.max_length = max_length
         self.visible_form = visible_form
         self.visible_table = visible_table
-        self.file_picker = ft.FilePicker(on_result=self.on_file_picked)
+        self.min_date = min_date
+        self.max_date = max_date
+        self.picker = None
+        if self.type == "ImageField":
+            self.picker = ft.FilePicker(on_result=self.on_file_picked)
+        elif self.type == "DateField":
+            self.picker = ft.DatePicker(on_change=self.on_date_picked)
         self.filter = None
         self.widget = None
         self.tooltip = tooltip
         self.active_filter = active_filter
         self.widget = InputType(self.page, self.type, self.label, self.visible_form, self.visible_table,
-                                self.file_picker).get_widget()
+                                self.picker).get_widget()
         if self.type == "CharField" or self.type == "EmailField" or self.type == "IntergerField":
             self.filter = ft.TextField(label=self.name, width=250)
 
@@ -37,6 +43,15 @@ class Input:
                 self.widget.controls[1] = ft.Text("Ninguna imagen seleccionada")
                 self.widget.controls[0].data = {"path": "", "name": ""}
         self.page.update()
+
+    def on_date_picked(self, e):
+        value = e.control.value
+        if self.type == "DateField":
+            if hasattr(value, "strftime"):
+                self.widget.controls[0].value = value.strftime("%d-%m-%Y")
+            else:
+                self.widget.controls[0].value = str(value)
+        self.widget.controls[0].update()
 
     def on_upload(self):
         if self.type == "ImageField":
@@ -63,8 +78,36 @@ class Input:
         if self.type == "ImageField":
             self.widget.controls[0].data = {"path": "src/assets/image/" + value, "name": value}
             self.widget.controls[1] = ft.Text("Seleccionada: " + value)
+        elif self.type == "DateField":
+            self.widget.controls[0].value = value
         else:
             self.widget.value = value
+
+    def parse_relative_date(self, code: str, is_min: bool) -> datetime:
+        today = datetime.today()
+        if not code:
+            return None
+        unit = code[0].lower()
+        try:
+            value = int(code[1:])
+        except ValueError:
+            return None
+        if unit == "d":
+            if is_min:
+                return today - timedelta(days=value)
+            else:
+                return today + timedelta(days=value)
+        elif unit == "m":
+            if is_min:
+                return today - relativedelta(months=value)
+            else:
+                return today + relativedelta(months=value)
+        elif unit == "y":
+            if is_min:
+                return today - relativedelta(years=value)
+            else:
+                return today + relativedelta(years=value)
+        return None
 
     def is_valid(self):
         if self.type == "CharField":
@@ -116,7 +159,7 @@ class Input:
                 self.widget.error = ft.Text("Este campo es requerido", color=ft.Colors.RED)
                 return False
             if val:
-                if  len(val) > self.max_length:
+                if len(val) > self.max_length:
                     self.widget.error = ft.Text(f"La contraseña no debe exceder {self.max_length} caracteres",
                                                 color=ft.Colors.RED)
                     return False
@@ -129,4 +172,37 @@ class Input:
                     self.widget.error = ft.Text("La contraseña debe incluir letras y números",
                                                 color=ft.Colors.RED)
                     return False
+        elif self.type == "DateField":
+            self.widget.error = None
+            value = self.widget.controls[0].value
+            if value == "":
+                self.widget.controls[0].error = ft.Text("Este campo es requerido", color=ft.Colors.RED)
+                return False
+            if value:
+                try:
+                    selected_date = datetime.strptime(value, "%d-%m-%Y")
+                except ValueError as ex:
+                    print(f"Error al parsear fecha: {ex}")
+                    self.widget.controls[0].error = ft.Text("La fecha debe tener el formato dd-mm-aaaa", color=ft.Colors.RED)
+                    return False
+                if self.min_date:
+                    min_date = self.parse_relative_date(self.min_date, True)
+                    if isinstance(min_date, datetime):
+                        min_date = min_date.date()
+                    if isinstance(selected_date, datetime):
+                        selected_date = selected_date.date()
+                    if min_date and selected_date < min_date:
+                        self.widget.controls[0].error = ft.Text(f"La fecha no puede ser menor a {min_date.date()}", color=ft.Colors.RED)
+                        return False
+                if self.max_date:
+                    max_date = self.parse_relative_date(self.max_date, False)
+                    if isinstance(max_date, datetime):
+                        max_date = max_date.date()
+                    if isinstance(selected_date, datetime):
+                        selected_date = selected_date.date()
+                    if max_date and selected_date > max_date:
+                        self.widget.controls[0].error = ft.Text(f"La fecha no puede ser mayor a {max_date.date()}", color=ft.Colors.RED)
+                        return False
         return True
+
+

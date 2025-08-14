@@ -52,26 +52,29 @@ class Form:
 
     def clean(self):
         for input in self.inputs:
-            if input.type == "CharField" or input.type == "EmailField":
-                input.widget.value = ""
-            if input.type == "IntergerField":
-                input.widget.value = ""
             if input.type == "ImageField":
                 input.widget.controls[0].data = {"path": "", "name": ""}
                 input.widget.controls[1].value = "Ninguna imagen seleccionada"
+            elif input.type == "DateField":
+                input.widget.controls[0].value = ""
+            else:
+                input.widget.value = ""
 
     def get_item(self):
         item = {}
         for input in self.inputs:
-            if input.type == "CharField" or input.type == "EmailField" or input.type == "PasswordField":
-                item[input.name] = input.widget.value
-            elif input.type == "IntergerField":
+            if input.type == "IntergerField":
                 item[input.name] = int(input.widget.value) if input.widget.value else None
             elif input.type == "ImageField":
                 item[input.name] = input.widget.controls[0].data["name"]
+            elif input.type == "DateField":
+                item[input.name] = input.widget.controls[0].value
+            else:
+                item[input.name] = input.widget.value
         return item
 
     from uuid import uuid4
+
 
 class GenerateForms:
     def __init__(self, page: ft.Page):
@@ -102,7 +105,11 @@ class GenerateForms:
                 inputs = []
                 for input in form["inputs"]:
                     inputs.append(Input(self.page, input["name"], input["type"], input["label"],
-                                        input["required"], input.get("max_length", 255), input.get("visible_form", True),
+                                        input["required"], input.get("max_length", 255),
+                                        input.get("visible_form", True),
                                         input.get("visible_table", True),
-                                        input.get("filter", False), input.get("tooltip", "")))
+                                        input.get("filter", False), input.get("tooltip", ""),
+                                        input.get("min_date", ""), input.get("max_date", "")
+                                        )
+                                  )
                 return Form(form["title"], form["name"], inputs)

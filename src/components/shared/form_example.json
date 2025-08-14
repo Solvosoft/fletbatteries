@@ -54,7 +54,7 @@
           "label": "ID",
           "required": false,
           "visible_form": false,
-          "visible_table": false ,
+          "visible_table": false,
           "filter": true
         },
         {
@@ -123,7 +123,37 @@
           "visible_table": false,
           "filter": false
         }
-        ]
+      ]
+    },
+    {
+      "title": "Test",
+      "name": "TestForm",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "IntergerField",
+          "label": "ID",
+          "required": false,
+          "visible_form": false,
+          "filter": true
+        },
+        {
+          "name": "name",
+          "type": "CharField",
+          "label": "Nombre",
+          "required": true,
+          "filter": true
+        },
+        {
+          "name": "date",
+          "type": "DateField",
+          "label": "Fecha",
+          "required": true,
+          "filter": true,
+          "min_date": "d0",
+          "max_date": "d0"
+        }
+      ]
     }
   ]
 }
