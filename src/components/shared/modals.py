@@ -1,5 +1,6 @@
 import flet as ft
 from typing import Callable, Optional, Literal
+from controls.utils import show_snackbar
 
 ModalKind = Literal["create", "edit", "delete", "detail"]
 
@@ -107,20 +108,6 @@ class CrudModal:
             self._show_snackbar(self._error_text, success=False)
 
     def _show_snackbar(self, message: str, success: bool):
-        snack = ft.SnackBar(
-            content=ft.Row(
-                spacing=8,
-                controls=[
-                    ft.Icon(
-                        ft.Icons.CHECK_CIRCLE_OUTLINE if success else ft.Icons.ERROR_OUTLINE,
-                        color=ft.Colors.GREEN_600 if success else ft.Colors.RED_600,
-                    ),
-                    ft.Text(message, color=ft.Colors.BLACK),
-                ],
-            ),
-            bgcolor=ft.Colors.GREEN_50 if success else ft.Colors.RED_50,
-            show_close_icon=True,
-        )
-
+        snack = show_snackbar(message, success)
         self.page.open(snack)
 

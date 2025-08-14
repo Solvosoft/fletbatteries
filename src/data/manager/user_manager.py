@@ -1,6 +1,6 @@
-from src.data.models.user import User
-from src.controls.encrypt import hash_password, verify_password
-from src.data.manager.db_manager import DatabaseManager
+from data.models.user import User
+from controls.encrypt import verify_password
+from data.manager.db_manager import DatabaseManager
 
 class UserManager:
     def __init__(self):
@@ -13,8 +13,7 @@ class UserManager:
             if db.query(User).filter(User.email == email).first():
                 raise ValueError("Email ya registrado")
 
-            hashed = hash_password(password)
-            user = User(name=name, email=email, password=hashed)
+            user = User(name=name, email=email, password=password)
             db.add(user)
             db.commit()
             db.refresh(user)
@@ -61,3 +60,40 @@ class UserManager:
             return True
         finally:
             self.dbm.close_session(db)
+
+    # Leer todos los usuarios
+    def get_all_users(self):
+        db = self.dbm.get_session()
+        try:
+            data = db.query(User).all()
+            results = [
+                {
+                    "name": user.name,
+                    "email": user.email,
+                    "id": user.id,
+                }
+                for user in data
+            ]
+            return results
+        finally:
+            self.dbm.close_session(db)
+
+    # Actualizar usuario
+    def update_user(self, user_id: int, name: str, email: str, password: str):
+        db = self.dbm.get_session()
+        try:
+            user = db.query(User).filter(User.id == user_id).first()
+            if not user:
+                raise ValueError("Usuario no encontrado")
+
+            user.name = name
+            user.email = email
+            user.password = password
+
+            db.commit()
+            db.refresh(user)
+
+            return user
+        finally:
+            self.dbm.close_session(db)
+

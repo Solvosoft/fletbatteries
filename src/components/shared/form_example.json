@@ -88,6 +88,42 @@
           "filter": true
         }
       ]
+    },
+    {
+      "title": "Registro de Usuarios",
+      "name": "UserForm",
+      "inputs": [
+        {
+          "name": "id",
+          "type": "IntergerField",
+          "label": "ID",
+          "required": false,
+          "visible_form": false,
+          "filter": true
+        },
+        {
+          "name": "name",
+          "type": "CharField",
+          "label": "Nombre",
+          "required": true,
+          "filter": true
+        },
+        {
+          "name": "email",
+          "type": "EmailField",
+          "label": "Correo",
+          "required": true,
+          "filter": true
+        },
+        {
+          "name": "password",
+          "type": "PasswordField",
+          "label": "Contraseña",
+          "required": true,
+          "visible_table": false,
+          "filter": false
+        }
+        ]
     }
   ]
 }

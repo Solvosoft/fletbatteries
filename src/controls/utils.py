@@ -1,6 +1,7 @@
 import random
 import flet as ft
 
+
 def random_image_url(width=300, height=200):
     img_id = random.randint(1, 1000)
     return f"https://picsum.photos/seed/{img_id}/{width}/{height}"
@@ -33,8 +34,27 @@ def text_with_truncate(data, size=12, bold=False, color=ft.Colors.BLACK, max_len
 
     return text
 
+
 def get_form(forms, name):
     for form in forms:
         if form.name == name:
             return form
     return None
+
+
+def show_snackbar(message: str, success: bool):
+    return ft.SnackBar(
+        content=ft.Row(
+            spacing=8,
+            controls=[
+                ft.Icon(
+                    ft.Icons.CHECK_CIRCLE_OUTLINE if success else ft.Icons.ERROR_OUTLINE,
+                    color=ft.Colors.GREEN_600 if success else ft.Colors.RED_600,
+                ),
+                ft.Text(message, color=ft.Colors.BLACK),
+            ],
+        ),
+        bgcolor=ft.Colors.GREEN_50 if success else ft.Colors.RED_50,
+        show_close_icon=True,
+    )
+

@@ -8,7 +8,7 @@ from views.login_view import build_view_login
 from views.settings_view import build_view_settings
 from views.product_view import ProductView
 from views.customer_view import build_view_customer
-from views.user_view import build_view_user
+from views.user_view import UserView
 from views.profile_view import build_view_profile
 from views.spinner_view import build_view_spinner
 from views.modals_view import build_view_modals
@@ -38,7 +38,7 @@ class Views:
         self.views = [
             RouteView("Inicio", "/", ft.Icons.HOME, lambda:build_view_home(page), position["side"]),
             RouteView("Products", "/products", ft.Icons.LOCAL_MALL, lambda:ProductView(page, forms).build_view_product(), position["side"]),
-            RouteView("Users", "/users", ft.Icons.PERSON, lambda:build_view_user(page), position["side"]),
+            RouteView("Users", "/users", ft.Icons.PERSON, lambda:UserView(page, forms).build_view_user(), position["side"]),
             RouteView("Customer", "/customers", ft.Icons.SUPERVISED_USER_CIRCLE, lambda:build_view_customer(page, forms), position["side"]),
             RouteView("Spinner", "/spinner", ft.Icons.CALL_TO_ACTION, lambda:build_view_spinner(page), position["side"]),
             RouteView("Modals", "/modals", ft.Icons.SELECT_ALL, lambda:build_view_modals(page), position["side"]),

@@ -19,7 +19,8 @@ class AppTemplate(ft.Container):
         self.page.fonts = {"Pacifico": "./fonts/Pacifico-Regular.ttf"}
         # self.page.scroll = ft.ScrollMode.AUTO
         self.page.expand = True
-        self.forms = GenerateForms(self.page).forms
+        self.generate_forms = GenerateForms(self.page)
+        self.forms = self.generate_forms.generate_forms()
         self.views = Views(page=self.page, forms=self.forms).views
         self.navbar = Navbar(page, settings=self.navbar_settings())
         self.layout = Layout(self.navbar, page, self.views)

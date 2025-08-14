@@ -1,7 +1,8 @@
-
 import flet as ft
 import os
 import shutil
+from components.shared.inputs.inputs_type import InputType
+
 
 class Input:
     def __init__(self, page: ft.Page, name: str, type: str, label: str,
@@ -21,41 +22,9 @@ class Input:
         self.widget = None
         self.tooltip = tooltip
         self.active_filter = active_filter
-        if self.type == "CharField":
-            self.widget = ft.TextField(
-                label=self.label,
-                visible=self.visible_form,
-            )
-            self.filter = ft.TextField(label=self.name, width=250)
-        elif self.type == "IntergerField":
-            self.widget = ft.TextField(
-                label=self.label,
-                keyboard_type=ft.KeyboardType.NUMBER,
-                visible=self.visible_form,
-            )
-            self.filter = ft.TextField(label=self.name, width=250)
-        elif self.type == "ImageField":
-            self.page.overlay.append(self.file_picker)
-            self.widget = ft.Row(
-                controls=[
-                    ft.ElevatedButton(
-                        text="Seleccionar Imagen",
-                        icon=ft.Icons.IMAGE,
-                        on_click=lambda _: self.file_picker.pick_files(
-                            allow_multiple=False,
-                            allowed_extensions=["jpg", "jpeg", "png"]
-                        )
-                    ),
-                    ft.Text("Ninguna imagen seleccionada")
-                ],
-                spacing=10
-            )
-        elif self.type == "EmailField":
-            self.widget = ft.TextField(
-                label=self.label,
-                visible=self.visible_form,
-                keyboard_type=ft.KeyboardType.EMAIL,
-            )
+        self.widget = InputType(self.page, self.type, self.label, self.visible_form, self.visible_table,
+                                self.file_picker).get_widget()
+        if self.type == "CharField" or self.type == "EmailField" or self.type == "IntergerField":
             self.filter = ft.TextField(label=self.name, width=250)
 
     def on_file_picked(self, e: ft.FilePickerResultEvent):
@@ -92,10 +61,11 @@ class Input:
 
     def set_value(self, value):
         if self.type == "ImageField":
-            self.widget.controls[0].data = {"path": "src/assets/image/"+value, "name": value}
+            self.widget.controls[0].data = {"path": "src/assets/image/" + value, "name": value}
             self.widget.controls[1] = ft.Text("Seleccionada: " + value)
         else:
             self.widget.value = value
+
     def is_valid(self):
         if self.type == "CharField":
             self.widget.error = None
@@ -103,7 +73,8 @@ class Input:
                 self.widget.error = ft.Text("Este campo es requerido", color=ft.Colors.RED)
                 return False
             if self.max_length and len(self.widget.value) > self.max_length:
-                self.widget.error = ft.Text(f"El valor debe tener menos de {self.max_length} caracteres", color=ft.Colors.RED)
+                self.widget.error = ft.Text(f"El valor debe tener menos de {self.max_length} caracteres",
+                                            color=ft.Colors.RED)
                 return False
         elif self.type == "IntergerField":
             self.widget.error = None
@@ -137,5 +108,25 @@ class Input:
                 patron = r"^[\w\.-]+@[\w\.-]+\.\w+$"
                 if not re.match(patron, self.widget.value):
                     self.widget.error = ft.Text("El correo no es válido", color=ft.Colors.RED)
+                    return False
+        elif self.type == "PasswordField":
+            self.widget.error = None
+            val = (self.widget.value or "")
+            if self.required and val.strip() == "":
+                self.widget.error = ft.Text("Este campo es requerido", color=ft.Colors.RED)
+                return False
+            if val:
+                if  len(val) > self.max_length:
+                    self.widget.error = ft.Text(f"La contraseña no debe exceder {self.max_length} caracteres",
+                                                color=ft.Colors.RED)
+                    return False
+                if len(val) < 8:
+                    self.widget.error = ft.Text("La contraseña debe tener al menos 8 caracteres",
+                                                color=ft.Colors.RED)
+                    return False
+                import re
+                if not re.search(r"[A-Za-z]", val) or not re.search(r"\d", val):
+                    self.widget.error = ft.Text("La contraseña debe incluir letras y números",
+                                                color=ft.Colors.RED)
                     return False
         return True

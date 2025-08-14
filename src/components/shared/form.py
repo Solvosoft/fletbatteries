@@ -2,8 +2,10 @@ import flet as ft
 import json
 import os
 import shutil
+from uuid import uuid4
 
-from components.shared.inputs import Input
+from components.shared.inputs.inputs import Input
+
 
 class Form:
     def __init__(self, title: str, name: str, inputs: []):
@@ -20,7 +22,7 @@ class Form:
     def get_inputs(self):
         widgets = []
         for input in self.inputs:
-                widgets.append(input.widget)
+            widgets.append(input.widget)
         return widgets
 
     def get_filters(self):
@@ -60,7 +62,7 @@ class Form:
     def get_item(self):
         item = {}
         for input in self.inputs:
-            if input.type == "CharField" or input.type == "EmailField":
+            if input.type == "CharField" or input.type == "EmailField" or input.type == "PasswordField":
                 item[input.name] = input.widget.value
             elif input.type == "IntergerField":
                 item[input.name] = int(input.widget.value) if input.widget.value else None
@@ -68,20 +70,38 @@ class Form:
                 item[input.name] = input.widget.controls[0].data["name"]
         return item
 
+    from uuid import uuid4
+
 class GenerateForms:
     def __init__(self, page: ft.Page):
         self.page = page
         self.forms = []
+        self.data = None
         with open("src/components/shared/form_example.json") as f:
             self.data = json.load(f)
-        self.generate_forms()
 
     def generate_forms(self):
+        if self.data is None:
+            with open("src/components/shared/form_example.json") as f:
+                self.data = json.load(f)
         for form in self.data["forms"]:
             inputs = []
             for input in form["inputs"]:
                 inputs.append(Input(self.page, input["name"], input["type"], input["label"],
-                                    input["required"], input.get("max_length", 255), input.get("visible_form", True), input.get("visible_table", True),
+                                    input["required"], input.get("max_length", 255), input.get("visible_form", True),
+                                    input.get("visible_table", True),
                                     input.get("filter", False), input.get("tooltip", "")))
 
             self.forms.append(Form(form["title"], form["name"], inputs))
+        return self.forms
+
+    def clone(self, name_form):
+        for form in self.data["forms"]:
+            if form["name"] == name_form:
+                inputs = []
+                for input in form["inputs"]:
+                    inputs.append(Input(self.page, input["name"], input["type"], input["label"],
+                                        input["required"], input.get("max_length", 255), input.get("visible_form", True),
+                                        input.get("visible_table", True),
+                                        input.get("filter", False), input.get("tooltip", "")))
+                return Form(form["title"], form["name"], inputs)
