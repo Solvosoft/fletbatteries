@@ -52,7 +52,7 @@ class TestView:
             print(f"Error al guardar: {ex}")
 
 
-    def handle_delete_click(form):
+    def handle_delete_click(self, form):
         modal = CrudModal(self.page)
         modal.open(
             kind="delete",
