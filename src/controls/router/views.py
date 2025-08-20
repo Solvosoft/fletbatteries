@@ -18,6 +18,7 @@ from views.friconix_view import build_view_friconix
 from views.charts_view import build_view_charts
 from views.test_view import TestView
 from assets.icons.friconix.frx_flet import frx_icon
+from views.calendar_view import build_view_calendar
 
 
 position = {
@@ -47,6 +48,7 @@ class Views:
             RouteView("Friconix", "/friconix", ft.Icons.NOW_WALLPAPER, lambda:build_view_friconix(page), position["side"]),
             RouteView("Charts", "/charts", ft.Icons.DONUT_SMALL_ROUNDED, lambda:build_view_charts(page), position["side"]),
             RouteView("Animations", "/animations", ft.Icons.SPORTS_HANDBALL_ROUNDED, lambda:build_view_animation(page), position["side"]),
+            RouteView("Calendar", "/calendar", ft.Icons.SPORTS_HANDBALL_ROUNDED, lambda: build_view_calendar(page),position["side"]),
             RouteView("Login", "/login", ft.Icons.LOGIN, lambda:build_view_login(page), position["top"]),
             RouteView("Profile", "/profile", ft.Icons.PERSON, lambda:build_view_profile(page), position["top"]),
             RouteView("Settings", "/settings", ft.Icons.SETTINGS, lambda:build_view_settings(page), position["top"]),
