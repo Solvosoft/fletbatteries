@@ -1,0 +1,228 @@
+import flet as ft
+import datetime
+import uuid
+from data.models import calendar_event
+from data.manager.calendar_event_manager import EventManager
+
+# ---------------------------
+# Cabecera del calendario
+# ---------------------------
+class CalendarHeader(ft.Column):
+    def __init__(self, today, week_days, on_day_change=None):
+        super().__init__()
+        self.today = today
+        self.week_days = week_days
+        self.day_selected = today
+        self.on_day_change = on_day_change
+        self.spacing = 0
+        self.controls = [self.build_row()]
+
+    def build_row(self):
+        return ft.Row(
+            spacing=0,
+            controls=[
+                ft.Container(width=60, height=100, border=ft.border.all(0.2, ft.Colors.GREY_400)),
+                *[
+                    ft.Container(
+                        content=ft.Column(
+                            [
+                                ft.Text(
+                                    day.strftime("%a"),
+                                    size=11,
+                                    weight=ft.FontWeight.W_700,
+                                    color="red" if day == self.today else "blue" if day == self.day_selected else "black",
+                                ),
+                                ft.Container(
+                                    content=ft.Text(
+                                        day.strftime("%d"),
+                                        size=21,
+                                        color= "White" if day == self.day_selected else "red" if day == self.today else "black",
+                                    ),
+                                    alignment=ft.alignment.center,
+                                    height=50,
+                                    width=50,
+                                    border_radius=100,
+                                    bgcolor="blue" if self.day_selected == day else None,
+                                    on_click=lambda e, d=day: self.change_day(d),
+                                ),
+                            ],
+                            alignment=ft.MainAxisAlignment.CENTER,
+                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                            spacing=4,
+                        ),
+                        border=ft.border.all(0.2, ft.Colors.GREY_400),
+                        expand=True,
+                        height=100,
+                    )
+                    for day in self.week_days
+                ],
+            ],
+        )
+
+    def change_day(self, day):
+        self.day_selected = day
+        self.controls[0] = self.build_row()
+        self.update()
+
+    def update_week(self, week_days):
+        self.week_days = week_days
+        self.controls[0] = self.build_row()
+        self.update()
+
+# ---------------------------
+# Grilla del calendario
+# ---------------------------
+class CalendarGrid(ft.Column):
+    def __init__(self, week_days, events, hour_height=60):
+        super().__init__(scroll=ft.ScrollMode.AUTO, expand=True, spacing=0)
+        self.week_days = week_days
+        self.events = events
+        self.hour_height = hour_height
+        self.build_grid()
+
+    def build_grid(self):
+        self.controls = []
+
+        # Columna de horas
+        hour_column = ft.Column(
+            controls=[
+                ft.Container(
+                    content=ft.Text(f"{h:02d}:00"),
+                    height=self.hour_height,
+                    alignment=ft.alignment.center
+                ) for h in range(24)
+            ],
+            spacing=0
+        )
+
+        # Fila principal: primera columna horas + días
+        main_row = ft.Row(expand=True, spacing=0)
+        main_row.controls.append(ft.Container(width=60, content=hour_column))
+
+        # Columnas de días
+        for day in self.week_days:
+            day_stack = ft.Stack(height=self.hour_height * 24, expand=True, controls=[])
+
+            # Celdas de fondo
+            for h in range(24):
+                day_stack.controls.append(
+                    ft.Container(
+                        top=h*self.hour_height,
+                        left=0,
+                        right=0,
+                        height=self.hour_height,
+                        bgcolor=ft.Colors.GREY_200,
+                        border=ft.border.all(0.2, ft.Colors.GREY_400),
+                    )
+                )
+
+            # Eventos del día
+            day_events = [ev for ev in self.events if ev.date == day]
+            for ev in day_events:
+                start_hour = int(ev.start_time.split(":")[0])
+                end_hour = int(ev.end_time.split(":")[0])
+                duration = max(1, end_hour - start_hour)
+
+                day_stack.controls.append(
+                    ft.Container(
+                        top=self.hour_height * start_hour,
+                        left=0,
+                        right=5,
+                        height=self.hour_height * duration,
+                        bgcolor=ev.color,
+                        alignment=ft.alignment.center,
+                        content=ft.Text(ev.title, size=10, color="white"),
+                    )
+                )
+            main_row.controls.append(ft.Container(content=day_stack, expand=1))
+
+        self.controls.append(main_row)
+
+    def render_events(self, events, week_days):
+        self.events = events
+        self.week_days = week_days
+        self.build_grid()
+        self.update()
+
+# ---------------------------
+# Vista principal del calendario
+# ---------------------------
+class Calendar(ft.Container):
+    def __init__(self):
+        super().__init__(expand=True)
+
+        # Estado inicial
+        self.today = datetime.date.today()
+        self.start_week = self.today - datetime.timedelta(days=self.today.weekday())
+        self.week_days = [self.start_week + datetime.timedelta(days=i) for i in range(7)]
+        self.event_manager = EventManager()
+
+        # Eventos iniciales
+        self._load_initial_events()
+
+       #Label de el mes
+        self.month_label = ft.Text("", size=16, weight=ft.FontWeight.W_700)
+        first_month = self.week_days[0].strftime("%B %Y")
+        last_month = self.week_days[-1].strftime("%B %Y")
+        self.month_label.value = first_month if first_month == last_month else f"{first_month} - {last_month}"
+
+       
+        self.header = CalendarHeader(self.today, self.week_days)
+        self.grid = CalendarGrid(self.week_days, self.event_manager.get_events_for_week(self.week_days))
+
+        # Botones de navegación
+        self.week_navigator = ft.Row([
+            ft.IconButton(icon=ft.Icons.ARROW_BACK, icon_color=ft.Colors.BLACK, on_click=self.back_week),
+            self.month_label,
+            ft.IconButton(icon=ft.Icons.ARROW_FORWARD, icon_color=ft.Colors.BLACK, on_click=self.next_week),
+            ft.IconButton(icon=ft.Icons.ADD, icon_color=ft.Colors.BLACK, on_click=self.create_event),
+        ])
+
+        # Layout principal
+        self.content = ft.Column([self.week_navigator, self.header, self.grid], expand=True, spacing=0)
+
+    #Se cargan eventos de prueba
+    def _load_initial_events(self):
+        self.event_manager = EventManager()
+        self.event_manager.add_event(calendar_event.Event(str(uuid.uuid4()), "Reunión equipo", self.today, "09:00", "11:00", "green"))
+        self.event_manager.add_event(calendar_event.Event(str(uuid.uuid4()), "Clase inglés", self.today, "14:00", "15:00", "blue"))
+        self.event_manager.add_event(calendar_event.Event(str(uuid.uuid4()), "Gym", self.today, "18:00", "19:00", "purple"))
+        day_1 = self.today + datetime.timedelta(days=1)
+        self.event_manager.add_event(calendar_event.Event(str(uuid.uuid4()), "Proyecto X", day_1, "10:00", "12:00", "orange"))
+        self.event_manager.add_event(calendar_event.Event(str(uuid.uuid4()), "Cita médica", day_1, "16:00", "17:00", "red"))
+        day_2 = datetime.date(self.today.year, 9, 8)
+        self.event_manager.add_event(calendar_event.Event(str(uuid.uuid4()), "Reunión con clientes", day_2, "11:00", "12:30", "blue"))
+        self.event_manager.add_event(calendar_event.Event(str(uuid.uuid4()), "Clase de yoga", day_2, "18:00", "19:00", "purple"))
+
+
+    def update_month_label(self, week_days):
+        first_month = week_days[0].strftime("%B %Y")
+        last_month = week_days[-1].strftime("%B %Y")
+        self.month_label.value = first_month if first_month == last_month else f"{first_month} - {last_month}"
+        self.month_label.update()
+
+    def next_week(self, e):
+        self.start_week += datetime.timedelta(days=7)
+        self._update_week()
+
+    def back_week(self, e):
+        self.start_week -= datetime.timedelta(days=7)
+        self._update_week()
+
+    def create_event(self, e):
+        new_event = calendar_event.Event(
+            id=str(uuid.uuid4()),
+            title="Nuevo evento",
+            date=self.week_days[6],
+            start_time="10:00",
+            end_time="12:00",
+            color=ft.Colors.GREEN_800,
+        )
+        self.event_manager.add_event(new_event)
+        self.grid.render_events(self.event_manager.get_events_for_week(self.week_days), self.week_days)
+    
+    def _update_week(self):
+        self.week_days = [self.start_week + datetime.timedelta(days=i) for i in range(7)]
+        self.header.update_week(self.week_days)
+        self.grid.render_events(self.event_manager.get_events_for_week(self.week_days), self.week_days)
+        self.update_month_label(self.week_days)
