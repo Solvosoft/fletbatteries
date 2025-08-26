@@ -17,6 +17,7 @@ from views.animation_view import build_view_animation
 from views.friconix_view import build_view_friconix
 from views.charts_view import build_view_charts
 from views.test_view import TestView
+from views.autocompletes_view import build_view_autocompletes
 from assets.icons.friconix.frx_flet import frx_icon
 
 
@@ -51,4 +52,5 @@ class Views:
             RouteView("Profile", "/profile", ft.Icons.PERSON, lambda:build_view_profile(page), position["top"]),
             RouteView("Settings", "/settings", ft.Icons.SETTINGS, lambda:build_view_settings(page), position["top"]),
             RouteView("Test", "/test", ft.Icons.QUESTION_MARK, lambda:TestView(page, forms).build_view_test(), position["side"]),
+            RouteView("Autocompletes", "/autocompletes", ft.Icons.EXPAND_MORE,  lambda: build_view_autocompletes(page), position["side"]),
         ]
