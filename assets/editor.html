@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="https://cdn.tiny.cloud/1/h8d9c2uzcr6hqzw4z6xkm4gbk4kr2c8c7tl6t6mk2b1jjoru/tinymce/8/tinymce.min.js" referrerpolicy="origin" crossorigin="anonymous"></script>
+<script>
+function initEditor(selector, toolbar, formId) {
+    tinymce.init({
+        selector: selector,
+        menubar: false,
+        plugins: 'link image media code table lists',
+        toolbar: toolbar || 'undo redo | bold italic underline | bullist numlist | link image',
+        height: 300,
+        setup: function(editor) {
+            // Cargar contenido desde backend
+            fetch(`http://127.0.0.1:5000/load/${formId}`)
+                .then(res => res.json())
+                .then(data => editor.setContent(data.content));
+
+            // Guardar al cambiar
+            editor.on('change', function() {
+                const title = document.querySelector(`#title${formId}`).value;
+                const content = editor.getContent();
+                fetch('http://127.0.0.1:5000/save', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({title, content})
+                });
+            });
+        }
+    });
+}
+
+window.onload = () => {
+    initEditor('#editor1', 'undo redo | bold italic underline | bullist numlist | link image | media | code', 1);
+    initEditor('#editor2', 'undo redo | bold italic | bullist numlist | code', 2);
+};
+</script>
+</head>
+<body>
+  <h2>Editor 1</h2>
+  <textarea id="editor1"></textarea>
+  <button onclick="guardar('editor1', 1)">Guardar Editor 1</button>
+
+  <h2>Editor 2</h2>
+  <textarea id="editor2"></textarea>
+  <button onclick="guardar('editor2', 2)">Guardar Editor 2</button>
+
+  <script>
+    tinymce.init({
+      selector: 'textarea',
+      height: 300,
+      menubar: true
+    });
+
+    async function guardar(editorId, formId) {
+      const content = tinymce.get(editorId).getContent();
+      const payload = {
+        title: "Editor " + formId,
+        content: content
+      };
+
+      const response = await fetch("http://127.0.0.1:5000/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await response.json();
+      alert("Respuesta: " + result.message);
+    }
+
+    // Para cargar contenido existente
+    async function cargar(editorId, formId) {
+      const response = await fetch("http://127.0.0.1:5000/load/" + formId);
+      const data = await response.json();
+      tinymce.get(editorId).setContent(data.content);
+    }
+
+    // Cargar inicial
+    setTimeout(() => {
+      cargar("editor1", 1);
+      cargar("editor2", 2);
+    }, 1000);
+  </script>
+</body>
+</html>

@@ -1,10 +1,1 @@
-# base
-flet
-# database
-sqlalchemy
-passlib[bcrypt]
-# variables de entorno
-python-dotenv
-# componentes
-flet-contrib
-flet-rive
+flet>=0.28.3
