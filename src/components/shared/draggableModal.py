@@ -3,10 +3,11 @@ import datetime
 
 
 class DraggableModal:
-    def __init__(self, left=100, top=100, width=260, content=None):
+    def __init__(self, left=100, top=100,  content=None):
         self.left = left
+        self.expand = True
         self.top = top
-        self.width = width
+       
         self.visible = False  
         self.content = content
 
@@ -23,7 +24,6 @@ class DraggableModal:
             border_radius=10,
             shadow=ft.BoxShadow(blur_radius=10, color=ft.Colors.BLACK26),
             padding=15,
-            width=self.width,
             left=self.left,
             top=self.top,
             visible=self.visible,  
