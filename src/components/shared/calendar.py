@@ -3,7 +3,7 @@ import datetime
 import uuid
 from data.models import calendar_event
 from data.manager.calendar_event_manager import EventManager
-from components.shared.prueba import DraggableModal
+from components.shared.draggableModal import DraggableModal
 
 
 # ---------------------------
@@ -152,27 +152,52 @@ class FormCalendar(ft.Column):
         self.save_event = save_event
         self.close_callback = close_callback
         self.fechaInicio = str(datetime.date.today())
-        self.fechaFin = ""
-        self.NombreEvento = ""
+        self.horaInicio = "00:00"
+        self.fechaFin = str(datetime.date.today())
+        self.horaFin = "00:00"
+        self.NombreEvento = "Nuevo evento"
         self.build_form()
 
     def build_form(self):
+
         self.controls.append(
-            ft.TextField(label="Nombre del evento", width=200, on_change=lambda e: setattr(self, 'NombreEvento', e.control.value))
+            ft.TextField(label="Nombre del evento", on_change=lambda e: setattr(self, 'NombreEvento', e.control.value))
         )
         self.controls.append(
-            ft.TextField(
-                label="Fecha inicio", value=self.fechaInicio, width=200, on_change=lambda e: setattr(self, 'fechaInicio', e.control.value)
+            ft.Column(
+                [
+                    ft.Text("Inicio"),
+                    ft.Row(
+                        [
+                            ft.TextField(
+                                value=self.fechaInicio, width=200, on_change=lambda e: setattr(self, 'fechaInicio', e.control.value)
+                            ),
+                             ft.TextField(
+                                value=self.horaInicio, width=200, on_change=lambda e: setattr(self, 'horaInicio', e.control.value)
+                            )
+                        ]
+                    )
+                ]
             )
         )
         self.controls.append(
-            ft.TextField(
-                label="Fecha fin",
-                value=str(datetime.date.today() + datetime.timedelta(days=1)),
-                width=200,
-                on_change=lambda e: setattr(self, 'fechaFin', e.control.value)
+            ft.Column(
+                [
+                    ft.Text("Fin"),
+                    ft.Row(
+                        [
+                            ft.TextField(
+                                value=self.fechaFin, width=200, on_change=lambda e: setattr(self, 'fechaFin', e.control.value)
+                            ),
+                            ft.TextField(
+                                value=self.horaFin, width=200, on_change=lambda e: setattr(self, 'horaFin', e.control.value)
+                            )
+                        ]
+                    )
+                ]
             )
         )
+        
         self.controls.append(
             ft.Row(
                 [
@@ -265,8 +290,8 @@ class Calendar(ft.Container):
             id=str(uuid.uuid4()),
             title=self.formCalendar.NombreEvento,
             date=datetime.datetime.strptime(self.formCalendar.fechaInicio, "%Y-%m-%d").date(),
-            start_time="12:00",
-            end_time="13:00",
+            start_time=self.formCalendar.horaInicio,
+            end_time=self.formCalendar.horaFin,
             color=ft.Colors.GREEN_800,
         )
         self.event_manager.add_event(new_event)
