@@ -19,6 +19,13 @@ const params = new URLSearchParams(window.location.search);
 return params.get(name) || '';
 }
 
+window.handleMessageFromFlet = (msg) => {
+    if(msg.type === "setContent") {
+        tinymce.get(msg.name).setContent(msg.value);
+    } else if(msg.type === "setDisabled") {
+        tinymce.get(msg.name).setMode(msg.value ? "readonly" : "design");
+    }
+};
 
 const fieldName = qs('name') || 'editor';
 const preset = qs('preset') || 'basic';

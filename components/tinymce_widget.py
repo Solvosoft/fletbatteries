@@ -59,14 +59,14 @@ class TinyMCEEditor(ft.Column):  # reemplazamos UserControl
         self._value = html or ""
         if self._wv is not None:
             msg = {"type": "setContent", "name": self.name, "value": self._value}
-            self._wv.post_message(json.dumps(msg))
+            self._wv.eval_js(f'window.handleMessageFromFlet({json.dumps(msg)});')
         self.update()
 
     def set_disabled(self, disabled: bool = True):
         self.disabled = disabled
         if self._wv is not None:
             msg = {"type": "setDisabled", "name": self.name, "value": bool(disabled)}
-            self._wv.post_message(json.dumps(msg))
+            self._wv.eval_js(f'window.handleMessageFromFlet({json.dumps(msg)});')
         self.update()
 
     def _handle_message(self, e):

@@ -44,7 +44,9 @@ class TwoFormsDemo(ft.Column):  # <-- reemplazamos UserControl por Column
 
     def _basic_card(self):
         def submit_basic(e):
-            ft.toast("Enviando formulario básico…")
+            page.snack_bar = ft.SnackBar(ft.Text("Enviando formulario básico…"))
+            page.snack_bar.open = True
+            page.update()
             print("[BÁSICO] HTML:", self.basic_editor.value())
 
         return ft.Card(
@@ -77,7 +79,9 @@ class TwoFormsDemo(ft.Column):  # <-- reemplazamos UserControl por Column
 
     def _advanced_card(self):
         def submit_advanced(e):
-            ft.toast("Enviando formulario avanzado…")
+            page.snack_bar = ft.SnackBar(ft.Text("Enviando formulario avanzado…"))
+            page.snack_bar.open = True
+            page.update()
             print("[AVANZADO] HTML:", self.advanced_editor.value())
 
         return ft.Card(
