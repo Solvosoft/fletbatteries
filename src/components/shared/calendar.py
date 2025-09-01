@@ -3,6 +3,8 @@ import datetime
 import uuid
 from data.models import calendar_event
 from data.manager.calendar_event_manager import EventManager
+from components.shared.prueba import DraggableModal
+
 
 # ---------------------------
 # Cabecera del calendario
@@ -21,7 +23,7 @@ class CalendarHeader(ft.Column):
         return ft.Row(
             spacing=0,
             controls=[
-                ft.Container(width=60, height=100, border=ft.border.all(0.2, ft.Colors.GREY_400)),
+                ft.Container(width=60, height=100,  border=ft.border.only( top=ft.BorderSide(0.2, ft.Colors.GREY_400), right=ft.BorderSide(0.2, ft.Colors.GREY_400), bottom=ft.BorderSide(0.2, ft.Colors.GREY_400)),),
                 *[
                     ft.Container(
                         content=ft.Column(
@@ -50,7 +52,7 @@ class CalendarHeader(ft.Column):
                             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                             spacing=4,
                         ),
-                        border=ft.border.all(0.2, ft.Colors.GREY_400),
+                        border=ft.border.only( top=ft.BorderSide(0.2, ft.Colors.GREY_400), bottom=ft.BorderSide(0.2, ft.Colors.GREY_400)),
                         expand=True,
                         height=100,
                     )
@@ -89,7 +91,7 @@ class CalendarGrid(ft.Column):
                 ft.Container(
                     content=ft.Text(f"{h:02d}:00"),
                     height=self.hour_height,
-                    alignment=ft.alignment.center
+                    alignment=ft.alignment.top_center
                 ) for h in range(24)
             ],
             spacing=0
@@ -111,7 +113,6 @@ class CalendarGrid(ft.Column):
                         left=0,
                         right=0,
                         height=self.hour_height,
-                        bgcolor=ft.Colors.GREY_200,
                         border=ft.border.all(0.2, ft.Colors.GREY_400),
                     )
                 )
@@ -144,6 +145,43 @@ class CalendarGrid(ft.Column):
         self.build_grid()
         self.update()
 
+
+class FormCalendar(ft.Column):
+    def __init__(self, save_event, close_callback):
+        super().__init__(expand=True, tight=True, spacing=10)
+        self.save_event = save_event
+        self.close_callback = close_callback
+        self.fechaInicio = str(datetime.date.today())
+        self.fechaFin = ""
+        self.NombreEvento = ""
+        self.build_form()
+
+    def build_form(self):
+        self.controls.append(
+            ft.TextField(label="Nombre del evento", width=200, on_change=lambda e: setattr(self, 'NombreEvento', e.control.value))
+        )
+        self.controls.append(
+            ft.TextField(
+                label="Fecha inicio", value=self.fechaInicio, width=200, on_change=lambda e: setattr(self, 'fechaInicio', e.control.value)
+            )
+        )
+        self.controls.append(
+            ft.TextField(
+                label="Fecha fin",
+                value=str(datetime.date.today() + datetime.timedelta(days=1)),
+                width=200,
+                on_change=lambda e: setattr(self, 'fechaFin', e.control.value)
+            )
+        )
+        self.controls.append(
+            ft.Row(
+                [
+                    ft.ElevatedButton("Guardar", icon=ft.Icons.SAVE, on_click=self.save_event),
+                    ft.ElevatedButton("Cerrar", icon=ft.Icons.CLOSE, on_click=self.close_callback),
+                ]
+            )
+        )
+
 # ---------------------------
 # Vista principal del calendario
 # ---------------------------
@@ -169,17 +207,29 @@ class Calendar(ft.Container):
        
         self.header = CalendarHeader(self.today, self.week_days)
         self.grid = CalendarGrid(self.week_days, self.event_manager.get_events_for_week(self.week_days))
+        self.formCalendar = FormCalendar(
+        save_event=lambda e: self.create_event(e),
+        close_callback=lambda e=None: self.modal.close()  
+        )
+
+        self.modal = DraggableModal(left=150, top=150, content=self.formCalendar)
 
         # Botones de navegación
         self.week_navigator = ft.Row([
             ft.IconButton(icon=ft.Icons.ARROW_BACK, icon_color=ft.Colors.BLACK, on_click=self.back_week),
             self.month_label,
             ft.IconButton(icon=ft.Icons.ARROW_FORWARD, icon_color=ft.Colors.BLACK, on_click=self.next_week),
-            ft.IconButton(icon=ft.Icons.ADD, icon_color=ft.Colors.BLACK, on_click=self.create_event),
+            ft.IconButton(icon=ft.Icons.ADD, icon_color=ft.Colors.BLACK,  on_click=lambda e: self.modal.open()),
         ])
 
         # Layout principal
-        self.content = ft.Column([self.week_navigator, self.header, self.grid], expand=True, spacing=0)
+        self.content = ft.Stack(
+            controls=[
+                ft.Column([self.week_navigator, self.header, self.grid], expand=True, spacing=0, ),
+                self.modal.get_control(),
+            ]
+        ) 
+       
 
     #Se cargan eventos de prueba
     def _load_initial_events(self):
@@ -188,7 +238,7 @@ class Calendar(ft.Container):
         self.event_manager.add_event(calendar_event.Event(str(uuid.uuid4()), "Clase inglés", self.today, "14:00", "15:00", "blue"))
         self.event_manager.add_event(calendar_event.Event(str(uuid.uuid4()), "Gym", self.today, "18:00", "19:00", "purple"))
         day_1 = self.today + datetime.timedelta(days=1)
-        self.event_manager.add_event(calendar_event.Event(str(uuid.uuid4()), "Proyecto X", day_1, "10:00", "12:00", "orange"))
+        self.event_manager.add_event(calendar_event.Event(str(uuid.uuid4()), "Proyecto X", day_1, "10:00", "12:15", "orange"))
         self.event_manager.add_event(calendar_event.Event(str(uuid.uuid4()), "Cita médica", day_1, "16:00", "17:00", "red"))
         day_2 = datetime.date(self.today.year, 9, 8)
         self.event_manager.add_event(calendar_event.Event(str(uuid.uuid4()), "Reunión con clientes", day_2, "11:00", "12:30", "blue"))
@@ -210,15 +260,17 @@ class Calendar(ft.Container):
         self._update_week()
 
     def create_event(self, e):
+        print(self.formCalendar.fechaInicio)
         new_event = calendar_event.Event(
             id=str(uuid.uuid4()),
-            title="Nuevo evento",
-            date=self.week_days[6],
-            start_time="10:00",
-            end_time="12:00",
+            title=self.formCalendar.NombreEvento,
+            date=datetime.datetime.strptime(self.formCalendar.fechaInicio, "%Y-%m-%d").date(),
+            start_time="12:00",
+            end_time="13:00",
             color=ft.Colors.GREEN_800,
         )
         self.event_manager.add_event(new_event)
+        self.modal.close()
         self.grid.render_events(self.event_manager.get_events_for_week(self.week_days), self.week_days)
     
     def _update_week(self):
