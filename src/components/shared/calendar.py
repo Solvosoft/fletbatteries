@@ -23,7 +23,13 @@ class CalendarHeader(ft.Column):
         return ft.Row(
             spacing=0,
             controls=[
-                ft.Container(width=60, height=100,  border=ft.border.only( top=ft.BorderSide(0.2, ft.Colors.GREY_400), right=ft.BorderSide(0.2, ft.Colors.GREY_400), bottom=ft.BorderSide(0.2, ft.Colors.GREY_400)),),
+                ft.Container(width=60, height=100,
+                    border=ft.border.only(
+                        top=ft.BorderSide(0.2, ft.Colors.GREY_400),
+                        right=ft.BorderSide(0.2, ft.Colors.GREY_400),
+                        bottom=ft.BorderSide(0.2, ft.Colors.GREY_400)
+                    ),
+                ),
                 *[
                     ft.Container(
                         content=ft.Column(
@@ -38,7 +44,7 @@ class CalendarHeader(ft.Column):
                                     content=ft.Text(
                                         day.strftime("%d"),
                                         size=21,
-                                        color= "White" if day == self.day_selected else "red" if day == self.today else "black",
+                                        color="White" if day == self.day_selected else "red" if day == self.today else "black",
                                     ),
                                     alignment=ft.alignment.center,
                                     height=50,
@@ -52,7 +58,10 @@ class CalendarHeader(ft.Column):
                             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                             spacing=4,
                         ),
-                        border=ft.border.only( top=ft.BorderSide(0.2, ft.Colors.GREY_400), bottom=ft.BorderSide(0.2, ft.Colors.GREY_400)),
+                        border=ft.border.only(
+                            top=ft.BorderSide(0.2, ft.Colors.GREY_400),
+                            bottom=ft.BorderSide(0.2, ft.Colors.GREY_400)
+                        ),
                         expand=True,
                         height=100,
                     )
@@ -75,11 +84,12 @@ class CalendarHeader(ft.Column):
 # Grilla del calendario
 # ---------------------------
 class CalendarGrid(ft.Column):
-    def __init__(self, week_days, events, hour_height=60):
+    def __init__(self, week_days, events, hour_height=60, open_edit_event=None):  # 🔹 EDITAR: callback
         super().__init__(scroll=ft.ScrollMode.AUTO, expand=True, spacing=0)
         self.week_days = week_days
         self.events = events
         self.hour_height = hour_height
+        self.open_edit_event = open_edit_event  # 🔹 EDITAR
         self.build_grid()
 
     def build_grid(self):
@@ -96,7 +106,6 @@ class CalendarGrid(ft.Column):
             ],
             spacing=0
         )
-
         # Fila principal: primera columna horas + días
         main_row = ft.Row(expand=True, spacing=0)
         main_row.controls.append(ft.Container(width=60, content=hour_column))
@@ -115,8 +124,7 @@ class CalendarGrid(ft.Column):
                         height=self.hour_height,
                         border=ft.border.all(0.2, ft.Colors.GREY_400),
                     )
-                )
-
+                )       
             # Eventos del día
             day_events = [ev for ev in self.events if ev.date == day]
             for ev in day_events:
@@ -133,6 +141,7 @@ class CalendarGrid(ft.Column):
                         bgcolor=ev.color,
                         alignment=ft.alignment.center,
                         content=ft.Text(ev.title, size=10, color="white"),
+                        on_click=lambda e, ev=ev: self.open_edit_event(ev) if self.open_edit_event else None  # 🔹 EDITAR
                     )
                 )
             main_row.controls.append(ft.Container(content=day_stack, expand=1))
@@ -145,67 +154,68 @@ class CalendarGrid(ft.Column):
         self.build_grid()
         self.update()
 
-
+# ---------------------------
+# Formulario de crear/editar
+# ---------------------------
 class FormCalendar(ft.Column):
-    def __init__(self, save_event, close_callback):
+    def __init__(self, save_event, close_callback, event=None):  # 🔹 EDITAR
         super().__init__(expand=True, tight=True, spacing=10)
         self.save_event = save_event
         self.close_callback = close_callback
-        self.fechaInicio = str(datetime.date.today())
-        self.horaInicio = "00:00"
-        self.fechaFin = str(datetime.date.today())
-        self.horaFin = "00:00"
-        self.NombreEvento = "Nuevo evento"
-        self.build_form()
+        self.event = event
+        # Inicializa los campos según si es edición o creación
+        if self.event:
+            self.fechaInicio = str(self.event.date)
+            self.horaInicio = self.event.start_time
+            self.fechaFin = str(self.event.date)
+            self.horaFin = self.event.end_time
+            self.NombreEvento = self.event.title
+        else:
+            self.fechaInicio = str(datetime.date.today())
+            self.horaInicio = "00:00"
+            self.fechaFin = str(datetime.date.today())
+            self.horaFin = "00:00"
+            self.NombreEvento = "Nuevo evento"
+
+        self.build_form() 
 
     def build_form(self):
+        self.controls.clear()  # 🔹 EDITAR
+        print("Build", self.NombreEvento)
+        self.controls.append(
+            ft.TextField(value=self.NombreEvento, label="Nombre del evento",
+                         on_change=lambda e: setattr(self, 'NombreEvento', e.control.value))
+        )
+        self.controls.append(
+            ft.Column([
+                ft.Text("Inicio"),
+                ft.Row([
+                    ft.TextField(value=self.fechaInicio, width=200,
+                                 on_change=lambda e: setattr(self, 'fechaInicio', e.control.value)),
+                    ft.TextField(value=self.horaInicio, width=200,
+                                 on_change=lambda e: setattr(self, 'horaInicio', e.control.value))
+                ])
+            ])
+        )
+        self.controls.append(
+            ft.Column([
+                ft.Text("Fin"),
+                ft.Row([
+                    ft.TextField(value=self.fechaFin, width=200,
+                                 on_change=lambda e: setattr(self, 'fechaFin', e.control.value)),
+                    ft.TextField(value=self.horaFin, width=200,
+                                 on_change=lambda e: setattr(self, 'horaFin', e.control.value))
+                ])
+            ])
+        )
 
         self.controls.append(
-            ft.TextField(label="Nombre del evento", on_change=lambda e: setattr(self, 'NombreEvento', e.control.value))
+            ft.Row([
+                ft.ElevatedButton("Guardar", icon=ft.Icons.SAVE, on_click=self.save_event),
+                ft.ElevatedButton("Cerrar", icon=ft.Icons.CLOSE, on_click=self.close_callback),
+            ])
         )
-        self.controls.append(
-            ft.Column(
-                [
-                    ft.Text("Inicio"),
-                    ft.Row(
-                        [
-                            ft.TextField(
-                                value=self.fechaInicio, width=200, on_change=lambda e: setattr(self, 'fechaInicio', e.control.value)
-                            ),
-                             ft.TextField(
-                                value=self.horaInicio, width=200, on_change=lambda e: setattr(self, 'horaInicio', e.control.value)
-                            )
-                        ]
-                    )
-                ]
-            )
-        )
-        self.controls.append(
-            ft.Column(
-                [
-                    ft.Text("Fin"),
-                    ft.Row(
-                        [
-                            ft.TextField(
-                                value=self.fechaFin, width=200, on_change=lambda e: setattr(self, 'fechaFin', e.control.value)
-                            ),
-                            ft.TextField(
-                                value=self.horaFin, width=200, on_change=lambda e: setattr(self, 'horaFin', e.control.value)
-                            )
-                        ]
-                    )
-                ]
-            )
-        )
-        
-        self.controls.append(
-            ft.Row(
-                [
-                    ft.ElevatedButton("Guardar", icon=ft.Icons.SAVE, on_click=self.save_event),
-                    ft.ElevatedButton("Cerrar", icon=ft.Icons.CLOSE, on_click=self.close_callback),
-                ]
-            )
-        )
+    
 
 # ---------------------------
 # Vista principal del calendario
@@ -223,18 +233,21 @@ class Calendar(ft.Container):
         # Eventos iniciales
         self._load_initial_events()
 
-       #Label de el mes
+        # Label del mes
         self.month_label = ft.Text("", size=16, weight=ft.FontWeight.W_700)
         first_month = self.week_days[0].strftime("%B %Y")
         last_month = self.week_days[-1].strftime("%B %Y")
         self.month_label.value = first_month if first_month == last_month else f"{first_month} - {last_month}"
 
-       
         self.header = CalendarHeader(self.today, self.week_days)
-        self.grid = CalendarGrid(self.week_days, self.event_manager.get_events_for_week(self.week_days))
+        self.grid = CalendarGrid(
+            self.week_days,
+            self.event_manager.get_events_for_week(self.week_days),
+            open_edit_event=self.open_edit_event  # 🔹 EDITAR
+        )
         self.formCalendar = FormCalendar(
-        save_event=lambda e: self.create_event(e),
-        close_callback=lambda e=None: self.modal.close()  
+            save_event=lambda e: self.create_event(e),
+            close_callback=lambda e=None: self.modal.close()  
         )
 
         self.modal = DraggableModal(left=150, top=150, content=self.formCalendar)
@@ -244,7 +257,7 @@ class Calendar(ft.Container):
             ft.IconButton(icon=ft.Icons.ARROW_BACK, icon_color=ft.Colors.BLACK, on_click=self.back_week),
             self.month_label,
             ft.IconButton(icon=ft.Icons.ARROW_FORWARD, icon_color=ft.Colors.BLACK, on_click=self.next_week),
-            ft.IconButton(icon=ft.Icons.ADD, icon_color=ft.Colors.BLACK,  on_click=lambda e: self.modal.open()),
+            ft.IconButton(icon=ft.Icons.ADD, icon_color=ft.Colors.BLACK,  on_click=lambda e: self.open_new_event()),
         ])
 
         # Layout principal
@@ -256,7 +269,7 @@ class Calendar(ft.Container):
         ) 
        
 
-    #Se cargan eventos de prueba
+    # Se cargan eventos de prueba
     def _load_initial_events(self):
         self.event_manager = EventManager()
         self.event_manager.add_event(calendar_event.Event(str(uuid.uuid4()), "Reunión equipo", self.today, "09:00", "11:00", "green"))
@@ -284,8 +297,17 @@ class Calendar(ft.Container):
         self.start_week -= datetime.timedelta(days=7)
         self._update_week()
 
+    # 🔹 EDITAR: abrir modal vacío
+    def open_new_event(self):
+        self.formCalendar = FormCalendar(
+            save_event=lambda e: self.create_event(e),
+            close_callback=lambda e=None: self.modal.close()
+        )
+
+        self.modal.update_content(self.formCalendar)
+        self.modal.open()
+
     def create_event(self, e):
-        print(self.formCalendar.fechaInicio)
         new_event = calendar_event.Event(
             id=str(uuid.uuid4()),
             title=self.formCalendar.NombreEvento,
@@ -298,6 +320,25 @@ class Calendar(ft.Container):
         self.modal.close()
         self.grid.render_events(self.event_manager.get_events_for_week(self.week_days), self.week_days)
     
+    # abrir modal en modo edición
+    def open_edit_event(self, event):
+        self.formCalendar = FormCalendar(
+            save_event=lambda e, ev=event: self.update_event(ev),
+            close_callback=lambda e=None: self.modal.close(),
+            event=event
+        )
+        self.modal.update_content(self.formCalendar)
+        self.modal.open()
+
+    # actualizar evento existente
+    def update_event(self, event):
+        event.title = self.formCalendar.NombreEvento
+        event.date = datetime.datetime.strptime(self.formCalendar.fechaInicio, "%Y-%m-%d").date()
+        event.start_time = self.formCalendar.horaInicio
+        event.end_time = self.formCalendar.horaFin
+        self.modal.close()
+        self.grid.render_events(self.event_manager.get_events_for_week(self.week_days), self.week_days)
+
     def _update_week(self):
         self.week_days = [self.start_week + datetime.timedelta(days=i) for i in range(7)]
         self.header.update_week(self.week_days)
