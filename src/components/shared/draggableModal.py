@@ -17,6 +17,8 @@ class DraggableModal:
             on_pan_update=self.move_modal,
         )
 
+       
+
         # Container principal posicionado en el Stack
         self.modal = ft.Container(
             content=self.modal_content,
@@ -28,6 +30,11 @@ class DraggableModal:
             top=self.top,
             visible=self.visible,  
         )
+    def update_content(self, new_content):
+        self.content = new_content
+        self.modal_content.content = new_content  
+        self.modal_content.update()
+        self.modal.update()
 
 
     # Función para mover el modal
