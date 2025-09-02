@@ -177,7 +177,15 @@ class FormCalendar(ft.Column):
             self.horaFin = "00:00"
             self.NombreEvento = "Nuevo evento"
 
-        self.build_form() 
+        self.build_form()
+
+    def get_time_options(self):
+        options = []
+        for h in range(24):
+            value = f"{h:02d}:00"  # valor real en 24h
+            label = datetime.time(h, 0).strftime("%I:%M %p").lstrip("0")  # formato 12h
+            options.append(ft.dropdownm2.Option(text=label, key=value))
+        return options
 
     def build_form(self):
         self.controls.clear() 
@@ -192,8 +200,8 @@ class FormCalendar(ft.Column):
                 ft.Row([
                     ft.TextField(value=self.fechaInicio, width=200,
                                  on_change=lambda e: setattr(self, 'fechaInicio', e.control.value)),
-                    ft.TextField(value=self.horaInicio, width=200,
-                                 on_change=lambda e: setattr(self, 'horaInicio', e.control.value))
+                    ft.DropdownM2(max_menu_height=250, width=200, options=self.get_time_options(),
+                                  value=self.horaInicio, on_change=lambda e: setattr(self, 'horaInicio', e.control.value))
                 ])
             ])
         )
@@ -203,8 +211,8 @@ class FormCalendar(ft.Column):
                 ft.Row([
                     ft.TextField(value=self.fechaFin, width=200,
                                  on_change=lambda e: setattr(self, 'fechaFin', e.control.value)),
-                    ft.TextField(value=self.horaFin, width=200,
-                                 on_change=lambda e: setattr(self, 'horaFin', e.control.value))
+                    ft.DropdownM2(max_menu_height=250, width=200, options=self.get_time_options(),
+                                  value=self.horaFin, on_change=lambda e: setattr(self, 'horaFin', e.control.value))
                 ])
             ])
         )
