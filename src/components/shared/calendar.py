@@ -84,12 +84,12 @@ class CalendarHeader(ft.Column):
 # Grilla del calendario
 # ---------------------------
 class CalendarGrid(ft.Column):
-    def __init__(self, week_days, events, hour_height=60, open_edit_event=None):  # 🔹 EDITAR: callback
+    def __init__(self, week_days, events, hour_height=60, open_edit_event=None):
         super().__init__(scroll=ft.ScrollMode.AUTO, expand=True, spacing=0)
         self.week_days = week_days
         self.events = events
         self.hour_height = hour_height
-        self.open_edit_event = open_edit_event  # 🔹 EDITAR
+        self.open_edit_event = open_edit_event  
         self.build_grid()
 
     def build_grid(self):
@@ -158,7 +158,7 @@ class CalendarGrid(ft.Column):
 # Formulario de crear/editar
 # ---------------------------
 class FormCalendar(ft.Column):
-    def __init__(self, save_event, close_callback, event=None):  # 🔹 EDITAR
+    def __init__(self, save_event, close_callback, event=None):  
         super().__init__(expand=True, tight=True, spacing=10)
         self.save_event = save_event
         self.close_callback = close_callback
@@ -180,7 +180,7 @@ class FormCalendar(ft.Column):
         self.build_form() 
 
     def build_form(self):
-        self.controls.clear()  # 🔹 EDITAR
+        self.controls.clear() 
         print("Build", self.NombreEvento)
         self.controls.append(
             ft.TextField(value=self.NombreEvento, label="Nombre del evento",
@@ -297,7 +297,7 @@ class Calendar(ft.Container):
         self.start_week -= datetime.timedelta(days=7)
         self._update_week()
 
-    # 🔹 EDITAR: abrir modal vacío
+    #abrir modal vacío
     def open_new_event(self):
         self.formCalendar = FormCalendar(
             save_event=lambda e: self.create_event(e),
