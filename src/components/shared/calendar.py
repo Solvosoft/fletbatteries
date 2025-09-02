@@ -200,7 +200,7 @@ class FormCalendar(ft.Column):
                 ft.Row([
                     ft.TextField(value=self.fechaInicio, width=200,
                                  on_change=lambda e: setattr(self, 'fechaInicio', e.control.value)),
-                    ft.DropdownM2(max_menu_height=250, width=200, options=self.get_time_options(),
+                    ft.Dropdown(menu_height=250, menu_width=150, options=self.get_time_options(), enable_filter=True,editable=True,
                                   value=self.horaInicio, on_change=lambda e: setattr(self, 'horaInicio', e.control.value))
                 ])
             ])
@@ -211,7 +211,7 @@ class FormCalendar(ft.Column):
                 ft.Row([
                     ft.TextField(value=self.fechaFin, width=200,
                                  on_change=lambda e: setattr(self, 'fechaFin', e.control.value)),
-                    ft.DropdownM2(max_menu_height=250, width=200, options=self.get_time_options(),
+                    ft.Dropdown(menu_height=250, menu_width=150, options=self.get_time_options(), enable_filter=True,editable=True,
                                   value=self.horaFin, on_change=lambda e: setattr(self, 'horaFin', e.control.value))
                 ])
             ])
