@@ -5,8 +5,8 @@ def build_view_autocompletes(page: ft.Page) -> ft.Container:
     countries_data = {
         "results": {
             "1": {"id": 1, "text": "Costa Rica", "disabled": False, "selected": False},
-            "2": {"id": 2, "text": "Panamá", "disabled": False, "selected": True},
-            "3": {"id": 3, "text": "Nicaragua", "disabled": True, "selected": False},
+            "2": {"id": 2, "text": "Panamá", "disabled": False, "selected": False},
+            "3": {"id": 3, "text": "Nicaragua", "disabled": False, "selected": False},
             "4": {"id": 4, "text": "El Salvador", "disabled": False, "selected": False},
             "5": {"id": 5, "text": "Guatemala", "disabled": False, "selected": False},
             "6": {"id": 6, "text": "Honduras", "disabled": False, "selected": False},
@@ -28,8 +28,9 @@ def build_view_autocompletes(page: ft.Page) -> ft.Container:
         "pagination": {"more": False}
     }
 
-    def on_select_change(select, values, items):
-        print(f"Selected values: {values}")
+    def on_select_change(self, selected_values, items):
+        #print(f"Selected values: {self}")
+        print(f"Selected values: {selected_values}")
         print(f"Selected items: {items}")
 
     select = AutoCompleteSelect(
@@ -37,7 +38,6 @@ def build_view_autocompletes(page: ft.Page) -> ft.Container:
         countries_data,
         label="Seleccione un elemento",
         on_change=on_select_change,
-        expand=True,
     )
 
     select_multiple = AutoCompleteSelectMultiple(
@@ -45,13 +45,12 @@ def build_view_autocompletes(page: ft.Page) -> ft.Container:
         people_data,
         label="Seleccione elementos",
         on_change=on_select_change,
-        expand=True,
     )
 
     return ft.Container(
         content=ft.Column(
             [
-                ft.Text("Autocompletes", size=20, weight="bold"),
+                ft.Text("Autocompletes", size=20),
                 select.control(),
                 select_multiple.control(),
             ],
