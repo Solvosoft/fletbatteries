@@ -158,9 +158,10 @@ class CalendarGrid(ft.Column):
 # Formulario de crear/editar
 # ---------------------------
 class FormCalendar(ft.Column):
-    def __init__(self, save_event, close_callback, event=None):  
+    def __init__(self, save_event, close_callback, event=None, delete_event=None):
         super().__init__(expand=True, tight=True, spacing=10)
         self.save_event = save_event
+        self.delete_event = delete_event
         self.close_callback = close_callback
         self.event = event
         # Inicializa los campos según si es edición o creación
@@ -189,7 +190,6 @@ class FormCalendar(ft.Column):
 
     def build_form(self):
         self.controls.clear() 
-        print("Build", self.NombreEvento)
         self.controls.append(
             ft.TextField(value=self.NombreEvento, label="Nombre del evento",
                          on_change=lambda e: setattr(self, 'NombreEvento', e.control.value))
@@ -217,12 +217,17 @@ class FormCalendar(ft.Column):
             ])
         )
 
-        self.controls.append(
-            ft.Row([
-                ft.ElevatedButton("Guardar", icon=ft.Icons.SAVE, on_click=self.save_event),
-                ft.ElevatedButton("Cerrar", icon=ft.Icons.CLOSE, on_click=self.close_callback),
-            ])
+        buttons = [
+            ft.FilledButton("Guardar", on_click=self.save_event, bgcolor=ft.Colors.BLUE_400),
+            ft.FilledButton("Cancelar", on_click=self.close_callback, bgcolor=ft.Colors.GREY_400),
+            ]
+
+        if self.event: 
+                buttons.append(
+                ft.FilledButton("Eliminar", bgcolor=ft.Colors.GREY_400, on_click=lambda e: self.delete_event(self.event.id))
         )
+
+        self.controls.append(ft.Row(buttons))
     
 
 # ---------------------------
@@ -251,8 +256,9 @@ class Calendar(ft.Container):
         self.grid = CalendarGrid(
             self.week_days,
             self.event_manager.get_events_for_week(self.week_days),
-            open_edit_event=self.open_edit_event  # 🔹 EDITAR
+            open_edit_event=self.open_edit_event 
         )
+        
         self.formCalendar = FormCalendar(
             save_event=lambda e: self.create_event(e),
             close_callback=lambda e=None: self.modal.close()  
@@ -333,7 +339,8 @@ class Calendar(ft.Container):
         self.formCalendar = FormCalendar(
             save_event=lambda e, ev=event: self.update_event(ev),
             close_callback=lambda e=None: self.modal.close(),
-            event=event
+            event=event,
+            delete_event=lambda e, ev_id=event.id: self.delete_event(ev_id)
         )
         self.modal.update_content(self.formCalendar)
         self.modal.open()
@@ -344,6 +351,11 @@ class Calendar(ft.Container):
         event.date = datetime.datetime.strptime(self.formCalendar.fechaInicio, "%Y-%m-%d").date()
         event.start_time = self.formCalendar.horaInicio
         event.end_time = self.formCalendar.horaFin
+        self.modal.close()
+        self.grid.render_events(self.event_manager.get_events_for_week(self.week_days), self.week_days)
+
+    def delete_event(self, id):
+        self.event_manager.remove_event(id)
         self.modal.close()
         self.grid.render_events(self.event_manager.get_events_for_week(self.week_days), self.week_days)
 
