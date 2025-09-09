@@ -84,12 +84,13 @@ class CalendarHeader(ft.Column):
 # Grilla del calendario
 # ---------------------------
 class CalendarGrid(ft.Column):
-    def __init__(self, week_days, events, hour_height=60, open_edit_event=None):
+    def __init__(self, week_days, events, hour_height=60, open_edit_event=None, new_event=None):
         super().__init__(scroll=ft.ScrollMode.AUTO, expand=True, spacing=0)
         self.week_days = week_days
         self.events = events
         self.hour_height = hour_height
-        self.open_edit_event = open_edit_event  
+        self.open_edit_event = open_edit_event
+        self.new_event = new_event
         self.build_grid()
 
     def build_grid(self):
@@ -123,6 +124,7 @@ class CalendarGrid(ft.Column):
                         right=0,
                         height=self.hour_height,
                         border=ft.border.all(0.2, ft.Colors.GREY_400),
+                        on_click=lambda e, d=day, hr=h: self.new_event(day=d, hour=f"{hr:02d}:00") if self.new_event else None
                     )
                 )       
             # Eventos del día
@@ -141,7 +143,7 @@ class CalendarGrid(ft.Column):
                         bgcolor=ev.color,
                         alignment=ft.alignment.center,
                         content=ft.Text(ev.title, size=10, color="white"),
-                        on_click=lambda e, ev=ev: self.open_edit_event(ev) if self.open_edit_event else None  # 🔹 EDITAR
+                        on_click=lambda e, ev=ev: self.open_edit_event(ev) if self.open_edit_event else None  
                     )
                 )
             main_row.controls.append(ft.Container(content=day_stack, expand=1))
@@ -158,12 +160,16 @@ class CalendarGrid(ft.Column):
 # Formulario de crear/editar
 # ---------------------------
 class FormCalendar(ft.Column):
-    def __init__(self, save_event, close_callback, event=None, delete_event=None):
+    def __init__(self, save_event, close_callback, event=None, delete_event=None, day=None, hour=None):
         super().__init__(expand=True, tight=True, spacing=10)
         self.save_event = save_event
         self.delete_event = delete_event
         self.close_callback = close_callback
         self.event = event
+        self.day = day
+        self.hour = hour
+        print(f"FormCalendar initialized with day={day}, hour={hour}")
+        
         # Inicializa los campos según si es edición o creación
         if self.event:
             self.fechaInicio = str(self.event.date)
@@ -172,10 +178,10 @@ class FormCalendar(ft.Column):
             self.horaFin = self.event.end_time
             self.NombreEvento = self.event.title
         else:
-            self.fechaInicio = str(datetime.date.today())
-            self.horaInicio = "00:00"
-            self.fechaFin = str(datetime.date.today())
-            self.horaFin = "00:00"
+            self.fechaInicio = self.day if self.day else str(datetime.date.today())
+            self.horaInicio = self.hour if self.hour else datetime.datetime.now().strftime("%H:00")
+            self.fechaFin = self.day if self.day else str(datetime.date.today())
+            self.horaFin = self.hour if self.hour else (datetime.datetime.now() + datetime.timedelta(hours=1)).strftime("%H:00")
             self.NombreEvento = "Nuevo evento"
 
         self.build_form()
@@ -256,7 +262,8 @@ class Calendar(ft.Container):
         self.grid = CalendarGrid(
             self.week_days,
             self.event_manager.get_events_for_week(self.week_days),
-            open_edit_event=self.open_edit_event 
+            open_edit_event=self.open_edit_event,
+            new_event=self.open_new_event
         )
         
         self.formCalendar = FormCalendar(
@@ -312,10 +319,12 @@ class Calendar(ft.Container):
         self._update_week()
 
     #abrir modal vacío
-    def open_new_event(self):
+    def open_new_event(self, day=None, hour=None):
         self.formCalendar = FormCalendar(
             save_event=lambda e: self.create_event(e),
-            close_callback=lambda e=None: self.modal.close()
+            close_callback=lambda e=None: self.modal.close(),
+            day=day,
+            hour=hour
         )
 
         self.modal.update_content(self.formCalendar)
