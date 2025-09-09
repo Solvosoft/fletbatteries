@@ -96,20 +96,26 @@ class CalendarGrid(ft.Column):
     def build_grid(self):
         self.controls = []
 
+        def format_hour(h: int) -> str:
+            t = datetime.time(h, 0)
+            # "%I" → hora 12h, "%p" → AM/PM
+            formatted = t.strftime("%I %p").lstrip("0")  # "01 PM" → "1 PM"
+            return formatted.lower().replace("am", "a.m.").replace("pm", "p.m.")
+
         # Columna de horas
         hour_column = ft.Column(
             controls=[
-                ft.Container(
-                    content=ft.Text(f"{h:02d}:00"),
-                    height=self.hour_height,
-                    alignment=ft.alignment.top_center
-                ) for h in range(24)
+            ft.Container(
+                content=ft.Text(format_hour(h)),
+                height=self.hour_height,
+                alignment=ft.alignment.top_center
+            ) for h in range(24)
             ],
             spacing=0
         )
         # Fila principal: primera columna horas + días
         main_row = ft.Row(expand=True, spacing=0)
-        main_row.controls.append(ft.Container(width=60, content=hour_column))
+        main_row.controls.append(ft.Container(width=80, content=hour_column))
 
         # Columnas de días
         for day in self.week_days:
@@ -124,7 +130,8 @@ class CalendarGrid(ft.Column):
                         right=0,
                         height=self.hour_height,
                         border=ft.border.all(0.2, ft.Colors.GREY_400),
-                        on_click=lambda e, d=day, hr=h: self.new_event(day=d, hour=f"{hr:02d}:00") if self.new_event else None
+                        on_click=lambda e, d=day, hr=h: self.new_event(day=d, hour=f"{hr:02d}:00") if self.new_event else None,
+                        on_hover= self.on_hover
                     )
                 )       
             # Eventos del día
@@ -155,7 +162,15 @@ class CalendarGrid(ft.Column):
         self.week_days = week_days
         self.build_grid()
         self.update()
+    
+    def on_hover(self, e: ft.HoverEvent):
+        if e.data == "true":
+            e.control.bgcolor = ft.Colors.LIGHT_BLUE_50
+        else:
+            e.control.bgcolor = None
+        e.control.update()
 
+    
 # ---------------------------
 # Formulario de crear/editar
 # ---------------------------
@@ -344,7 +359,7 @@ class Calendar(ft.Container):
         self.grid.render_events(self.event_manager.get_events_for_week(self.week_days), self.week_days)
     
     # abrir modal en modo edición
-    def open_edit_event(self, event):
+    def open_edit_event(self, event: calendar_event.Event):
         self.formCalendar = FormCalendar(
             save_event=lambda e, ev=event: self.update_event(ev),
             close_callback=lambda e=None: self.modal.close(),
@@ -355,7 +370,7 @@ class Calendar(ft.Container):
         self.modal.open()
 
     # actualizar evento existente
-    def update_event(self, event):
+    def update_event(self, event: calendar_event.Event):
         event.title = self.formCalendar.NombreEvento
         event.date = datetime.datetime.strptime(self.formCalendar.fechaInicio, "%Y-%m-%d").date()
         event.start_time = self.formCalendar.horaInicio
