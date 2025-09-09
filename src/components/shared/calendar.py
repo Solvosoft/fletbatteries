@@ -193,10 +193,10 @@ class FormCalendar(ft.Column):
             self.horaFin = self.event.end_time
             self.NombreEvento = self.event.title
         else:
-            self.fechaInicio = self.day if self.day else str(datetime.date.today())
+            self.fechaInicio = str(self.day) if self.day else str(datetime.date.today())
             self.horaInicio = self.hour if self.hour else datetime.datetime.now().strftime("%H:00")
-            self.fechaFin = self.day if self.day else str(datetime.date.today())
-            self.horaFin = self.hour if self.hour else (datetime.datetime.now() + datetime.timedelta(hours=1)).strftime("%H:00")
+            self.fechaFin = str(self.day) if self.day else str(datetime.date.today())
+            self.horaFin = (datetime.datetime.strptime(self.horaInicio, "%H:%M") + datetime.timedelta(hours=1)).strftime("%H:%M")
             self.NombreEvento = "Nuevo evento"
 
         self.build_form()
