@@ -12,7 +12,7 @@ class EventManager:
         self.events = [ev for ev in self.events if ev.id != event_id]
 
     def get_events_for_week(self, week_days):
-        return [ev for ev in self.events if ev.date in week_days]
+        return [ev for ev in self.events if ev.start_time.date() in week_days]
 
     def get_events_for_day(self, day):
-        return [ev for ev in self.events if ev.date == day]
+        return [ev for ev in self.events if ev.start_time.date() == day]
