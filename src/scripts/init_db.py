@@ -7,6 +7,8 @@ from data.manager.db_manager import DatabaseManager
 from data.models.user import User
 from data.models.product import Product
 from data.models.customer import Customer
+from data.models.country import Country
+from data.models.person import Person
 
 db = DatabaseManager()
 

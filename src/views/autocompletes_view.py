@@ -1,49 +1,40 @@
 import flet as ft
+import requests
 from components.shared.selects import AutoCompleteSelect, AutoCompleteSelectMultiple
 
-def build_view_autocompletes(page: ft.Page) -> ft.Container:
-    countries_data = {
-        "results": {
-            "1": {"id": 1, "text": "Costa Rica", "disabled": False, "selected": False},
-            "2": {"id": 2, "text": "Panamá", "disabled": False, "selected": False},
-            "3": {"id": 3, "text": "Nicaragua", "disabled": False, "selected": False},
-            "4": {"id": 4, "text": "El Salvador", "disabled": False, "selected": False},
-            "5": {"id": 5, "text": "Guatemala", "disabled": False, "selected": False},
-            "6": {"id": 6, "text": "Honduras", "disabled": False, "selected": False},
-            "7": {"id": 7, "text": "Belize", "disabled": False, "selected": False},
-        },
-        "pagination": {"more": False}
-    }
+API_URL = "http://127.0.0.1:8000/"
 
-    people_data = {
-        "results": {
-            "1": {"id": 1, "text": "Persona 1", "disabled": False, "selected": False},
-            "2": {"id": 2, "text": "Persona 2", "disabled": False, "selected": True},
-            "3": {"id": 3, "text": "Persona 3", "disabled": True, "selected": False},
-            "4": {"id": 4, "text": "Persona 4", "disabled": False, "selected": False},
-            "5": {"id": 5, "text": "Persona 5", "disabled": False, "selected": False},
-            "6": {"id": 6, "text": "Persona 6", "disabled": False, "selected": False},
-            "7": {"id": 7, "text": "Persona 7", "disabled": False, "selected": False},
-        },
-        "pagination": {"more": False}
-    }
+def fetch_countries(skip=0, limit=10):
+    response = requests.get(API_URL+"countries", params={"skip": skip, "limit": limit})
+    if response.status_code == 200:
+        return response.json()
+    return {"results": {}, "pagination": {"more": False}}
+
+def fetch_people(skip=0, limit=5):
+    response = requests.get(API_URL+"persons", params={"skip": skip, "limit": limit})
+    if response.status_code == 200:
+        return response.json()
+    return {"results": {}, "pagination": {"more": False}}
+
+def build_view_autocompletes(page: ft.Page) -> ft.Container:
+    countries_data = fetch_countries()
+    people_data = fetch_people()
 
     def on_select_change(self, selected_values, items):
-        #print(f"Selected values: {self}")
         print(f"Selected values: {selected_values}")
         print(f"Selected items: {items}")
 
     select = AutoCompleteSelect(
         page,
         countries_data,
-        label="Seleccione un elemento",
+        label="Seleccione un país",
         on_change=on_select_change,
     )
 
     select_multiple = AutoCompleteSelectMultiple(
         page,
         people_data,
-        label="Seleccione elementos",
+        label="Seleccione personas",
         on_change=on_select_change,
     )
 

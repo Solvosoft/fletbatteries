@@ -8,3 +8,6 @@ python-dotenv
 # componentes
 flet-contrib
 flet-rive
+# api y servidor
+fastapi
+uvicorn

@@ -26,3 +26,17 @@ copyright = "Copyright (C) 2025 by Solvo"
 path = "./src/main.py"
 name = "FletBatteries"
 icon = "./assets/image/icon.png"
+[tool.poetry]
+name = "fletbatteries"
+version = "0.1.0"
+description = ""
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
