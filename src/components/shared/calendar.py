@@ -256,11 +256,14 @@ class FormCalendar(ft.Column):
 # Vista principal del calendario
 # ---------------------------
 class Calendar(ft.Container):
-    def __init__(self, data = None):
+    def __init__(self, data = None, add_event=None, remove_event=None, update_event=None):
         super().__init__(expand=True)
 
         # Estado inicial
-        self.data = data
+        self.api_add_event = add_event
+        self.api_update_event = update_event
+        self.api_remove_event = remove_event
+        self.data = data if data else []
         self.today = datetime.date.today()
         self.start_week = self.today - datetime.timedelta(days=self.today.weekday())
         self.week_days = [self.start_week + datetime.timedelta(days=i) for i in range(7)]
@@ -348,6 +351,9 @@ class Calendar(ft.Container):
             end_time=self.to_utc_datetime(self.formCalendar.fechaFin, self.formCalendar.horaFin),
             color=ft.Colors.GREEN_800,
         )
+        response = self.api_add_event(new_event) if self.api_add_event else None
+        if response:
+            new_event.id = response.data[0]["id"]
         self.event_manager.add_event(new_event)
         self.modal.close()
         self.grid.render_events(self.event_manager.get_events_for_week(self.week_days), self.week_days)
@@ -369,11 +375,13 @@ class Calendar(ft.Container):
         event.start_time = self.to_utc_datetime(self.formCalendar.fechaInicio, self.formCalendar.horaInicio)
         event.end_time = self.to_utc_datetime(self.formCalendar.fechaFin, self.formCalendar.horaFin)
         self.modal.close()
+        self.api_update_event(event)
         self.grid.render_events(self.event_manager.get_events_for_week(self.week_days), self.week_days)
 
     def delete_event(self, id):
         self.event_manager.remove_event(id)
         self.modal.close()
+        self.api_remove_event(id)
         self.grid.render_events(self.event_manager.get_events_for_week(self.week_days), self.week_days)
 
     def _update_week(self):
