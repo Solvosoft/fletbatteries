@@ -1,5 +1,6 @@
 import flet as ft
 import datetime
+from datetime import timezone
 import uuid
 from data.models import calendar_event
 from data.manager.calendar_event_manager import EventManager
@@ -135,10 +136,10 @@ class CalendarGrid(ft.Column):
                     )
                 )       
             # Eventos del día
-            day_events = [ev for ev in self.events if ev.date == day]
+            day_events = [ev for ev in self.events if  ev.start_time.date() == day]
             for ev in day_events:
-                start_hour = int(ev.start_time.split(":")[0])
-                end_hour = int(ev.end_time.split(":")[0])
+                start_hour = int(ev.start_time.strftime("%H"))
+                end_hour = int(ev.end_time.strftime("%H"))
                 duration = max(1, end_hour - start_hour)
 
                 day_stack.controls.append(
@@ -187,10 +188,10 @@ class FormCalendar(ft.Column):
         
         # Inicializa los campos según si es edición o creación
         if self.event:
-            self.fechaInicio = str(self.event.date)
-            self.horaInicio = self.event.start_time
-            self.fechaFin = str(self.event.date)
-            self.horaFin = self.event.end_time
+            self.fechaInicio = str(self.event.start_time.date())
+            self.horaInicio = self.event.start_time.time().strftime("%H:%M")
+            self.fechaFin = str(self.event.end_time.date())
+            self.horaFin = self.event.end_time.time().strftime("%H:%M")
             self.NombreEvento = self.event.title
         else:
             self.fechaInicio = str(self.day) if self.day else str(datetime.date.today())
@@ -255,10 +256,11 @@ class FormCalendar(ft.Column):
 # Vista principal del calendario
 # ---------------------------
 class Calendar(ft.Container):
-    def __init__(self):
+    def __init__(self, data = None):
         super().__init__(expand=True)
 
         # Estado inicial
+        self.data = data
         self.today = datetime.date.today()
         self.start_week = self.today - datetime.timedelta(days=self.today.weekday())
         self.week_days = [self.start_week + datetime.timedelta(days=i) for i in range(7)]
@@ -308,15 +310,8 @@ class Calendar(ft.Container):
     # Se cargan eventos de prueba
     def _load_initial_events(self):
         self.event_manager = EventManager()
-        self.event_manager.add_event(calendar_event.Event(str(uuid.uuid4()), "Reunión equipo", self.today, "09:00", "11:00", "green"))
-        self.event_manager.add_event(calendar_event.Event(str(uuid.uuid4()), "Clase inglés", self.today, "14:00", "15:00", "blue"))
-        self.event_manager.add_event(calendar_event.Event(str(uuid.uuid4()), "Gym", self.today, "18:00", "19:00", "purple"))
-        day_1 = self.today + datetime.timedelta(days=1)
-        self.event_manager.add_event(calendar_event.Event(str(uuid.uuid4()), "Proyecto X", day_1, "10:00", "12:15", "orange"))
-        self.event_manager.add_event(calendar_event.Event(str(uuid.uuid4()), "Cita médica", day_1, "16:00", "17:00", "red"))
-        day_2 = datetime.date(self.today.year, 9, 8)
-        self.event_manager.add_event(calendar_event.Event(str(uuid.uuid4()), "Reunión con clientes", day_2, "11:00", "12:30", "blue"))
-        self.event_manager.add_event(calendar_event.Event(str(uuid.uuid4()), "Clase de yoga", day_2, "18:00", "19:00", "purple"))
+        for ev_data in self.data:
+            self.event_manager.add_event(calendar_event.Event.from_json(ev_data))
 
 
     def update_month_label(self, week_days):
@@ -349,9 +344,8 @@ class Calendar(ft.Container):
         new_event = calendar_event.Event(
             id=str(uuid.uuid4()),
             title=self.formCalendar.NombreEvento,
-            date=datetime.datetime.strptime(self.formCalendar.fechaInicio, "%Y-%m-%d").date(),
-            start_time=self.formCalendar.horaInicio,
-            end_time=self.formCalendar.horaFin,
+            start_time=self.to_utc_datetime(self.formCalendar.fechaInicio, self.formCalendar.horaInicio),
+            end_time=self.to_utc_datetime(self.formCalendar.fechaFin, self.formCalendar.horaFin),
             color=ft.Colors.GREEN_800,
         )
         self.event_manager.add_event(new_event)
@@ -372,9 +366,8 @@ class Calendar(ft.Container):
     # actualizar evento existente
     def update_event(self, event: calendar_event.Event):
         event.title = self.formCalendar.NombreEvento
-        event.date = datetime.datetime.strptime(self.formCalendar.fechaInicio, "%Y-%m-%d").date()
-        event.start_time = self.formCalendar.horaInicio
-        event.end_time = self.formCalendar.horaFin
+        event.start_time = self.to_utc_datetime(self.formCalendar.fechaInicio, self.formCalendar.horaInicio)
+        event.end_time = self.to_utc_datetime(self.formCalendar.fechaFin, self.formCalendar.horaFin)
         self.modal.close()
         self.grid.render_events(self.event_manager.get_events_for_week(self.week_days), self.week_days)
 
@@ -388,3 +381,14 @@ class Calendar(ft.Container):
         self.header.update_week(self.week_days)
         self.grid.render_events(self.event_manager.get_events_for_week(self.week_days), self.week_days)
         self.update_month_label(self.week_days)
+
+    def to_utc_datetime(self, fecha: str, hora: str) -> datetime:
+        """
+        Convierte fecha + hora a datetime con tzinfo=UTC.
+        Acepta hora en formato HH:MM o HH:MM:SS
+        """
+        try:
+            dt = datetime.datetime.strptime(f"{fecha} {hora}", "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            dt = datetime.datetime.strptime(f"{fecha} {hora}", "%Y-%m-%d %H:%M")
+        return dt.replace(tzinfo=timezone.utc)
