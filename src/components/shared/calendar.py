@@ -183,7 +183,7 @@ class FormCalendar(ft.Column):
         self.event = event
         self.day = day
         self.hour = hour
-        print(f"FormCalendar initialized with day={day}, hour={hour}")
+
         
         # Inicializa los campos según si es edición o creación
         if self.event:
