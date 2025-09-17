@@ -270,7 +270,9 @@ class Calendar(ft.Container):
         self.event_manager = EventManager()
 
         # Eventos iniciales
-        self._load_initial_events()
+        if self.data:
+            print("Cargando eventos iniciales...")
+            self._load_initial_events()
 
         # Label del mes
         self.month_label = ft.Text("", size=16, weight=ft.FontWeight.W_700)
@@ -375,13 +377,13 @@ class Calendar(ft.Container):
         event.start_time = self.to_utc_datetime(self.formCalendar.fechaInicio, self.formCalendar.horaInicio)
         event.end_time = self.to_utc_datetime(self.formCalendar.fechaFin, self.formCalendar.horaFin)
         self.modal.close()
-        self.api_update_event(event)
+        self.api_update_event(event) if self.api_update_event else None
         self.grid.render_events(self.event_manager.get_events_for_week(self.week_days), self.week_days)
 
     def delete_event(self, id):
         self.event_manager.remove_event(id)
         self.modal.close()
-        self.api_remove_event(id)
+        self.api_remove_event(id) if self.api_remove_event else None
         self.grid.render_events(self.event_manager.get_events_for_week(self.week_days), self.week_days)
 
     def _update_week(self):
