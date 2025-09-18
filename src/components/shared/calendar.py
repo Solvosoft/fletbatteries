@@ -24,7 +24,7 @@ class CalendarHeader(ft.Column):
         return ft.Row(
             spacing=0,
             controls=[
-                ft.Container(width=60, height=100,
+                ft.Container(width=80, height=100,
                     border=ft.border.only(
                         top=ft.BorderSide(0.2, ft.Colors.GREY_400),
                         right=ft.BorderSide(0.2, ft.Colors.GREY_400),
@@ -98,9 +98,9 @@ class CalendarGrid(ft.Column):
         self.controls = []
 
         def format_hour(h: int) -> str:
+            # Se le da formato 12 horas
             t = datetime.time(h, 0)
-            # "%I" → hora 12h, "%p" → AM/PM
-            formatted = t.strftime("%I %p").lstrip("0")  # "01 PM" → "1 PM"
+            formatted = t.strftime("%I %p").lstrip("0")  
             return formatted.lower().replace("am", "a.m.").replace("pm", "p.m.")
 
         # Columna de horas
@@ -210,6 +210,7 @@ class FormCalendar(ft.Column):
         self.dd_horaInicio = None
         self.tf_fechaFin = None
         self.dd_horaFin = None
+        self.text_label = None
 
         self.build_form()
 
@@ -223,23 +224,33 @@ class FormCalendar(ft.Column):
 
     def build_form(self):
         self.controls.clear()
-
+      
+      
+        self.text_label = ft.Container(
+                content=ft.Text("Editar evento" if self.event else "Nuevo evento", size=18, weight=ft.FontWeight.W_400, text_align=ft.TextAlign.CENTER, color=ft.Colors.WHITE),
+                alignment=ft.alignment.center_left,
+                expand=True,
+                padding=ft.padding.only(top=10, bottom=10, left=10),
+                bgcolor=ft.Colors.GREY_400,
+                width=400,
+                border=ft.border.only(bottom=ft.BorderSide(0.5, ft.Colors.GREY_400)),    
+        )
+        
         # Titulo
         self.tf_nombre = ft.TextField(
-            label="Nombre del evento",
-            value=self.NombreEvento,
+            label="Agregar título",
             on_change=lambda e: setattr(self, 'NombreEvento', e.control.value)
         )
-        self.controls.append(self.tf_nombre)
 
-        # Inicio
+        # Fecha
         self.tf_fechaInicio = ft.TextField(
-            label="Fecha inicio (dd/mm/YYYY)",
+
             hint_text="dd/mm/YYYY",
             value=self.fechaInicio,
             width=200,
             on_change=lambda e: setattr(self, 'fechaInicio', e.control.value)
         )
+        # Hora inicio
         self.dd_horaInicio = ft.Dropdown(
             menu_height=250,
             menu_width=150,
@@ -249,21 +260,8 @@ class FormCalendar(ft.Column):
             value=self.horaInicio,
             on_change=lambda e: setattr(self, 'horaInicio', e.control.value)
         )
-        self.controls.append(
-            ft.Column([
-                ft.Text("Inicio"),
-                ft.Row([ self.tf_fechaInicio, self.dd_horaInicio ])
-            ])
-        )
-
-        # Fin
-        self.tf_fechaFin = ft.TextField(
-            label="Fecha fin (dd/mm/YYYY)",
-            hint_text="dd/mm/YYYY",
-            value=self.fechaFin,
-            width=200,
-            on_change=lambda e: setattr(self, 'fechaFin', e.control.value)
-        )
+      
+        # Hora Fin
         self.dd_horaFin = ft.Dropdown(
             menu_height=250,
             menu_width=150,
@@ -273,13 +271,6 @@ class FormCalendar(ft.Column):
             value=self.horaFin,
             on_change=lambda e: setattr(self, 'horaFin', e.control.value)
         )
-        self.controls.append(
-            ft.Column([
-                ft.Text("Fin"),
-                ft.Row([ self.tf_fechaFin, self.dd_horaFin ])
-            ])
-        )
-
         # botones 
         buttons = [
             ft.FilledButton("Guardar", on_click=self.on_save_click, bgcolor=ft.Colors.BLUE_400),
@@ -287,11 +278,24 @@ class FormCalendar(ft.Column):
         ]
 
         if self.event:
-            # cuidado: empacamos id en default arg para evitar captura late-binding
             buttons.append(ft.FilledButton("Eliminar", bgcolor=ft.Colors.GREY_400,
                                           on_click=lambda e, id=self.event.id: self.delete_event(id)))
 
-        self.controls.append(ft.Row(buttons))
+    
+        self.controls.extend(
+            [self.text_label,
+            ft.Container( padding=ft.padding.all(10),
+                content=ft.Column([ 
+                    self.tf_nombre,
+                    ft.Text("Fecha de evento"),
+                    self.tf_fechaInicio,
+                    ft.Text("Incio y fin de evento"),
+                    ft.Row([self.dd_horaInicio, ft.Container(content=ft.Icon(name=ft.Icons.ARROW_FORWARD)), self.dd_horaFin]),
+                    ft.Row(buttons)
+                ])
+            )]
+        )
+
 
     def verifyForm(self):
         # Limpia espacios
