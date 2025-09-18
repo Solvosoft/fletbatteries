@@ -5,7 +5,7 @@ import uuid
 from data.models import calendar_event
 from data.manager.calendar_event_manager import EventManager
 from components.shared.draggableModal import DraggableModal
-
+import re
 
 # ---------------------------
 # Cabecera del calendario
@@ -185,72 +185,177 @@ class FormCalendar(ft.Column):
         self.day = day
         self.hour = hour
 
-        
-        # Inicializa los campos según si es edición o creación
+        # valores iniciales 
         if self.event:
-            self.fechaInicio = str(self.event.start_time.date())
-            self.horaInicio = self.event.start_time.time().strftime("%H:%M")
-            self.fechaFin = str(self.event.end_time.date())
-            self.horaFin = self.event.end_time.time().strftime("%H:%M")
-            self.NombreEvento = self.event.title
+            self.fechaInicio = self.event.start_time.strftime("%d/%m/%Y")
+            self.horaInicio = self.event.start_time.strftime("%H:%M")
+            self.fechaFin = self.event.end_time.strftime("%d/%m/%Y")
+            self.horaFin = self.event.end_time.strftime("%H:%M")
+            self.NombreEvento = self.event.title or "Evento"
         else:
-            self.fechaInicio = str(self.day) if self.day else str(datetime.date.today())
-            self.horaInicio = self.hour if self.hour else datetime.datetime.now().strftime("%H:00")
-            self.fechaFin = str(self.day) if self.day else str(datetime.date.today())
-            self.horaFin = (datetime.datetime.strptime(self.horaInicio, "%H:%M") + datetime.timedelta(hours=1)).strftime("%H:%M")
+            hoy = datetime.date.today()
+            self.fechaInicio = (self.day.strftime("%d/%m/%Y") if isinstance(self.day, datetime.date) else hoy.strftime("%d/%m/%Y"))
+            self.horaInicio = (self.hour if self.hour else datetime.datetime.now().strftime("%H:00"))
+            self.fechaFin = self.fechaInicio
+            try:
+                hh = datetime.datetime.strptime(self.horaInicio, "%H:%M")
+                self.horaFin = (hh + datetime.timedelta(hours=1)).strftime("%H:%M")
+            except Exception:
+                self.horaFin = (datetime.datetime.now() + datetime.timedelta(hours=1)).strftime("%H:%M")
             self.NombreEvento = "Nuevo evento"
+
+        # referencias a controles
+        self.tf_nombre = None
+        self.tf_fechaInicio = None
+        self.dd_horaInicio = None
+        self.tf_fechaFin = None
+        self.dd_horaFin = None
 
         self.build_form()
 
     def get_time_options(self):
         options = []
         for h in range(24):
-            value = f"{h:02d}:00"  # valor real en 24h
-            label = datetime.time(h, 0).strftime("%I:%M %p").lstrip("0")  # formato 12h
+            value = f"{h:02d}:00"
+            label = datetime.time(h, 0).strftime("%I:%M %p").lstrip("0")
             options.append(ft.dropdownm2.Option(text=label, key=value))
         return options
 
     def build_form(self):
-        self.controls.clear() 
-        self.controls.append(
-            ft.TextField(value=self.NombreEvento, label="Nombre del evento",
-                         on_change=lambda e: setattr(self, 'NombreEvento', e.control.value))
+        self.controls.clear()
+
+        # Titulo
+        self.tf_nombre = ft.TextField(
+            label="Nombre del evento",
+            value=self.NombreEvento,
+            on_change=lambda e: setattr(self, 'NombreEvento', e.control.value)
+        )
+        self.controls.append(self.tf_nombre)
+
+        # Inicio
+        self.tf_fechaInicio = ft.TextField(
+            label="Fecha inicio (dd/mm/YYYY)",
+            hint_text="dd/mm/YYYY",
+            value=self.fechaInicio,
+            width=200,
+            on_change=lambda e: setattr(self, 'fechaInicio', e.control.value)
+        )
+        self.dd_horaInicio = ft.Dropdown(
+            menu_height=250,
+            menu_width=150,
+            options=self.get_time_options(),
+            enable_filter=True,
+            editable=True,
+            value=self.horaInicio,
+            on_change=lambda e: setattr(self, 'horaInicio', e.control.value)
         )
         self.controls.append(
             ft.Column([
                 ft.Text("Inicio"),
-                ft.Row([
-                    ft.TextField(value=self.fechaInicio, width=200,
-                                 on_change=lambda e: setattr(self, 'fechaInicio', e.control.value)),
-                    ft.Dropdown(menu_height=250, menu_width=150, options=self.get_time_options(), enable_filter=True,editable=True,
-                                  value=self.horaInicio, on_change=lambda e: setattr(self, 'horaInicio', e.control.value))
-                ])
+                ft.Row([ self.tf_fechaInicio, self.dd_horaInicio ])
             ])
+        )
+
+        # Fin
+        self.tf_fechaFin = ft.TextField(
+            label="Fecha fin (dd/mm/YYYY)",
+            hint_text="dd/mm/YYYY",
+            value=self.fechaFin,
+            width=200,
+            on_change=lambda e: setattr(self, 'fechaFin', e.control.value)
+        )
+        self.dd_horaFin = ft.Dropdown(
+            menu_height=250,
+            menu_width=150,
+            options=self.get_time_options(),
+            enable_filter=True,
+            editable=True,
+            value=self.horaFin,
+            on_change=lambda e: setattr(self, 'horaFin', e.control.value)
         )
         self.controls.append(
             ft.Column([
                 ft.Text("Fin"),
-                ft.Row([
-                    ft.TextField(value=self.fechaFin, width=200,
-                                 on_change=lambda e: setattr(self, 'fechaFin', e.control.value)),
-                    ft.Dropdown(menu_height=250, menu_width=150, options=self.get_time_options(), enable_filter=True,editable=True,
-                                  value=self.horaFin, on_change=lambda e: setattr(self, 'horaFin', e.control.value))
-                ])
+                ft.Row([ self.tf_fechaFin, self.dd_horaFin ])
             ])
         )
 
+        # botones 
         buttons = [
-            ft.FilledButton("Guardar", on_click=self.save_event, bgcolor=ft.Colors.BLUE_400),
+            ft.FilledButton("Guardar", on_click=self.on_save_click, bgcolor=ft.Colors.BLUE_400),
             ft.FilledButton("Cancelar", on_click=self.close_callback, bgcolor=ft.Colors.GREY_400),
-            ]
+        ]
 
-        if self.event: 
-                buttons.append(
-                ft.FilledButton("Eliminar", bgcolor=ft.Colors.GREY_400, on_click=lambda e: self.delete_event(self.event.id))
-        )
+        if self.event:
+            # cuidado: empacamos id en default arg para evitar captura late-binding
+            buttons.append(ft.FilledButton("Eliminar", bgcolor=ft.Colors.GREY_400,
+                                          on_click=lambda e, id=self.event.id: self.delete_event(id)))
 
         self.controls.append(ft.Row(buttons))
-    
+
+    def verifyForm(self):
+        # Limpia espacios
+        self.fechaInicio = (self.fechaInicio or "").strip()
+        self.fechaFin = (self.fechaFin or "").strip()
+        self.horaInicio = (self.horaInicio or "").strip()
+        self.horaFin = (self.horaFin or "").strip()
+        self.NombreEvento = (self.NombreEvento or "").strip()
+
+        # Validadores: dd/mm/YYYY y HH:MM (24h)
+        date_pattern = r"^\d{2}/\d{2}/\d{4}$"
+        time_pattern = r"^(?:[01]?\d|2[0-3]):[0-5]\d$"
+
+        # Fecha inicio
+        if not re.match(date_pattern, self.fechaInicio):
+            self.fechaInicio = datetime.date.today().strftime("%d/%m/%Y")
+
+        # Fecha fin
+        if not re.match(date_pattern, self.fechaFin):
+            # si fecha fin inválida, por defecto la misma fecha inicio
+            self.fechaFin = self.fechaInicio
+
+        # Hora inicio
+        if not re.match(time_pattern, self.horaInicio):
+            self.horaInicio = datetime.datetime.now().strftime("%H:00")
+
+        # Hora fin
+        if not re.match(time_pattern, self.horaFin):
+            try:
+                inicio = datetime.datetime.strptime(self.horaInicio, "%H:%M")
+                self.horaFin = (inicio + datetime.timedelta(hours=1)).strftime("%H:%M")
+            except Exception:
+                self.horaFin = (datetime.datetime.now() + datetime.timedelta(hours=1)).strftime("%H:%M")
+
+        # Nombre
+        if not self.NombreEvento:
+            self.NombreEvento = "Nuevo evento"
+
+        return True
+
+    def on_save_click(self, e):
+        # 1) validar / corregir campos
+        istrue = self.verifyForm()
+
+        # 2) actualizar controles 
+        if self.tf_nombre: self.tf_nombre.value = self.NombreEvento
+        if self.tf_fechaInicio: self.tf_fechaInicio.value = self.fechaInicio
+        if self.dd_horaInicio: self.dd_horaInicio.value = self.horaInicio
+        if self.tf_fechaFin: self.tf_fechaFin.value = self.fechaFin
+        if self.dd_horaFin: self.dd_horaFin.value = self.horaFin
+
+        try:
+            self.update()
+        except Exception as exc:
+           
+            print("Warning: update() falló en on_save_click:", exc)
+
+        # 3) llamar a save_event (intento compatible con firmas que reciben 'e' o no)
+        if istrue:
+            try:
+                self.save_event(e)
+            except TypeError:
+                self.save_event()
+
 
 # ---------------------------
 # Vista principal del calendario
@@ -392,13 +497,14 @@ class Calendar(ft.Container):
         self.grid.render_events(self.event_manager.get_events_for_week(self.week_days), self.week_days)
         self.update_month_label(self.week_days)
 
-    def to_utc_datetime(self, fecha: str, hora: str) -> datetime:
-        """
-        Convierte fecha + hora a datetime con tzinfo=UTC.
-        Acepta hora en formato HH:MM o HH:MM:SS
-        """
-        try:
-            dt = datetime.datetime.strptime(f"{fecha} {hora}", "%Y-%m-%d %H:%M:%S")
-        except ValueError:
-            dt = datetime.datetime.strptime(f"{fecha} {hora}", "%Y-%m-%d %H:%M")
+    def to_utc_datetime(self, fecha: str, hora: str) -> datetime.datetime:
+        # Intentar varios formatos comunes
+        dt_str = f"{fecha} {hora}"
+        for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%d/%m/%Y %H:%M"):
+            try:
+                dt = datetime.datetime.strptime(dt_str, fmt)
+                return dt.replace(tzinfo=timezone.utc)
+            except ValueError:
+                continue
+        dt = datetime.datetime.now()
         return dt.replace(tzinfo=timezone.utc)
