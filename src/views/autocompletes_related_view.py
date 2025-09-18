@@ -2,7 +2,6 @@ import flet as ft
 from components.shared.selects import AutoCompleteSelect, AutoCompleteSelectMultiple
 from components.shared.autocompletes_related import RelationalSelectGroup
 
-
 def build_view_autocompletes_related(page: ft.Page) -> ft.Container:
     # ----------------- utilidades internas -----------------
     def _normalize_items(selected_items):

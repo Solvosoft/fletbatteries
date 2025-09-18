@@ -1,17 +1,29 @@
 from fastapi import FastAPI, Query
 from data.manager.country_manager import CountryManager
 from data.manager.person_manager import PersonManager
+
 app = FastAPI()
 
 country_manager = CountryManager()
 person_manager = PersonManager()
 
+
 # -----------------------------
-# EndPoints
+# EndPoints con búsqueda
 # -----------------------------
 @app.get("/countries")
-def get_countries(skip: int = Query(0, ge=0), limit: int = Query(5, ge=1)):
+def get_countries(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(5, ge=1),
+    search: str | None = Query(None, alias="q")  # ahora acepta 'search' o 'q'
+):
     countries = country_manager.get_all_countries()
+
+    # Filtrado por búsqueda
+    if search:
+        search_lower = search.lower()
+        countries = [c for c in countries if search_lower in c.name.lower()]
+
     total = len(countries)
     paginated = countries[skip:skip + limit]
 
@@ -21,7 +33,11 @@ def get_countries(skip: int = Query(0, ge=0), limit: int = Query(5, ge=1)):
     }
 
     more = skip + limit < total
-    return {"results": results, "pagination": {"more": more, "skip": skip, "limit": limit, "total": total}}
+    return {
+        "results": results,
+        "pagination": {"more": more, "skip": skip, "limit": limit, "total": total}
+    }
+
 
 @app.post("/countries")
 def add_country(name: str):
@@ -31,9 +47,20 @@ def add_country(name: str):
     except ValueError as e:
         return {"error": str(e)}
 
+
 @app.get("/persons")
-def get_persons(skip: int = Query(0, ge=0), limit: int = Query(5, ge=1)):
+def get_persons(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(5, ge=1),
+    search: str | None = Query(None, alias="q")  # ahora acepta 'search' o 'q'
+):
     persons = person_manager.get_all_persons()
+
+    # Filtrado por búsqueda
+    if search:
+        search_lower = search.lower()
+        persons = [p for p in persons if search_lower in p.name.lower()]
+
     total = len(persons)
     paginated = persons[skip:skip + limit]
 
@@ -43,7 +70,11 @@ def get_persons(skip: int = Query(0, ge=0), limit: int = Query(5, ge=1)):
     }
 
     more = skip + limit < total
-    return {"results": results, "pagination": {"more": more, "skip": skip, "limit": limit, "total": total}}
+    return {
+        "results": results,
+        "pagination": {"more": more, "skip": skip, "limit": limit, "total": total}
+    }
+
 
 @app.post("/persons")
 def add_person(name: str):
@@ -53,11 +84,10 @@ def add_person(name: str):
     except ValueError as e:
         return {"error": str(e)}
 
+
 # -----------------------------
 # Insert presets
 # -----------------------------
-
-# Script to insert this data: curl -X POST http://127.0.0.1:8000/countries/init
 @app.post("/countries/init")
 def init_countries():
     latin_countries = [
@@ -75,7 +105,7 @@ def init_countries():
             pass
     return {"inserted": inserted, "message": "Paises latinoamericanos insertados"}
 
-# Script to insert this data: curl -X POST http://127.0.0.1:8000/persons/init
+
 @app.post("/persons/init")
 def init_persons():
     initial_persons = [f"Persona {i}" for i in range(1, 11)]

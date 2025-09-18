@@ -32,7 +32,7 @@ class RelationalSelectGroup(ft.Column):
                     on_change=lambda self_ref, vals, items, idx=i: self._on_change(idx, vals, items),
                 )
             self.selects.append(select)
-            self.controls.append(select.control())  # añadir al Column
+            self.controls.append(select.control)  # añadir al Column
 
     def _on_change(self, idx, values, items):
         """Cuando cambia un select, actualizar el siguiente"""
