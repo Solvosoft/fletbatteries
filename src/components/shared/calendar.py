@@ -210,7 +210,7 @@ class FormCalendar(ft.Column):
         self.dd_horaInicio = None
         self.tf_fechaFin = None
         self.dd_horaFin = None
-        self.text_label = None
+        self.header = None
 
         self.build_form()
 
@@ -226,12 +226,17 @@ class FormCalendar(ft.Column):
         self.controls.clear()
       
       
-        self.text_label = ft.Container(
-                content=ft.Text("Editar evento" if self.event else "Nuevo evento", size=18, weight=ft.FontWeight.W_400, text_align=ft.TextAlign.CENTER, color=ft.Colors.WHITE),
+        self.header = ft.Container(
+                content=ft.Row(controls=[
+                    ft.Text("Editar evento" if self.event else "Nuevo evento", size=18, weight=ft.FontWeight.W_400, text_align=ft.TextAlign.CENTER, color=ft.Colors.WHITE),
+                    ft.CupertinoButton(icon=ft.Icons.CLOSE, on_click=self.close_callback, icon_color=ft.Colors.WHITE)
+                ],
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN
+                ),
                 alignment=ft.alignment.center_left,
                 expand=True,
                 padding=ft.padding.only(top=10, bottom=10, left=10),
-                bgcolor=ft.Colors.GREY_400,
+                bgcolor=ft.Colors.BLUE_GREY_800,
                 width=400,
                 border=ft.border.only(bottom=ft.BorderSide(0.5, ft.Colors.GREY_400)),    
         )
@@ -283,14 +288,15 @@ class FormCalendar(ft.Column):
 
     
         self.controls.extend(
-            [self.text_label,
-            ft.Container( padding=ft.padding.all(10),
+            [self.header,
+            ft.Container( padding=ft.padding.all(20),
                 content=ft.Column([ 
                     self.tf_nombre,
                     ft.Text("Fecha de evento"),
                     self.tf_fechaInicio,
                     ft.Text("Incio y fin de evento"),
                     ft.Row([self.dd_horaInicio, ft.Container(content=ft.Icon(name=ft.Icons.ARROW_FORWARD)), self.dd_horaFin]),
+                    ft.Divider(height=1, color=ft.Colors.GREY_400),
                     ft.Row(buttons)
                 ])
             )]
