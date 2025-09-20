@@ -327,8 +327,7 @@ class FormCalendar(ft.Column):
                         menu_width=150,
                         border=ft.InputBorder.NONE,
                         options=self.get_time_options(),
-                        on_change=lambda e: self.change_hour(e)
-
+                        on_change=lambda e: self.change_hour(e),
                     ) 
 
                 ]
@@ -411,7 +410,7 @@ class FormCalendar(ft.Column):
         # Hora inicio
        
         if not re.match(time_pattern, self.tf_horaInicio.value):
-            self.horaInicio = datetime.time(int(self.horaInicio.split(":")[0]), 0).strftime("%I:%M %p").lstrip("0")
+            self.horaInicio = datetime.datetime.strptime(self.horaInicio, "%I:%M %p").strftime("%I:%M %p").lstrip("0")
             if self.tf_horaInicio: self.tf_horaInicio.value = self.horaInicio
             self.tf_horaInicio.update()
             return False
@@ -554,7 +553,7 @@ class Calendar(ft.Container):
         new_event = calendar_event.Event(
             id=str(uuid.uuid4()),
             title=self.formCalendar.NombreEvento,
-            start_time=self.to_utc_datetime(self.formCalendar.fechaInicio, datetime.datetime.strptime(self.formCalendar.horaInicio, "%I:%M").strftime("%H:%M")),
+            start_time=self.to_utc_datetime(self.formCalendar.fechaInicio, datetime.datetime.strptime(self.formCalendar.horaInicio, "%I:%M %p").strftime("%H:%M")),
             end_time=self.to_utc_datetime(self.formCalendar.fechaFin, self.formCalendar.horaFin),
             description=self.formCalendar.descripcion,
             location=self.formCalendar.ubicacion,
