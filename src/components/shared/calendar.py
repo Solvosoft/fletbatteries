@@ -218,7 +218,7 @@ class FormCalendar(ft.Column):
         self.tf_fechaFin = None
         self.dd_horaFin = None
         self.header = None
-
+        self.delete_button = None
         self.build_form()
 
     def get_time_options(self):
@@ -301,7 +301,7 @@ class FormCalendar(ft.Column):
                 hint_text="dd/mm/YYYY",
                 value=self.fechaInicio,
                 width=200,
-                on_change=lambda e: setattr(self, 'fechaInicio', e.control.value)
+                on_blur=self.verifyForm,
             ),
             border_radius=5,
             padding=ft.padding.only(left=10, right=10)
@@ -344,33 +344,29 @@ class FormCalendar(ft.Column):
 
 
         # botones 
-        buttons = [
-            ft.FilledButton("Guardar", on_click=self.on_save_click, bgcolor=ft.Colors.BLUE_400),
-            ft.FilledButton("Cancelar", on_click=self.close_callback, bgcolor=ft.Colors.GREY_400),
-        ]
+        self.saveButton = ft.FilledButton("Guardar", on_click=self.on_save_click, bgcolor=ft.Colors.BLUE_500, width=460, height=40)
 
         if self.event:
-            buttons.append(ft.FilledButton("Eliminar", bgcolor=ft.Colors.GREY_400,
-                                          on_click=lambda e, id=self.event.id: self.delete_event(id)))
+            self.delete_button = ft.CupertinoButton(icon=ft.Icons.DELETE, icon_color=ft.Colors.RED, on_click=lambda e, id=self.event.id: self.delete_event(id))
+        else:
+            self.delete_button = ft.Container(height=40)  
 
-    
         self.controls.extend(
             [self.header,
-            ft.Container( padding=ft.padding.all(20),
+            ft.Container( padding=ft.padding.all(20), 
                 content=ft.Column([ 
-                    ft.Row([ft.Container(content=ft.Icon(name=ft.Icons.CALENDAR_MONTH_OUTLINED, color=ft.Colors.BLACK)),self.tf_fechaInicio]),
-                    ft.Row([ft.Container(content=ft.Icon(name=ft.Icons.ACCESS_TIME, color=ft.Colors.BLACK)), ft.Row([self.dd_horaInicio, ft.Container(content=ft.Icon(name=ft.Icons.ARROW_FORWARD, color=ft.Colors.BLACK)), self.dd_horaFin],alignment=ft.MainAxisAlignment.SPACE_AROUND, expand=1)], width=460),
-                    ft.Row([ft.Container(content=ft.Icon(name=ft.Icons.EDIT_SHARP, color=ft.Colors.BLACK)),self.tf_nombre],expand=1, width=460),
-                    ft.Row([ft.Container(content=ft.Icon(name=ft.Icons.LOCATION_ON, color=ft.Colors.BLACK)),self.tf_ubicacion],expand=1, width=460),
-                    ft.Row([ft.Container(content=ft.Icon(name=ft.Icons.DESCRIPTION, color=ft.Colors.BLACK)),self.tf_descripcion],expand=1, width=460),
-                    ft.Divider(height=1, color=ft.Colors.GREY_400),
-                    ft.Row(buttons)
+                    ft.Row([ft.Row([ft.Icon(name=ft.Icons.CALENDAR_MONTH_OUTLINED, color=ft.Colors.BLACK),self.tf_fechaInicio]), self.delete_button], alignment=ft.MainAxisAlignment.SPACE_BETWEEN, width=460),
+                    ft.Row([ft.Icon(name=ft.Icons.ACCESS_TIME, color=ft.Colors.BLACK), ft.Row([self.dd_horaInicio, ft.Icon(name=ft.Icons.ARROW_FORWARD, color=ft.Colors.BLACK), self.dd_horaFin],alignment=ft.MainAxisAlignment.SPACE_AROUND, expand=1)], width=460),
+                    ft.Row([ft.Icon(name=ft.Icons.EDIT_SHARP, color=ft.Colors.BLACK),self.tf_nombre],expand=1, width=460),
+                    ft.Row([ft.Icon(name=ft.Icons.LOCATION_ON, color=ft.Colors.BLACK),self.tf_ubicacion],expand=1, width=460),
+                    ft.Row([ft.Icon(name=ft.Icons.DESCRIPTION, color=ft.Colors.BLACK),self.tf_descripcion],expand=1, width=460),
+                    self.saveButton,
                 ],spacing=20)
             )]
         )
 
 
-    def verifyForm(self):
+    def verifyForm(self,  e=None):
         # Limpia espacios
         self.fechaInicio = (self.fechaInicio or "").strip()
         self.fechaFin = (self.fechaFin or "").strip()
@@ -383,17 +379,16 @@ class FormCalendar(ft.Column):
         time_pattern = r"^(?:[01]?\d|2[0-3]):[0-5]\d$"
 
         # Fecha inicio
-        if not re.match(date_pattern, self.fechaInicio):
-            self.fechaInicio = datetime.date.today().strftime("%d/%m/%Y")
-
-        # Fecha fin
-        if not re.match(date_pattern, self.fechaFin):
-            # si fecha fin inválida, por defecto la misma fecha inicio
-            self.fechaFin = self.fechaInicio
+        if not re.match(date_pattern, self.tf_fechaInicio.content.value):
+            self.fechaInicio = self.event.start_time.strftime("%d/%m/%Y") if self.event else self.fechaInicio
+            if self.tf_fechaInicio: self.tf_fechaInicio.content.value = self.fechaInicio
+            self.tf_fechaInicio.update()
+            return False
 
         # Hora inicio
         if not re.match(time_pattern, self.horaInicio):
             self.horaInicio = datetime.datetime.now().strftime("%H:00")
+            return False
 
         # Hora fin
         if not re.match(time_pattern, self.horaFin):
@@ -402,7 +397,7 @@ class FormCalendar(ft.Column):
                 self.horaFin = (inicio + datetime.timedelta(hours=1)).strftime("%H:%M")
             except Exception:
                 self.horaFin = (datetime.datetime.now() + datetime.timedelta(hours=1)).strftime("%H:%M")
-
+            return False
         # Nombre
         if not self.NombreEvento:
             self.NombreEvento = "Nuevo evento"
@@ -412,13 +407,10 @@ class FormCalendar(ft.Column):
     def on_save_click(self, e):
         # 1) validar / corregir campos
         istrue = self.verifyForm()
-
         # 2) actualizar controles 
-        if self.tf_nombre: self.tf_nombre.value = self.NombreEvento
-        if self.tf_fechaInicio: self.tf_fechaInicio.value = self.fechaInicio
-        if self.dd_horaInicio: self.dd_horaInicio.value = self.horaInicio
-        if self.tf_fechaFin: self.tf_fechaFin.value = self.fechaFin
-        if self.dd_horaFin: self.dd_horaFin.value = self.horaFin
+        if self.tf_nombre: self.tf_nombre.content.value = self.NombreEvento
+        if self.dd_horaInicio: self.dd_horaInicio.content.value = self.horaInicio
+        if self.dd_horaFin: self.dd_horaFin.content.value = self.horaFin
 
         try:
             self.update()
