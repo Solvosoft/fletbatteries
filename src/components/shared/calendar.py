@@ -268,6 +268,7 @@ class FormCalendar(ft.Column):
                 border=ft.InputBorder.NONE,
                 hint_text="Agregar descripción",
                 on_change=lambda e: setattr(self, 'descripcion', e.control.value),
+                value=self.descripcion,
                 max_lines=3,
                 min_lines=3,
                 multiline=True,
@@ -283,7 +284,8 @@ class FormCalendar(ft.Column):
             content=ft.TextField(
                 border=ft.InputBorder.NONE,
                 hint_text="Agregar ubicación",
-                on_change=lambda e: setattr(self, 'ubicacion', e.control.value)
+                on_change=lambda e: setattr(self, 'ubicacion', e.control.value),
+                value=self.ubicacion
             ),
             bgcolor=ft.Colors.BLUE_GREY_100,
             border_radius=5,

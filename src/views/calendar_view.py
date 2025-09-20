@@ -17,6 +17,8 @@ def build_view_calendar(page):
             "title": event.title,
             "start_time": event.start_time.isoformat(),
             "end_time": event.end_time.isoformat(),
+            "description": event.description,
+            "location": event.location,
             "color": event.color
         }
 
