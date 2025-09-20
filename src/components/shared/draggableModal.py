@@ -25,7 +25,6 @@ class DraggableModal:
             bgcolor=ft.Colors.WHITE,
             border_radius=10,
             shadow=ft.BoxShadow(blur_radius=10, color=ft.Colors.BLACK26),
-            padding=15,
             left=self.left,
             top=self.top,
             visible=self.visible,  
