@@ -138,16 +138,19 @@ class CalendarGrid(ft.Column):
             # Eventos del día
             day_events = [ev for ev in self.events if  ev.start_time.date() == day]
             for ev in day_events:
-                start_hour = int(ev.start_time.strftime("%H"))
-                end_hour = int(ev.end_time.strftime("%H"))
-                duration = max(1, end_hour - start_hour)
+                start_minutes = ev.start_time.hour * 60 + ev.start_time.minute
+                end_minutes = ev.end_time.hour * 60 + ev.end_time.minute
+                duration = max(1, end_minutes - start_minutes)
+                #altura minima de 25 para eventos muy cortos
+                if duration < 25:
+                    duration = 25
 
                 day_stack.controls.append(
                     ft.Container(
-                        top=self.hour_height * start_hour,
+                        top=self.hour_height * start_minutes / 60,
                         left=0,
                         right=5,
-                        height=self.hour_height * duration,
+                         height=self.hour_height * duration / 60,
                         bgcolor=ev.color,
                         alignment=ft.alignment.center,
                         content=ft.Text(ev.title, size=10, color="white"),
@@ -233,9 +236,13 @@ class FormCalendar(ft.Column):
         else:
             #opciones de hora fin a partir de hora inicio
             #convertir hora inicio a formato 24 horas
-
-            start_hour = int(datetime.datetime.strptime(self.horaInicio, "%I:%M %p").strftime("%H")) if self.horaInicio else 0
-            print(start_hour)
+            if self.horaInicio:
+             try:
+                 start_hour = int(datetime.datetime.strptime(self.horaInicio, "%I:%M %p").strftime("%H"))
+             except ValueError:
+                 start_hour = int(datetime.datetime.strptime(self.horaInicio, "%H:%M").strftime("%H"))
+            else:
+                 start_hour = 0
             for h in range(start_hour , 24):
                 value = f"{h%24:02d}:00"
                 label = datetime.time(h%24, 0).strftime("%I:%M %p").lstrip("0")
