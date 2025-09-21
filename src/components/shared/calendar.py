@@ -202,7 +202,10 @@ class FormCalendar(ft.Column):
             self.fechaFin = self.fechaInicio
             try:
                 hh = datetime.datetime.strptime(self.horaInicio, "%I:%M %p")
-                self.horaFin = (hh + datetime.timedelta(hours=1)).strftime("%I:%M %p").lstrip("0")
+                if hh.hour >= 23:
+                    self.horaFin = "11:59 PM"
+                else:
+                    self.horaFin = (hh + datetime.timedelta(hours=1)).strftime("%I:%M %p").lstrip("0")
             except Exception:
                 self.horaFin = (datetime.datetime.now() + datetime.timedelta(hours=1)).strftime("%I:%M %p").lstrip("0")
             self.NombreEvento = "Nuevo evento"
@@ -314,8 +317,8 @@ class FormCalendar(ft.Column):
             border_radius=5,
             padding=ft.padding.only(left=10, right=10)
         )
+       
         # Hora inicio
-
         self.tf_horaInicio = ft.TextField(
             hint_text="HH:MM",
             value=self.horaInicio,
@@ -454,11 +457,15 @@ class FormCalendar(ft.Column):
         horaInicio_24 = datetime.datetime.strptime(self.tf_horaInicio.value, "%I:%M %p")
 
         if horaFin_24 < horaInicio_24:
-            self.horaFin = (datetime.datetime.strptime(self.horaInicio, "%I:%M %p") + datetime.timedelta(hours=1)).strftime("%I:%M %p").lstrip("0")
+            #si hora inicio es mayor a 11:00PM pone hora fin a 11:59PM
+            if horaInicio_24.hour >= 23:
+                self.horaFin = "11:59 PM"
+            else:
+                self.horaFin = (datetime.datetime.strptime(self.horaInicio, "%I:%M %p") + datetime.timedelta(hours=1)).strftime("%I:%M %p").lstrip("0")
             if self.tf_horaFin: self.tf_horaFin.value = self.horaFin
             self.tf_horaFin.update()
-           
-       
+            return False
+
         if not self.NombreEvento:
             self.NombreEvento = "Nuevo evento"
 
