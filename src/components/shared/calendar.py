@@ -190,7 +190,7 @@ class FormCalendar(ft.Column):
             self.fechaInicio = self.event.start_time.strftime("%d/%m/%Y")
             self.horaInicio = self.event.start_time.strftime("%I:%M %p").lstrip("0")
             self.fechaFin = self.event.end_time.strftime("%d/%m/%Y")
-            self.horaFin = self.event.end_time.strftime("%H:%M")
+            self.horaFin = self.event.end_time.strftime("%I:%M %p").lstrip("0")
             self.NombreEvento = self.event.title or "Evento"
             self.descripcion = self.event.description or ""
             self.ubicacion = self.event.location or ""
@@ -200,12 +200,11 @@ class FormCalendar(ft.Column):
             self.fechaInicio = (self.day.strftime("%d/%m/%Y") if isinstance(self.day, datetime.date) else hoy.strftime("%d/%m/%Y"))
             self.horaInicio = (datetime.time(int(self.hour.split(":")[0]), 0).strftime("%I:%M %p").lstrip("0") if self.hour else datetime.datetime.now().strftime("%I:%M %p").lstrip("0"))
             self.fechaFin = self.fechaInicio
-
             try:
-                hh = datetime.datetime.strptime(self.horaInicio, "%H:%M")
-                self.horaFin = (hh + datetime.timedelta(hours=1)).strftime("%H:%M")
+                hh = datetime.datetime.strptime(self.horaInicio, "%I:%M %p")
+                self.horaFin = (hh + datetime.timedelta(hours=1)).strftime("%I:%M %p").lstrip("0")
             except Exception:
-                self.horaFin = (datetime.datetime.now() + datetime.timedelta(hours=1)).strftime("%H:%M")
+                self.horaFin = (datetime.datetime.now() + datetime.timedelta(hours=1)).strftime("%I:%M %p").lstrip("0")
             self.NombreEvento = "Nuevo evento"
             self.descripcion = ""
             self.ubicacion = ""
@@ -327,7 +326,7 @@ class FormCalendar(ft.Column):
                         menu_width=150,
                         border=ft.InputBorder.NONE,
                         options=self.get_time_options(),
-                        on_change=lambda e: self.change_hour(e),
+                        on_change=lambda e: self.change_hour(e, is_horaInicio=True ),
                     ) 
 
                 ]
@@ -338,17 +337,29 @@ class FormCalendar(ft.Column):
         )
       
         # Hora Fin
+        self.tf_horaFin = ft.TextField(
+            hint_text="HH:MM",
+            value=self.horaFin,
+            label="Hora fin",
+            width=100,
+            border=ft.InputBorder.NONE,
+            on_blur=self.verifyForm,
+        )
+
         self.dd_horaFin = ft.Container(
-            content=ft.Dropdown(
-                label="Hora fin",
-                menu_height=250,
-                menu_width=150,
-                border=ft.InputBorder.NONE,
-                options=self.get_time_options(),
-                enable_filter=True,
-                editable=True,
-                value=self.horaFin,
-                on_change=lambda e: setattr(self, 'horaFin', e.control.value)
+            content=ft.Row(
+                [
+                    self.tf_horaFin,
+                    ft.Dropdown(
+                        width=50,
+                        menu_height=250,
+                        menu_width=150,
+                        border=ft.InputBorder.NONE,
+                        options=self.get_time_options(),
+                        on_change=lambda e: self.change_hour(e, is_horaInicio=False),
+                    ) 
+
+                ]
         ),
             bgcolor=ft.Colors.BLUE_GREY_100,
             border_radius=5,
@@ -378,11 +389,15 @@ class FormCalendar(ft.Column):
             )]
         )
 
-    def change_hour(self, e):
-        self.horaInicio = e.control.value
-        self.tf_horaInicio.value = datetime.time(int(self.horaInicio.split(":")[0]), 0).strftime("%I:%M %p").lstrip("0")
-
-        self.tf_horaInicio.update()
+    def change_hour(self, e, is_horaInicio=True):
+        if is_horaInicio:
+            self.horaInicio = e.control.value
+            self.tf_horaInicio.value = datetime.time(int(self.horaInicio.split(":")[0]), 0).strftime("%I:%M %p").lstrip("0")
+            self.tf_horaInicio.update()
+        else:
+            self.horaFin = e.control.value
+            self.tf_horaFin.value = datetime.time(int(self.horaFin.split(":")[0]), 0).strftime("%I:%M %p").lstrip("0")
+            self.tf_horaFin.update()
 
 
     def verifyForm(self,  e=None):
@@ -438,7 +453,6 @@ class FormCalendar(ft.Column):
         istrue = self.verifyForm()
         # 2) actualizar controles 
         if self.tf_nombre: self.tf_nombre.content.value = self.NombreEvento
-        if self.dd_horaInicio: self.dd_horaInicio.content.value = self.horaInicio
         if self.dd_horaFin: self.dd_horaFin.content.value = self.horaFin
 
         try:
@@ -549,12 +563,11 @@ class Calendar(ft.Container):
         self.modal.open()
 
     def create_event(self, e):
-        print(self.formCalendar.horaInicio, self.formCalendar.horaFin, self.formCalendar.fechaInicio)
         new_event = calendar_event.Event(
             id=str(uuid.uuid4()),
             title=self.formCalendar.NombreEvento,
             start_time=self.to_utc_datetime(self.formCalendar.fechaInicio, datetime.datetime.strptime(self.formCalendar.horaInicio, "%I:%M %p").strftime("%H:%M")),
-            end_time=self.to_utc_datetime(self.formCalendar.fechaFin, self.formCalendar.horaFin),
+            end_time=self.to_utc_datetime(self.formCalendar.fechaFin, datetime.datetime.strptime(self.formCalendar.horaFin, "%I:%M %p").strftime("%H:%M")),
             description=self.formCalendar.descripcion,
             location=self.formCalendar.ubicacion,
             color=ft.Colors.GREEN_800,
