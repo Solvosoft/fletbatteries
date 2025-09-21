@@ -431,17 +431,18 @@ class FormCalendar(ft.Column):
             return False
         else:
             self.horaInicio = self.tf_horaInicio.value
+           
        
                   
 
         # Hora fin
-        """ if not re.match(time_pattern, self.horaFin):
-            try:
-                inicio = datetime.datetime.strptime(self.horaInicio, "%I:%M %p").strftime("%H:%M")
-                self.horaFin = (inicio + datetime.timedelta(hours=1)).strftime("%H:%M")
-            except Exception:
-                self.horaFin = (datetime.datetime.now() + datetime.timedelta(hours=1)).strftime("%H:%M")
-            return False """
+        if not re.match(time_pattern, self.tf_horaFin.value):
+            self.horaFin = datetime.datetime.strptime(self.horaFin, "%I:%M %p").strftime("%I:%M %p").lstrip("0")
+            if self.tf_horaFin: self.tf_horaFin.value = self.horaFin
+            self.tf_horaFin.update()
+            return False
+        else:
+            self.horaFin = self.tf_horaFin.value
         # Nombre
         if not self.NombreEvento:
             self.NombreEvento = "Nuevo evento"
@@ -563,6 +564,7 @@ class Calendar(ft.Container):
         self.modal.open()
 
     def create_event(self, e):
+        print(self.formCalendar.horaInicio, self.formCalendar.horaFin, self.formCalendar.fechaInicio)
         new_event = calendar_event.Event(
             id=str(uuid.uuid4()),
             title=self.formCalendar.NombreEvento,
@@ -596,7 +598,7 @@ class Calendar(ft.Container):
         print(self.formCalendar.horaInicio, self.formCalendar.horaFin, self.formCalendar.fechaInicio)
         event.title = self.formCalendar.NombreEvento
         event.start_time = self.to_utc_datetime(self.formCalendar.fechaInicio, datetime.datetime.strptime(self.formCalendar.horaInicio, "%I:%M %p").strftime("%H:%M"))
-        event.end_time = self.to_utc_datetime(self.formCalendar.fechaFin, self.formCalendar.horaFin)
+        event.end_time = self.to_utc_datetime(self.formCalendar.fechaFin, datetime.datetime.strptime(self.formCalendar.horaFin, "%I:%M %p").strftime("%H:%M"))
         self.modal.close()
         self.api_update_event(event) if self.api_update_event else None
         self.grid.render_events(self.event_manager.get_events_for_week(self.week_days), self.week_days)
