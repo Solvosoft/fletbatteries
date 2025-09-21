@@ -232,7 +232,10 @@ class FormCalendar(ft.Column):
                 options.append(ft.dropdownm2.Option(text=label, key=value))
         else:
             #opciones de hora fin a partir de hora inicio
-            start_hour = int(self.horaInicio.split(":")[0]) if self.horaInicio else 0
+            #convertir hora inicio a formato 24 horas
+
+            start_hour = int(datetime.datetime.strptime(self.horaInicio, "%I:%M %p").strftime("%H")) if self.horaInicio else 0
+            print(start_hour)
             for h in range(start_hour , 24):
                 value = f"{h%24:02d}:00"
                 label = datetime.time(h%24, 0).strftime("%I:%M %p").lstrip("0")
@@ -243,7 +246,7 @@ class FormCalendar(ft.Column):
     def build_form(self):
         self.controls.clear()
       
-      
+        # Header
         self.header = ft.Container(
                 content=ft.Row(controls=[
                     ft.Text("Editar evento" if self.event else "Nuevo evento", size=18, weight=ft.FontWeight.W_400, text_align=ft.TextAlign.CENTER, color=ft.Colors.WHITE),
