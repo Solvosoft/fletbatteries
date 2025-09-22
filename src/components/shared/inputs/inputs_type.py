@@ -1,7 +1,7 @@
 import sys
 
 import flet as ft
-
+from ..selects import AutoCompleteSelect, AutoCompleteSelectMultiple
 
 class InputType:
     def __init__(self, page, type, label, visible_form, visible_table, picker):
@@ -79,4 +79,16 @@ class InputType:
                 spacing=10,
                 visible=self.visible_form,
             )
+        elif self.type == "SelectField":
+            widget = AutoCompleteSelect(
+                self.page,
+                data={},  # datos iniciales
+                label=self.label
+            ).control
+        elif self.type == "SelectMultipleField":
+            widget = AutoCompleteSelectMultiple(
+                self.page,
+                data={},
+                label=self.label
+            ).control
         return widget

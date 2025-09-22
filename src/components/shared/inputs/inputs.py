@@ -86,6 +86,8 @@ class Input:
             self.widget.controls[1] = ft.Text("Seleccionada: " + value)
         elif self.type == "DateField" or self.type == "DateTimeField":
             self.widget.controls[0].value = value
+        elif self.type in ["SelectField", "SelectMultipleField"]:
+            self.widget.controls[0].value = value
         else:
             self.widget.value = value
 
@@ -252,4 +254,9 @@ class Input:
                 except ValueError as ex:
                     print(f"Error al parsear fecha: {ex}")
                     return False
+        elif self.type in ["SelectField", "SelectMultipleField"]:
+            select_component = getattr(self, "_select_component", None)
+            if self.required and select_component and not select_component.value:
+                print(f"Error: el campo {self.label} es requerido")
+                return False
         return True

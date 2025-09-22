@@ -69,6 +69,14 @@ class Form:
                 item[input.name] = input.widget.controls[0].data["name"]
             elif input.type == "DateField" or input.type == "DateTimeField":
                 item[input.name] = input.widget.controls[0].value
+            elif input.type == "SelectField":
+                item[input.name] = (
+                    input._select_component.value if hasattr(input, "_select_component") else None
+                )
+            elif input.type == "SelectMultipleField":
+                item[input.name] = (
+                    input._select_component.value if hasattr(input, "_select_component") else []
+                )
             else:
                 item[input.name] = input.widget.value
         return item

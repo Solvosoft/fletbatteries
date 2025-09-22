@@ -163,6 +163,40 @@
           "max_date": "d0"
         }
       ]
+    },
+    {
+      "title": "People group",
+      "name": "PeopleForm",
+      "inputs": [
+        {
+          "name": "name",
+          "type": "CharField",
+          "label": "Nombre",
+          "required": true,
+          "filter": true
+        },
+        {
+          "name": "people",
+          "type": "SelectMultipleField",
+          "label": "Personas",
+          "required": false,
+          "filter": false
+        },
+        {
+          "name": "communities",
+          "type": "SelectMultipleField",
+          "label": "Comunidades",
+          "required": false,
+          "filter": false
+        },
+        {
+          "name": "country",
+          "type": "SelectField",
+          "label": "País",
+          "required": true,
+          "filter": true
+        }
+      ]
     }
   ]
 }
