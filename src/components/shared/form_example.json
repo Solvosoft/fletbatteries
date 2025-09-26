@@ -179,14 +179,14 @@
           "name": "people",
           "type": "SelectMultipleField",
           "label": "Personas",
-          "required": false,
+          "required": true,
           "filter": false
         },
         {
           "name": "communities",
           "type": "SelectMultipleField",
           "label": "Comunidades",
-          "required": false,
+          "required": true,
           "filter": false
         },
         {
@@ -195,6 +195,36 @@
           "label": "País",
           "required": true,
           "filter": true
+        }
+      ]
+    },
+    {
+      "title": "ABCD Register",
+      "name": "RelationalForm",
+      "inputs": [
+        {
+          "name": "related_selects",
+          "type": "RelationalSelectGroupField",
+          "label": "Relational Selects",
+          "required": true,
+          "filter": false,
+          "relations": [
+            {
+              "label": "Seleccione A",
+              "type": "single",
+              "data_fn": "get_a"
+            },
+            {
+              "label": "Seleccione B",
+              "type": "multiple",
+              "data_fn": "get_b"
+            },
+            {
+              "label": "Seleccione C",
+              "type": "single",
+              "data_fn": "get_c"
+            }
+          ]
         }
       ]
     }

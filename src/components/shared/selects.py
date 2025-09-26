@@ -31,6 +31,8 @@ class _Select(ABC):
         self._is_interacting = False
         self._search_timer = None
 
+        self._error_text = ft.Text(color=ft.Colors.RED)
+
         self._search_field = ft.TextField(
             hint_text="Search...",
             on_change=self._on_search,
@@ -244,6 +246,19 @@ class _Select(ABC):
         stored = self._data["results"].get(str(item["id"]), item)
         self._select(stored)
 
+    def show_error(self, message: str = ""):
+        """Shows or hides the error message."""
+        self._error_text.value = message
+        if isinstance(self, AutoCompleteSelect):
+            self._text_field.error = None
+            if message:
+                self._text_field.error = self._error_text
+            self._text_field.update()
+        elif isinstance(self, AutoCompleteSelectMultiple):
+            self._bordered_content.border = ft.border.all(1, ft.Colors.RED if message else ft.Colors.OUTLINE)
+            self._error_container.visible = bool(message)
+            self._main_column.update()
+
     @property
     def control(self):
         return self._main_column
@@ -315,7 +330,9 @@ class AutoCompleteSelectMultiple(_Select):
         self._search_field.border_color = ft.Colors.OUTLINE
         self._search_field.on_click = self._toggle_dropdown
 
-        bordered_content = ft.Container(
+        self._error_container = ft.Container(content=self._error_text,margin=ft.margin.only(left=12, top=4), visible=False)#The error message is wrapped in a container to be able to apply margin.
+
+        self._bordered_content = ft.Container(
             content=ft.Column(
                 controls=[self._chips_container, ft.Row([self._search_field], alignment=ft.MainAxisAlignment.START)],
                 spacing=10,
@@ -326,7 +343,7 @@ class AutoCompleteSelectMultiple(_Select):
             bgcolor=ft.Colors.SURFACE,
         )
 
-        self._main_column = ft.Column(controls=[bordered_content, self._dropdown_container], spacing=0, expand=False)
+        self._main_column = ft.Column(controls=[self._bordered_content, self._dropdown_container, self._error_container], spacing=0, expand=False)
 
     def _is_selected(self, item_id: str) -> bool:
         return item_id in self._selected_values
@@ -361,6 +378,7 @@ class AutoCompleteSelectMultiple(_Select):
                 stored["selected"] = False
             self._selected_items = [i for i in self._selected_items if str(i["id"]) != item_id_str]
             self._update_chips()
+
             self.page.update()
             if self.on_change_cb:
                 self.on_change_cb(self, self.value, self.selected_items)

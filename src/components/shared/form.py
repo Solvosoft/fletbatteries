@@ -67,16 +67,21 @@ class Form:
                 item[input.name] = int(input.widget.value) if input.widget.value else None
             elif input.type == "ImageField":
                 item[input.name] = input.widget.controls[0].data["name"]
-            elif input.type == "DateField" or input.type == "DateTimeField":
+            elif input.type in ["DateField", "DateTimeField"]:
                 item[input.name] = input.widget.controls[0].value
             elif input.type == "SelectField":
-                item[input.name] = (
-                    input._select_component.value if hasattr(input, "_select_component") else None
-                )
+                item[input.name] = input._select_component.value if hasattr(input, "_select_component") else None
             elif input.type == "SelectMultipleField":
-                item[input.name] = (
-                    input._select_component.value if hasattr(input, "_select_component") else []
-                )
+                item[input.name] = input._select_component.value if hasattr(input, "_select_component") else []
+            elif input.type == "RelationalSelectGroupField":
+                # Recorrer cada select del grupo y devolver valores + items
+                values = []
+                for sel in input._select_component.selects:
+                    values.append({
+                        "value": sel.value,
+                        "items": sel.selected_items if hasattr(sel, "selected_items") else sel.selected_item
+                    })
+                item[input.name] = values
             else:
                 item[input.name] = input.widget.value
         return item

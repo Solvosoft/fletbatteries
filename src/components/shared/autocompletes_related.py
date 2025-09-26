@@ -4,7 +4,7 @@ from components.shared.selects import AutoCompleteSelect, AutoCompleteSelectMult
 class RelationalSelectGroup(ft.Column):
     def __init__(self, page, relations):
         """
-        relations: lista de dicts con:
+        relations: list of dicts with:
             - "label": etiqueta a mostrar
             - "type": "single" o "multiple"
             - "data_fn": función que recibe (values_del_padre, items_del_padre) y retorna dataset

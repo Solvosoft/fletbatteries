@@ -1,92 +1,79 @@
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, HTTPException
 from data.manager.country_manager import CountryManager
 from data.manager.person_manager import PersonManager
+from data.manager.community_manager import CommunityManager
+from data.manager.person_group_manager import PersonGroupManager
+from scripts.crud_router import create_crud_router
+from pydantic import BaseModel
+from typing import List, Optional
+from sqlalchemy.orm import selectinload  # <-- para cargar relaciones
 
 app = FastAPI()
 
 country_manager = CountryManager()
 person_manager = PersonManager()
-
+community_manager = CommunityManager()
+person_group_manager = PersonGroupManager()
 
 # -----------------------------
-# EndPoints con búsqueda
+# Endpoints genéricos
 # -----------------------------
-@app.get("/countries")
-def get_countries(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(5, ge=1),
-    search: str | None = Query(None, alias="q")  # ahora acepta 'search' o 'q'
-):
-    countries = country_manager.get_all_countries()
+app.include_router(create_crud_router("countries", country_manager))
+app.include_router(create_crud_router("persons", person_manager))
+app.include_router(create_crud_router("communities", community_manager))
 
-    # Filtrado por búsqueda
-    if search:
-        search_lower = search.lower()
-        countries = [c for c in countries if search_lower in c.name.lower()]
+# -----------------------------
+# Endpoints específicos: PersonGroup
+# -----------------------------
+class PersonGroupSchema(BaseModel):
+    name: str
+    country_id: int
+    people_ids: Optional[List[int]] = []
+    community_ids: Optional[List[int]] = []
 
-    total = len(countries)
-    paginated = countries[skip:skip + limit]
-
-    results = {
-        str(c.id): {"id": c.id, "text": c.name, "disabled": c.disabled, "selected": c.selected}
-        for c in paginated
-    }
-
+@app.get("/persons_groups")
+def get_person_groups(skip: int = Query(0, ge=0), limit: int = Query(5, ge=1), q: Optional[str] = Query(None, alias="q")):
+    groups = person_group_manager.get_all(eager=True)  # <-- usamos eager loading
+    if q:
+        q_lower = q.lower()
+        groups = [g for g in groups if q_lower in g.name.lower()]
+    total = len(groups)
+    paginated = groups[skip:skip + limit]
+    results = {}
+    for g in paginated:
+        results[str(g.id)] = {
+            "id": g.id,
+            "nombre": g.name,
+            "Persons": [{"id": p.id, "name": p.name} for p in g.people],
+            "Communities": [{"id": c.id, "name": c.name} for c in g.communities],
+            "Country": {"id": g.country.id, "name": g.country.name} if g.country else None
+        }
     more = skip + limit < total
-    return {
-        "results": results,
-        "pagination": {"more": more, "skip": skip, "limit": limit, "total": total}
-    }
+    return {"results": results, "pagination": {"more": more, "skip": skip, "limit": limit, "total": total}}
 
-
-@app.post("/countries")
-def add_country(name: str):
+@app.post("/persons_groups")
+def add_person_group(item: PersonGroupSchema):
     try:
-        country = country_manager.create_country(name=name)
-        return {"id": country.id, "name": country.name}
+        group = person_group_manager.create(
+            name=item.name,
+            country_id=item.country_id,
+            people_ids=item.people_ids,
+            community_ids=item.community_ids
+        )
+        return {
+            "id": group.id,
+            "nombre": group.name,
+            "Persons": [{"id": p.id, "name": p.name} for p in group.people],
+            "Communities": [{"id": c.id, "name": c.name} for c in group.communities],
+            "Country": {"id": group.country.id, "name": group.country.name} if group.country else None
+        }
     except ValueError as e:
-        return {"error": str(e)}
-
-
-@app.get("/persons")
-def get_persons(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(5, ge=1),
-    search: str | None = Query(None, alias="q")  # ahora acepta 'search' o 'q'
-):
-    persons = person_manager.get_all_persons()
-
-    # Filtrado por búsqueda
-    if search:
-        search_lower = search.lower()
-        persons = [p for p in persons if search_lower in p.name.lower()]
-
-    total = len(persons)
-    paginated = persons[skip:skip + limit]
-
-    results = {
-        str(p.id): {"id": p.id, "text": p.name, "disabled": p.disabled, "selected": p.selected}
-        for p in paginated
-    }
-
-    more = skip + limit < total
-    return {
-        "results": results,
-        "pagination": {"more": more, "skip": skip, "limit": limit, "total": total}
-    }
-
-
-@app.post("/persons")
-def add_person(name: str):
-    try:
-        person = person_manager.create_person(name=name)
-        return {"id": person.id, "name": person.name}
-    except ValueError as e:
-        return {"error": str(e)}
-
+        raise HTTPException(status_code=400, detail=str(e))
 
 # -----------------------------
 # Insert presets
+# Example of use:
+# curl -X POST http://127.0.0.1:8000/persons/init
 # -----------------------------
 @app.post("/countries/init")
 def init_countries():
@@ -105,7 +92,6 @@ def init_countries():
             pass
     return {"inserted": inserted, "message": "Paises latinoamericanos insertados"}
 
-
 @app.post("/persons/init")
 def init_persons():
     initial_persons = [f"Persona {i}" for i in range(1, 11)]
@@ -117,3 +103,15 @@ def init_persons():
         except ValueError:
             pass
     return {"inserted": inserted, "message": "Personas iniciales insertadas"}
+
+@app.post("/communities/init")
+def init_communities():
+    initial_communities = [f"Community {i}" for i in range(1, 11)]
+    inserted = []
+    for name in initial_communities:
+        try:
+            community = community_manager.create_community(name=name)
+            inserted.append({"id": community.id, "name": community.name})
+        except ValueError:
+            pass
+    return {"inserted": inserted, "message": "Communities iniciales insertadas"}

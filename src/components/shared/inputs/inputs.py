@@ -29,10 +29,21 @@ class Input:
         self.widget = None
         self.tooltip = tooltip
         self.active_filter = active_filter
-        self.widget = InputType(self.page, self.type, self.label, self.visible_form, self.visible_table,
-                                self.picker).get_widget()
+        self.widget = InputType(
+            self.page,
+            self.type,
+            self.label,
+            self.visible_form,
+            self.visible_table,
+            self.picker,
+            extra_config={
+                "relations": []  # por defecto vacío, se reemplaza en la vista
+            }
+        ).get_widget()
         if self.type == "CharField" or self.type == "EmailField" or self.type == "IntergerField":
             self.filter = ft.TextField(label=self.name, width=250)
+        elif self.type == "RelationalSelectGroupField":
+            self._select_component = self.widget
 
     def on_file_picked(self, e: ft.FilePickerResultEvent):
         if self.type == "ImageField":
@@ -257,6 +268,8 @@ class Input:
         elif self.type in ["SelectField", "SelectMultipleField"]:
             select_component = getattr(self, "_select_component", None)
             if self.required and select_component and not select_component.value:
-                print(f"Error: el campo {self.label} es requerido")
+                select_component.show_error("Debe seleccionar una opción")
                 return False
+            elif select_component:
+                select_component.show_error("")
         return True

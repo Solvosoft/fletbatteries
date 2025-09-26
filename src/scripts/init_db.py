@@ -9,6 +9,8 @@ from data.models.product import Product
 from data.models.customer import Customer
 from data.models.country import Country
 from data.models.person import Person
+from data.models.community import Community
+from data.models.person_group import PersonGroup
 
 db = DatabaseManager()
 
