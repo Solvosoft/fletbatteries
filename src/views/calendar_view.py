@@ -10,7 +10,11 @@ supabase: Client = create_client(url, key)
 
 def build_view_calendar(page):
 
-    response = (supabase.table("Events").select("*").execute())
+    try:
+        response = supabase.table("Events").select("*").execute()
+    except Exception as e:
+        print("Error fetching Events from Supabase:", e)
+        response = None
     
     def event_to_dict(event):
         return {
@@ -33,7 +37,7 @@ def build_view_calendar(page):
         response = supabase.table("Events").update(event_to_dict(event)).eq("id", event.id).execute()
 
     return ft.Container(
-        content=Calendar(response.data, add_event=add_event, remove_event=remove_event, update_event=update_event),
+        content=Calendar(),
         expand=True,
     )
 
