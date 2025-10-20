@@ -6,6 +6,7 @@ from data.models import calendar_event
 from data.manager.calendar_event_manager import EventManager
 from components.shared.draggableModal import DraggableModal
 import re
+import random
 
 # ---------------------------
 # Cabecera del calendario
@@ -590,6 +591,13 @@ class Calendar(ft.Container):
         self.modal.open()
 
     def create_event(self, e):
+        colors = [
+            ft.Colors.RED_400, ft.Colors.PINK_400, ft.Colors.PURPLE_400,
+            ft.Colors.INDIGO_400, ft.Colors.BLUE_400, ft.Colors.CYAN_400,
+            ft.Colors.TEAL_400, ft.Colors.GREEN_400, ft.Colors.AMBER_700,
+            ft.Colors.ORANGE_700
+        ]
+        
         new_event = calendar_event.Event(
             id=str(uuid.uuid4()),
             title=self.formCalendar.NombreEvento,
@@ -597,7 +605,7 @@ class Calendar(ft.Container):
             end_time= datetime.datetime.strptime(f"{self.formCalendar.fechaFin} {self.formCalendar.horaFin}", "%d/%m/%Y %I:%M %p"),
             description=self.formCalendar.descripcion,
             location=self.formCalendar.ubicacion,
-            color=ft.Colors.GREEN_800,
+            color=random.choice(colors),
         )
         # Agregar evento a la API
         response = self.api_add_event(new_event) if self.api_add_event else None
