@@ -20,7 +20,7 @@ from views.test_view import TestView
 from views.autocompletes_view import build_view_autocompletes
 from views.autocompletes_related_view import build_view_autocompletes_related
 from assets.icons.friconix.frx_flet import frx_icon
-
+from views.select_with_image_view import build_view_select_with_image
 
 position = {
     "top": 0,
@@ -55,4 +55,5 @@ class Views:
             RouteView("Test", "/test", ft.Icons.QUESTION_MARK, lambda:TestView(page, forms).build_view_test(), position["side"]),
             RouteView("Autocomplete", "/autocompletes", ft.Icons.EXPAND_MORE,  lambda: build_view_autocompletes(page, forms), position["side"]),
             RouteView("Autocomplete related", "/autocomplete_related", ft.Icons.UNFOLD_MORE, lambda: build_view_autocompletes_related(page, forms), position["side"]),
+            RouteView("Select with Image", "/select_with_image", ft.Icons.IMAGE, lambda: build_view_select_with_image(page), position["side"]),
         ]
