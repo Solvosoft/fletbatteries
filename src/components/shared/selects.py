@@ -542,3 +542,98 @@ class AutoCompleteSelectMultipleImage(_Select):
         self._update_chips()
         self.page.update()
 
+class AutoCompleteSelectImage(_Select):
+    """Single selection autocomplete with a dropdown search field."""
+
+    def __init__(self, page, data, label="Select", on_change=None, on_load_more=None,
+                 on_search_api=None, expand=False, width=None, items_per_load=4):
+        self._selected_value = None
+        self._selected_text = ""
+        super().__init__(page, data, label, on_change, on_load_more, on_search_api, items_per_load)
+
+        self._display_field = ft.Container(
+                on_click=self._toggle_dropdown,
+                border=ft.border.all(1, ft.Colors.OUTLINE),
+                border_radius=8,
+                padding=8,
+                bgcolor=ft.Colors.SURFACE,
+                width=width,
+                content=ft.Row(
+                    controls=[
+                        ft.Image(src="", width=28, height=28, fit=ft.ImageFit.CONTAIN, visible=False),
+                        ft.Text(self.label, color=ft.Colors.ON_SURFACE_VARIANT),
+                        ft.Icon(name=ft.Icons.ARROW_DROP_DOWN),
+                    ],
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    spacing=10,
+                ),
+            )
+
+        self._image_control = self._display_field.content.controls[0]
+        self._text_control = self._display_field.content.controls[1]
+        self._dropdown_icon = self._display_field.content.controls[2]
+
+        self._main_column = ft.Column(
+            controls=[self._display_field, self._dropdown_container],
+            spacing=5,
+            expand=expand,
+        )
+
+    def _is_selected(self, item_id: str) -> bool:
+        return self._selected_value == item_id
+    
+    @property
+    def value(self):
+        return self._selected_value
+
+    @property
+    def selected_item(self):
+        return self._data["results"].get(self._selected_value) if self._selected_value else None
+
+    def _select(self, item: dict):
+        """Selecciona un ítem y actualiza el campo principal."""
+        if self._selected_value:
+            prev = self._data["results"].get(self._selected_value)
+            if prev:
+                prev["selected"] = False
+
+        item_id = str(item["id"])
+        stored = self._data["results"].get(item_id, item)
+        stored["selected"] = True
+        self._selected_value = item_id
+        self._selected_image = stored.get("image")
+        self._selected_text = stored.get("label", "")
+
+        # Actualizar "campo"
+        if self._selected_image:
+            self._image_control.src = self._selected_image
+            self._image_control.visible = True
+        else:
+            self._image_control.visible = False
+
+        self._text_control.value = self._selected_text
+        self.page.update()
+
+        self._close_dropdown()
+
+        if self.on_change_cb:
+            self.on_change_cb(self, self.value, self.selected_item)
+
+    def clear(self):
+        """Limpia la selección actual."""
+        if self._selected_value:
+            prev = self._data["results"].get(self._selected_value)
+            if prev:
+                prev["selected"] = False
+
+        self._selected_value = None
+        self._selected_image = None
+        self._selected_text = ""
+
+        # Actualizar "campo"
+        self._image_control.visible = False
+        self._text_control.value = self.label
+        self.page.update()
+
+        if self.on_change_cb:
+            self.on_change_cb(self, self.value, self.selected_item)
