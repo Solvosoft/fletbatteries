@@ -220,7 +220,14 @@ class _Select(ABC):
             is_selected = self._is_selected(item_id)
 
             option_btn = ft.TextButton(
-                text,
+                 content=ft.Row(
+                    [
+                        ft.Image(src=item["image"], width=24, height=24) if item.get("image") else ft.Container(),
+                        ft.Text(text) if text else ft.Container(),
+                    ],
+                    spacing=5,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER
+                ),
                 data=item_id,
                 disabled=disabled,
                 on_click=lambda e, i=item: self._handle_option_click(i),
@@ -238,8 +245,7 @@ class _Select(ABC):
         if not self._results_list.controls:
             self._results_list.controls.append(ft.Text("No results found", color=ft.Colors.OUTLINE, italic=True))
 
-        self._results_container.height = min(len(self._results_list.controls) * self._dropdown_item_height,
-                                             self._dropdown_max_height)
+        self._results_container.height = min(len(self._results_list.controls) * self._dropdown_item_height, self._dropdown_max_height)
         self.page.update()
 
     def _handle_option_click(self, item):
@@ -396,3 +402,143 @@ class AutoCompleteSelectMultiple(_Select):
             if self.on_change_cb:
                 self.on_change_cb(self, self.value, self.selected_items)
         self._close_dropdown()
+
+class AutoCompleteSelectMultipleImage(_Select):
+    """Multi-selection autocomplete with chips showing selected elements."""   
+    def __init__(self, page, data=None, value=None, label="Select", on_change=None, 
+                 on_load_more=None, on_search_api=None, expand=False, width=None, items_per_load=4):
+        self._selected_values = []
+        self._selected_items = []
+        super().__init__(page, data, label, on_change, on_load_more, on_search_api, items_per_load)
+
+        # Chips y campo de búsqueda
+        self._chips_container = ft.Row(wrap=True, spacing=5, run_spacing=5)
+        self._search_field.hint_text = label
+        self._search_field.suffix_icon = ft.Icons.ARROW_DROP_DOWN
+        self._search_field.border_color = ft.Colors.OUTLINE
+        self._search_field.on_click = self._toggle_dropdown
+
+        self._error_container = ft.Container(content=self._error_text,margin=ft.margin.only(left=12, top=4), visible=False)#The error message is wrapped in a container to be able to apply margin.
+        self._bordered_content = ft.Container(
+            content=ft.Column(
+                controls=[self._chips_container, ft.Row([self._search_field], alignment=ft.MainAxisAlignment.START)],
+                spacing=10,
+            ),
+            border=ft.border.all(1, ft.Colors.OUTLINE),
+            border_radius=6,
+            padding=10,
+            bgcolor=ft.Colors.SURFACE,
+        )
+
+        self._main_column = ft.Column(
+            controls=[self._bordered_content, self._dropdown_container, self._error_container],
+            spacing=0,
+            expand=False
+        )
+
+        # Inicializar selección externa
+        if value:
+            self.set_value(value)
+
+    # ---------------------
+    # Public API
+    # ---------------------
+    @property
+    def control(self):
+        return self._main_column
+
+    @property
+    def value(self):
+        return self._selected_values
+
+    @property
+    def selected_items(self):
+        return self._selected_items
+
+    def set_value(self, ids: list[str]):
+        self._selected_values.clear()
+        self._selected_items.clear()
+        for item_id in ids:
+            item = self._data["results"].get(str(item_id))
+            if item:
+                item["selected"] = True
+                self._selected_values.append(str(item_id))
+                self._selected_items.append(item)
+        self._update_chips()
+        self.page.update()
+        if self.on_change_cb:
+            self.on_change_cb(self, self._selected_values, self._selected_items)
+
+    def refresh_data(self, data: dict):
+        """Reemplaza los items del dropdown sin perder la selección."""
+        results = data.get("results", {})
+        results_list = list(results.values()) if isinstance(results, dict) else results
+        self._data["results"] = {str(item["id"]): dict(item) for item in results_list}
+        # Mantener la selección actual
+        for item in self._selected_items:
+            id_str = str(item["id"])
+            if id_str in self._data["results"]:
+                self._data["results"][id_str]["selected"] = True
+        self._refresh_options()
+        self.page.update()
+
+    def show_error(self, message: str):
+        """Muestra un mensaje de error bajo el campo."""
+        self._error_container.content.value = message
+        self._error_container.visible = bool(message)
+        self._main_column.update()
+
+    # ---------------------
+    # Internal logic
+    # ---------------------
+    def _is_selected(self, item_id: str) -> bool:
+        return item_id in self._selected_values
+
+    def _update_chips(self):
+        self._chips_container.controls.clear()
+        for item in self._selected_items:
+            item_id = item.get("id")
+            chip = ft.Chip(
+                label=ft.Text(""),
+                leading=ft.Image(src=item.get("image")) if item.get("image") else None,
+                on_delete=lambda e, item_id=item_id: self._remove_item(item_id),
+                bgcolor=ft.Colors.SECONDARY_CONTAINER,
+                check_color=ft.Colors.ON_SECONDARY_CONTAINER,
+                delete_icon_color=ft.Colors.ON_SECONDARY_CONTAINER,
+            )
+            self._chips_container.controls.append(chip)
+
+    def _remove_item(self, item_id):
+        item_id_str = str(item_id)
+        if item_id_str in self._selected_values:
+            self._selected_values.remove(item_id_str)
+            stored = self._data["results"].get(item_id_str)
+            if stored:
+                stored["selected"] = False
+            self._selected_items = [i for i in self._selected_items if str(i["id"]) != item_id_str]
+            self._update_chips()
+            self.page.update()
+            if self.on_change_cb:
+                self.on_change_cb(self, self._selected_values, self._selected_items)
+
+    def _select(self, item: dict):
+        item_id = str(item["id"])
+        if item_id not in self._selected_values:
+            self._selected_values.append(item_id)
+            self._selected_items.append(item)
+            item["selected"] = True
+            self._update_chips()
+            self.page.update()
+            if self.on_change_cb:
+                self.on_change_cb(self, self._selected_values, self._selected_items)
+        self._close_dropdown()
+    
+    def clear(self):
+        """Limpia la selección actual."""
+        for item_id in list(self._selected_values):
+            self._remove_item(item_id)
+        self._selected_values = []
+        self._selected_items = []
+        self._update_chips()
+        self.page.update()
+
