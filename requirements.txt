@@ -1,10 +1,32 @@
-# base
-flet
-# database
-sqlalchemy
-passlib[bcrypt]
-# variables de entorno
-python-dotenv
-# componentes
-flet-contrib
-flet-rive
+flet>=0.28.3
+
+#Comandos para instalar flet, flet-webview:
+
+#pip install flet
+#pip install flet-webview
+#py -m pip install flet
+#py -m pip install flet-webview
+
+
+#Cómo ejecutar correctamente el proyecto
+#
+#Tu aplicación usa dos servidores:
+#
+#Servidor HTTP para servir los archivos estáticos de TinyMCE (assets)
+#Servidor Flet para la interfaz principal
+
+#Pasos para correr el proyecto
+#Terminal 1 — Servir archivos HTML / TinyMCE
+#py -m http.server 8000
+
+#Terminal 2 — Ejecutar Flet
+#py main.py
+
+#Asegúrate de que tu archivo principal se llame main.py.
+#Si se llama diferente, reemplázalo en el comando.
+
+#También hay un componente extra que es realizado completamente de flet con los dos editores integrados
+#este componente posee los dos formularios, el básico y el avanzado con pequeñas cosas por corregir, debido a que flet
+#no es muy amigable para la creación de componentes WYSIWYG.
+#Es el fletmain.py que para correrlo solo se necesita la intalación de los comandos y correrlo desde la terminal como fletmain.py
+

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script src="./tinymce/tinymce.min.js" referrerpolicy="origin" crossorigin="anonymous"></script>
+  <script src="./js/editor_custom.js"></script>
+</head>
+<body>
+  <h2>Editor Básico</h2>
+  <textarea id="editor_basic"></textarea>
+
+  <h2>Editor Avanzado</h2>
+  <textarea id="editor_advanced"></textarea>
+
+  <script>
+    function initEditors() {
+      initMyEditor("editor_basic",
+        "undo redo | bold italic underline | bullist numlist | link",
+        200
+      );
+
+      initMyEditor("editor_advanced",
+        "undo redo | formatselect | bold italic underline strikethrough | alignleft aligncenter alignright | bullist numlist | link image media table | code",
+        400
+      );
+    }
+
+    initEditors();
+  </script>
+</body>
+</html>

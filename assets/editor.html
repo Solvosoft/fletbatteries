@@ -1,0 +1,38 @@
+<!-- assets/editor.html -->
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TinyMCE Embedded</title>
+<script src="/tinymce/tinymce.min.js"></script>
+<style>
+html, body { height: 100%; margin: 0; }
+.container { padding: 0; }
+</style>
+</head>
+<body>
+<textarea id="editor"></textarea>
+<script>
+function qs(name) {
+const params = new URLSearchParams(window.location.search);
+return params.get(name) || '';
+}
+
+window.handleMessageFromFlet = (msg) => {
+    if(msg.type === "setContent") {
+        tinymce.get(msg.name).setContent(msg.value);
+    } else if(msg.type === "setDisabled") {
+        tinymce.get(msg.name).setMode(msg.value ? "readonly" : "design");
+    }
+};
+
+const fieldName = qs('name') || 'editor';
+const preset = qs('preset') || 'basic';
+const initial = qs('initial') || '';
+const imageUpload = qs('image_upload') || '';
+const videoUpload = qs('video_upload') || '';
+const disabled = (qs('disabled') || 'false') === 'true';
+
+
+const basePlugins = 'lists link
