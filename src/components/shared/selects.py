@@ -204,6 +204,18 @@ class _Select(ABC):
     def _is_selected(self, item_id: str) -> bool:
         pass
 
+    @property
+    @abstractmethod
+    def value(self):
+        """Get the selected value(s)."""
+        pass
+
+    @value.setter
+    @abstractmethod
+    def value(self, v):
+        """Set the selected value(s)."""
+        pass
+
     def _refresh_options(self, filter_text="", filtered_results=None):
         """Refreshes the dropdown options, either filtered or full dataset."""
         self._results_list.controls.clear()
@@ -315,6 +327,21 @@ class AutoCompleteSelect(_Select):
         if self.on_change_cb:
             self.on_change_cb(self, self.value, self.selected_item)
 
+    @property
+    def value(self):
+        return self._selected_value
+
+    @value.setter
+    def value(self, v: str | None):
+        if not v:
+            self._selected_value = None
+            self._selected_text = ""
+            self._text_field.value = ""
+            self.page.update()
+            return
+        item = self._data["results"].get(str(v))
+        if item:
+            self._select(item)
 
 class AutoCompleteSelectMultiple(_Select):
     """Multi-selection autocomplete with chips showing selected elements."""
@@ -396,3 +423,19 @@ class AutoCompleteSelectMultiple(_Select):
             if self.on_change_cb:
                 self.on_change_cb(self, self.value, self.selected_items)
         self._close_dropdown()
+
+    @property
+    def value(self):
+        return self._selected_values
+
+    @value.setter
+    def value(self, values: list[str] | None):
+        self._selected_values.clear()
+        self._selected_items.clear()
+        if values:
+            for v in values:
+                item = self._data["results"].get(str(v))
+                if item:
+                    self._select(item)
+        self._update_chips()
+        self.page.update()

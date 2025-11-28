@@ -54,10 +54,15 @@ class PersonGroupManager:
             self.dbm.close_session(db)
 
     def update(self, group_id: int, name: str = None, country_id: int = None,
-                            people_ids=None, community_ids=None):
+               people_ids=None, community_ids=None):
         db = self.dbm.get_session()
         try:
-            group = db.query(PersonGroup).filter(PersonGroup.id == group_id).first()
+            group = db.query(PersonGroup).options(
+                joinedload(PersonGroup.people),
+                joinedload(PersonGroup.communities),
+                joinedload(PersonGroup.country)
+            ).filter(PersonGroup.id == group_id).first()
+
             if not group:
                 raise ValueError("PersonGroup not found")
 
@@ -66,11 +71,11 @@ class PersonGroupManager:
             if country_id is not None:
                 group.country_id = country_id
             if people_ids is not None:
-                people = db.query(Person).filter(Person.id.in_(people_ids)).all()
-                group.people = people
+                group.people.clear()
+                group.people.extend(db.query(Person).filter(Person.id.in_(people_ids)).all())
             if community_ids is not None:
-                communities = db.query(Community).filter(Community.id.in_(community_ids)).all()
-                group.communities = communities
+                group.communities.clear()
+                group.communities.extend(db.query(Community).filter(Community.id.in_(community_ids)).all())
 
             db.commit()
             db.refresh(group)

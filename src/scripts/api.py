@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Query, HTTPException
+from fastapi import FastAPI, Query, HTTPException, Path
 from data.manager.country_manager import CountryManager
 from data.manager.person_manager import PersonManager
 from data.manager.community_manager import CommunityManager
@@ -6,7 +6,6 @@ from data.manager.person_group_manager import PersonGroupManager
 from scripts.crud_router import create_crud_router
 from pydantic import BaseModel
 from typing import List, Optional
-from sqlalchemy.orm import selectinload  # <-- para cargar relaciones
 
 app = FastAPI()
 
@@ -33,7 +32,7 @@ class PersonGroupSchema(BaseModel):
 
 @app.get("/persons_groups")
 def get_person_groups(skip: int = Query(0, ge=0), limit: int = Query(5, ge=1), q: Optional[str] = Query(None, alias="q")):
-    groups = person_group_manager.get_all(eager=True)  # <-- usamos eager loading
+    groups = person_group_manager.get_all(eager=True)
     if q:
         q_lower = q.lower()
         groups = [g for g in groups if q_lower in g.name.lower()]
@@ -50,6 +49,19 @@ def get_person_groups(skip: int = Query(0, ge=0), limit: int = Query(5, ge=1), q
         }
     more = skip + limit < total
     return {"results": results, "pagination": {"more": more, "skip": skip, "limit": limit, "total": total}}
+
+@app.get("/persons_groups/{group_id}")
+def get_person_group(group_id: int = Path(..., ge=1)):
+    group = person_group_manager.get_by_id(group_id, eager=True)
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    return {
+        "id": group.id,
+        "nombre": group.name,
+        "Persons": [{"id": p.id, "name": p.name} for p in group.people],
+        "Communities": [{"id": c.id, "name": c.name} for c in group.communities],
+        "Country": {"id": group.country.id, "name": group.country.name} if group.country else None
+    }
 
 @app.post("/persons_groups")
 def add_person_group(item: PersonGroupSchema):
@@ -69,6 +81,37 @@ def add_person_group(item: PersonGroupSchema):
         }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@app.put("/persons_groups/{group_id}")
+def update_person_group(group_id: int, item: PersonGroupSchema):
+    try:
+        group = person_group_manager.update(
+            group_id=group_id,
+            name=item.name,
+            country_id=item.country_id,
+            people_ids=item.people_ids,
+            community_ids=item.community_ids
+        )
+
+        # Devuelve el grupo actualizado
+        return {
+            "id": group.id,
+            "nombre": group.name,
+            "Persons": [{"id": p.id, "name": p.name} for p in group.people],
+            "Communities": [{"id": c.id, "name": c.name} for c in group.communities],
+            "Country": {"id": group.country.id, "name": group.country.name} if group.country else None
+        }
+
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+@app.delete("/persons_groups/{group_id}")
+def delete_person_group(group_id: int):
+    try:
+        person_group_manager.delete(group_id)
+        return {"message": "PersonGroup deleted successfully"}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 # -----------------------------
 # Insert presets

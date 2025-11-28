@@ -47,4 +47,3 @@ def create_crud_router(entity_name: str, manager):
             raise HTTPException(status_code=404, detail=str(e))
 
     return router
-

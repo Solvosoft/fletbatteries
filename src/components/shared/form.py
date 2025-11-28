@@ -57,6 +57,10 @@ class Form:
                 input.widget.controls[1].value = "Ninguna imagen seleccionada"
             elif input.type == "DateField" or input.type == "DateTimeField":
                 input.widget.controls[0].value = ""
+            elif input.type in ["SelectField", "SelectMultipleField"]:
+                if hasattr(input, "set_value"):
+                    # Limpia los selects
+                    input.set_value([] if input.type == "SelectMultipleField" else None)
             else:
                 input.widget.value = ""
 

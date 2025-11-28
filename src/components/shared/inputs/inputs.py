@@ -98,7 +98,10 @@ class Input:
         elif self.type == "DateField" or self.type == "DateTimeField":
             self.widget.controls[0].value = value
         elif self.type in ["SelectField", "SelectMultipleField"]:
-            self.widget.controls[0].value = value
+            select_component = getattr(self, "_select_component", None)
+            if select_component:
+                select_component.value = value
+
         else:
             self.widget.value = value
 
