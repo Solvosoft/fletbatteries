@@ -1,16 +1,18 @@
 import sys
 
 import flet as ft
-
+from ..selects import AutoCompleteSelect, AutoCompleteSelectMultiple
+from ..autocompletes_related import RelationalSelectGroup
 
 class InputType:
-    def __init__(self, page, type, label, visible_form, visible_table, picker):
+    def __init__(self, page, type, label, visible_form, visible_table, picker, extra_config=None):
         self.page = page
         self.type = type
         self.label = label
         self.visible_form = visible_form
         self.visible_table = visible_table
         self.picker = picker
+        self.extra_config = extra_config or {}
 
     def get_widget(self):
         widget = None
@@ -79,4 +81,18 @@ class InputType:
                 spacing=10,
                 visible=self.visible_form,
             )
+        elif self.type == "SelectField":
+            widget = AutoCompleteSelect(
+                self.page,
+                data={},  # datos iniciales
+                label=self.label
+            ).control
+        elif self.type == "SelectMultipleField":
+            widget = AutoCompleteSelectMultiple(
+                self.page,
+                data={},
+                label=self.label
+            ).control
+        elif self.type == "RelationalSelectGroupField":
+            widget = RelationalSelectGroup(self.page, relations=self.extra_config.get("relations", []))
         return widget

@@ -59,6 +59,11 @@ looking to create applications efficiently and quickly
    ```bash
    make init_db
    ```
+   
+5. Run API
+   ```bash
+   uvicorn scripts.api:app --reload --app-dir src
+   ```
 
 Si no tiene una base de datos
 

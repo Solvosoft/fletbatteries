@@ -7,6 +7,11 @@ from data.manager.db_manager import DatabaseManager
 from data.models.user import User
 from data.models.product import Product
 from data.models.customer import Customer
+from data.models.country import Country
+from data.models.person import Person
+from data.models.community import Community
+from data.models.person_group import PersonGroup
+from data.models.abc import ABC
 
 db = DatabaseManager()
 

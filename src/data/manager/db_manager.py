@@ -2,17 +2,15 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.exc import SQLAlchemyError
 
-# Base declarative
 from data.manager.db_base import Base
 
 class DatabaseManager:
     def __init__(self):
-        # Agregar el nombre de la base de datos
+        # Database URL
         self.db_url = f"sqlite:///template.db"
         self.engine = create_engine(
             self.db_url,
-            # necesario para SQLite
-            connect_args={"check_same_thread": False}
+            connect_args={"check_same_thread": False}  # Required for SQLite
         )
 
         self.SessionLocal = sessionmaker(
@@ -22,42 +20,42 @@ class DatabaseManager:
         )
 
     def get_session(self) -> Session:
-        """Abre una nueva sesión de base de datos"""
+        """Open a new database session"""
         try:
             db = self.SessionLocal()
             return db
         except SQLAlchemyError as e:
-            print(f"Error al abrir la sesión: {e}")
+            print(f"Error opening session: {e}")
             return None
 
     def close_session(self, db: Session):
-        """Cierra una sesión"""
+        """Close a database session"""
         try:
             db.close()
         except SQLAlchemyError as e:
-            print(f"Error al cerrar la sesión: {e}")
+            print(f"Error closing session: {e}")
 
     def create_db(self):
-        """Crea las tablas si no existen"""
+        """Create tables if they do not exist"""
         try:
             Base.metadata.create_all(bind=self.engine)
-            print("Base de datos creada.")
+            print("Database created.")
         except SQLAlchemyError as e:
-            print(f"Error al crear la base de datos: {e}")
+            print(f"Error creating database: {e}")
 
     def reset_db(self):
-        """Elimina todas las tablas y las vuelve a crear"""
+        """Drop all tables and recreate them"""
         try:
             Base.metadata.drop_all(bind=self.engine)
             Base.metadata.create_all(bind=self.engine)
-            print("Base de datos reseteada.")
+            print("Database reset.")
         except SQLAlchemyError as e:
-            print(f"Error al resetear la base de datos: {e}")
+            print(f"Error resetting database: {e}")
 
     def update_schema(self):
-        """Actualiza el esquema (crea tablas faltantes)"""
+        """Update schema by creating missing tables"""
         try:
             Base.metadata.create_all(bind=self.engine)
-            print("Esquema actualizado.")
+            print("Schema updated.")
         except SQLAlchemyError as e:
-            print(f"Error al actualizar esquema: {e}")
+            print(f"Error updating schema: {e}")

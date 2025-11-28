@@ -163,6 +163,70 @@
           "max_date": "d0"
         }
       ]
+    },
+    {
+      "title": "People group",
+      "name": "PeopleForm",
+      "inputs": [
+        {
+          "name": "name",
+          "type": "CharField",
+          "label": "Nombre",
+          "required": true,
+          "filter": true
+        },
+        {
+          "name": "people",
+          "type": "SelectMultipleField",
+          "label": "Personas",
+          "required": true,
+          "filter": false
+        },
+        {
+          "name": "communities",
+          "type": "SelectMultipleField",
+          "label": "Comunidades",
+          "required": true,
+          "filter": false
+        },
+        {
+          "name": "country",
+          "type": "SelectField",
+          "label": "País",
+          "required": true,
+          "filter": true
+        }
+      ]
+    },
+    {
+      "title": "ABCD Register",
+      "name": "RelationalForm",
+      "inputs": [
+        {
+          "name": "related_selects",
+          "type": "RelationalSelectGroupField",
+          "label": "Relational Selects",
+          "required": true,
+          "filter": false,
+          "relations": [
+            {
+              "label": "Seleccione A",
+              "type": "single",
+              "data_fn": "get_a"
+            },
+            {
+              "label": "Seleccione B",
+              "type": "multiple",
+              "data_fn": "get_b"
+            },
+            {
+              "label": "Seleccione C",
+              "type": "single",
+              "data_fn": "get_c"
+            }
+          ]
+        }
+      ]
     }
   ]
 }

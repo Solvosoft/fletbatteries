@@ -29,10 +29,21 @@ class Input:
         self.widget = None
         self.tooltip = tooltip
         self.active_filter = active_filter
-        self.widget = InputType(self.page, self.type, self.label, self.visible_form, self.visible_table,
-                                self.picker).get_widget()
+        self.widget = InputType(
+            self.page,
+            self.type,
+            self.label,
+            self.visible_form,
+            self.visible_table,
+            self.picker,
+            extra_config={
+                "relations": []  # por defecto vacío, se reemplaza en la vista
+            }
+        ).get_widget()
         if self.type == "CharField" or self.type == "EmailField" or self.type == "IntergerField":
             self.filter = ft.TextField(label=self.name, width=250)
+        elif self.type == "RelationalSelectGroupField":
+            self._select_component = self.widget
 
     def on_file_picked(self, e: ft.FilePickerResultEvent):
         if self.type == "ImageField":
@@ -86,6 +97,11 @@ class Input:
             self.widget.controls[1] = ft.Text("Seleccionada: " + value)
         elif self.type == "DateField" or self.type == "DateTimeField":
             self.widget.controls[0].value = value
+        elif self.type in ["SelectField", "SelectMultipleField"]:
+            select_component = getattr(self, "_select_component", None)
+            if select_component:
+                select_component.value = value
+
         else:
             self.widget.value = value
 
@@ -252,4 +268,11 @@ class Input:
                 except ValueError as ex:
                     print(f"Error al parsear fecha: {ex}")
                     return False
+        elif self.type in ["SelectField", "SelectMultipleField"]:
+            select_component = getattr(self, "_select_component", None)
+            if self.required and select_component and not select_component.value:
+                select_component.show_error("Debe seleccionar una opción")
+                return False
+            elif select_component:
+                select_component.show_error("")
         return True

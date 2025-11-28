@@ -6,6 +6,7 @@ def GenericCard(
     actions: list[ft.Control],
     width=300,
     height=400,
+    horizontal_alignment=ft.CrossAxisAlignment.CENTER
 ):
     return ft.Container(
         content=ft.Card(
@@ -20,9 +21,9 @@ def GenericCard(
                     ],
                     spacing=5,
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER
+                    horizontal_alignment=horizontal_alignment
                 ),
-                padding=10,
+                padding=14,
                 width=width,
             ),
             width=500,
