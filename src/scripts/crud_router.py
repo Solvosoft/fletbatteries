@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Query, HTTPException
 
+
 def create_crud_router(entity_name: str, manager):
     """
     Generic router for GET, POST, PUT, and DELETE of simple tables.
@@ -14,27 +15,53 @@ def create_crud_router(entity_name: str, manager):
             q_lower = q.lower()
             items = [i for i in items if q_lower in i.name.lower()]
         total = len(items)
-        paginated = items[skip:skip+limit]
+        paginated = items[skip:skip + limit]
         results = {
-            str(i.id): {"id": i.id, "text": i.name, "disabled": getattr(i, "disabled", False)}
+            str(i.id): {
+                "id": i.id,
+                "text": i.name,
+                "disabled": getattr(i, "disabled", False)
+            }
             for i in paginated
         }
         more = skip + limit < total
-        return {"results": results, "pagination": {"more": more, "skip": skip, "limit": limit, "total": total}}
+        return {
+            "results": results,
+            "pagination": {
+                "more": more,
+                "skip": skip,
+                "limit": limit,
+                "total": total
+            }
+        }
 
     @router.post(f"/{entity_name}")
-    def add_item(name: str):
+    def add_item(name: str, disabled: bool = False):
         try:
-            item = manager.create(name=name)
-            return {"id": item.id, "name": item.name}
+            item = manager.create(name=name, disabled=disabled)
+            return {
+                "id": item.id,
+                "name": item.name,
+                "disabled": getattr(item, "disabled", False)
+            }
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
 
     @router.put(f"/{entity_name}/{{item_id}}")
-    def update_item(item_id: int, name: str, disabled: bool | None = None):
+    def update_item(item_id: int, name: str = None, disabled: bool = None):
         try:
-            updated = manager.update(item_id, name=name, disabled=disabled)
-            return {"id": updated.id, "name": updated.name, "disabled": getattr(updated, "disabled", False)}
+            update_kwargs = {}
+            if name is not None:
+                update_kwargs['name'] = name
+            if disabled is not None:
+                update_kwargs['disabled'] = disabled
+
+            updated = manager.update(item_id, **update_kwargs)
+            return {
+                "id": updated.id,
+                "name": updated.name,
+                "disabled": getattr(updated, "disabled", False)
+            }
         except ValueError as e:
             raise HTTPException(status_code=404, detail=str(e))
 

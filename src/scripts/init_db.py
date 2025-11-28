@@ -11,6 +11,7 @@ from data.models.country import Country
 from data.models.person import Person
 from data.models.community import Community
 from data.models.person_group import PersonGroup
+from data.models.abc import ABC
 
 db = DatabaseManager()
 

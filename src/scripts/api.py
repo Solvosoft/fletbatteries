@@ -3,6 +3,7 @@ from data.manager.country_manager import CountryManager
 from data.manager.person_manager import PersonManager
 from data.manager.community_manager import CommunityManager
 from data.manager.person_group_manager import PersonGroupManager
+from data.manager.abc_manager import ABCManager
 from scripts.crud_router import create_crud_router
 from pydantic import BaseModel
 from typing import List, Optional
@@ -13,16 +14,18 @@ country_manager = CountryManager()
 person_manager = PersonManager()
 community_manager = CommunityManager()
 person_group_manager = PersonGroupManager()
+abc_manager = ABCManager()
 
 # -----------------------------
-# Endpoints genéricos
+# Generic endpoints
 # -----------------------------
 app.include_router(create_crud_router("countries", country_manager))
 app.include_router(create_crud_router("persons", person_manager))
 app.include_router(create_crud_router("communities", community_manager))
+app.include_router(create_crud_router("abc", abc_manager))
 
 # -----------------------------
-# Endpoints específicos: PersonGroup
+# PersonGroup endpoints
 # -----------------------------
 class PersonGroupSchema(BaseModel):
     name: str
@@ -93,7 +96,6 @@ def update_person_group(group_id: int, item: PersonGroupSchema):
             community_ids=item.community_ids
         )
 
-        # Devuelve el grupo actualizado
         return {
             "id": group.id,
             "nombre": group.name,
@@ -116,8 +118,9 @@ def delete_person_group(group_id: int):
 # -----------------------------
 # Insert presets
 # Example of use:
-# curl -X POST http://127.0.0.1:8000/persons/init
+# curl -X POST http://127.0.0.1:8000/countries/init
 # -----------------------------
+
 @app.post("/countries/init")
 def init_countries():
     latin_countries = [
@@ -129,7 +132,7 @@ def init_countries():
     inserted = []
     for name in latin_countries:
         try:
-            country = country_manager.create_country(name=name)
+            country = country_manager.create(name=name)
             inserted.append({"id": country.id, "name": country.name})
         except ValueError:
             pass
@@ -141,7 +144,7 @@ def init_persons():
     inserted = []
     for name in initial_persons:
         try:
-            person = person_manager.create_person(name=name)
+            person = person_manager.create(name=name)
             inserted.append({"id": person.id, "name": person.name})
         except ValueError:
             pass
@@ -153,8 +156,24 @@ def init_communities():
     inserted = []
     for name in initial_communities:
         try:
-            community = community_manager.create_community(name=name)
+            community = community_manager.create(name=name)
             inserted.append({"id": community.id, "name": community.name})
         except ValueError:
             pass
     return {"inserted": inserted, "message": "Communities iniciales insertadas"}
+
+# -----------------------------
+# Automatic initialization at API startup
+# -----------------------------
+def ensure_initial_data():
+    """Verifica si las tablas country, person o community están vacías y las inicializa si es necesario."""
+    if not country_manager.get_all():
+        init_countries()
+    if not person_manager.get_all():
+        init_persons()
+    if not community_manager.get_all():
+        init_communities()
+
+@app.on_event("startup")
+def startup_event():
+    ensure_initial_data()
