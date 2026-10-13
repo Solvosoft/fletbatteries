@@ -19,19 +19,20 @@ def build_view_animation(page: ft.Page) -> ft.Container:
             use_artboard_size=True,
         )
 
+    controls = [
+        ft.Text("Animation", size=20),
+        ft.Divider(),
+        ft.Text("Rive", size=20),
+        animation1,
+        ft.Divider(),
+        ft.Text("Custom", size=20),
+        animation2,
+    ]
+
     return ft.Container(
         expand=True,
         content=ft.Column(
-            controls=[
-                ft.Text("Animation", size=20),
-                ft.Divider(),
-                ft.Text("Rive", size=20),
-                animation1,
-                ft.Divider(),
-                ft.Text("Custom", size=20),
-                animation2,
-
-            ],
+            controls=controls,
             alignment=ft.MainAxisAlignment.CENTER,
             spacing=10,
             scroll=ft.ScrollMode.AUTO,

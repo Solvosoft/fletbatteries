@@ -15,6 +15,8 @@ DB_URL = os.environ.get("FLETBATTERIES_DB_URL", f"sqlite:///{BASE_DIR / 'templat
 API_URL = os.environ.get("FLETBATTERIES_API_URL", "http://127.0.0.1:8000").rstrip("/") + "/"
 # Permite abrir "/" directamente sin pasar por el login (útil para capturas/demos)
 SKIP_LOGIN = os.environ.get("FLETBATTERIES_SKIP_LOGIN", "").lower() in ("1", "true", "yes")
+# Ruta con la que abre la app de escritorio (p. ej. /rive_animations para depurar)
+INITIAL_ROUTE = os.environ.get("FLETBATTERIES_INITIAL_ROUTE") or None
 
 # Base de datos que usan los managers de fletbatteries
 DATABASE = set_default_database(DB_URL)

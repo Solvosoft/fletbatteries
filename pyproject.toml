@@ -63,6 +63,21 @@ copyright = "Copyright (C) 2025 by Solvo"
 path = "demo"
 module = "main"
 
+# `make build-linux`: app de escritorio compilada solo con las extensiones que
+# usa la demo (Rive, charts, mapas). No incluye el reproductor de video
+# (media_kit/libmpv), que hace caer al cliente "full" precompilado en Linux.
+[tool.flet.linux]
+dependencies = [
+    "fletbatteries",
+    "flet-charts==1.0.4",
+    "flet-map==1.0.4",
+    "flet-rive==1.0.4",
+    "python-dotenv>=1.0",
+]
+
+[tool.flet.linux.dev_packages]
+fletbatteries = "."
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]

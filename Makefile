@@ -1,4 +1,4 @@
-.PHONY: help setup sync run web api init_db reset_db update_schema test screenshots lint doctor requirements clean list
+.PHONY: help setup sync run build-linux run-build web api init_db reset_db update_schema test screenshots lint doctor requirements clean list
 
 UV ?= uv
 PYTHON_VERSION ?= 3.13
@@ -48,6 +48,13 @@ sync: ## Sincronizar .venv con uv.lock
 
 run: ## Ejecutar la app de escritorio (FLAVOR=full para el cliente con Rive/mapas, requiere libmpv2)
 	FLET_DESKTOP_FLAVOR=$(FLAVOR) $(RUN) flet run demo/main.py
+
+build-linux: ## Compilar la app de escritorio para Linux (incluye Rive, charts y mapas; requiere clang)
+	$(RUN) flet build linux --yes --no-rich-output
+
+run-build: ## Ejecutar la app compilada con build-linux (usa template.db del repo)
+	# GDK_GL=gles: GTK usa EGL; con GLX, rive_native no tiene EGLImage y no dibuja (o rompe el contexto GL)
+	GDK_GL=gles FLETBATTERIES_DB_URL=sqlite:///$(CURDIR)/template.db ./build/linux/fletbatteries
 
 web: ## Ejecutar la app en el navegador (PORT=8550)
 	$(RUN) flet run --web --port $(PORT) demo/main.py

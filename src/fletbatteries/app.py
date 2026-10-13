@@ -86,8 +86,11 @@ class FletBatteriesApp:
         fonts: Optional[dict] = None,
         assets_dir: Optional[str] = None,
         menu: Sequence[MenuItem] = (),
+        initial_route: Optional[str] = None,
     ):
         self.title = title
+        # Ruta al abrir la app cuando el cliente arranca en "/" (escritorio); útil para depurar
+        self.initial_route = initial_route
         self.logo = logo
         self.home = home
         self.login_required = login_required
@@ -225,7 +228,10 @@ class AppShell:
         self._menu_user = object()
 
         page.on_route_change = lambda e: self.render(e.route)
-        self.render(page.route or app.home, initial=True)
+        start = page.route or app.home
+        if app.initial_route and start in ("/", ""):
+            start = app.initial_route
+        self.render(start, initial=True)
 
     # ------------------------------------------------------------------
     # Tema
