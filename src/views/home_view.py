@@ -21,8 +21,8 @@ def build_view_home(page: ft.Page) -> ft.Container:
                 ft.Text("Home", size=20),
                 carousel,
             ],
-            alignment=ft.alignment.center,
+            alignment=ft.MainAxisAlignment.CENTER,
         ),
-        alignment=ft.alignment.center,
+        alignment=ft.Alignment.CENTER,
         padding=10,
     )

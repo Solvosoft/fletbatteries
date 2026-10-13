@@ -12,6 +12,6 @@ def build_view_profile(page: ft.Page) -> ft.Container:
                 ft.Text("Profile", size=20),
 
             ],
-            alignment=ft.alignment.top_center,
+            alignment=ft.MainAxisAlignment.START,
         )
     )

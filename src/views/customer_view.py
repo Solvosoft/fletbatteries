@@ -87,18 +87,18 @@ def build_view_customer(page: ft.Page, forms: []) -> ft.Container:
         return False
 
     actions = [
-        lambda item: ft.ElevatedButton(
+        lambda item: ft.Button(
             content=ft.Icon(ft.Icons.EDIT),
             on_click=lambda e, it=item: update_method(it),
         ),
-        lambda item: ft.ElevatedButton(
+        lambda item: ft.Button(
             content=ft.Icon(ft.Icons.DELETE),
             on_click=lambda e, it=item: delete_method(it),
         ),
     ]
 
     top_actions = [
-        ft.ElevatedButton(
+        ft.Button(
             content=ft.Icon(ft.Icons.ADD),
             on_click=lambda e: create_method(),
         )
@@ -117,9 +117,9 @@ def build_view_customer(page: ft.Page, forms: []) -> ft.Container:
                     content=datatable,
                     expand=True,
                     padding=10,
-                    alignment=ft.alignment.center,
+                    alignment=ft.Alignment.CENTER,
                 )
             ],
-            alignment=ft.alignment.top_center,
+            alignment=ft.MainAxisAlignment.START,
         )
     )

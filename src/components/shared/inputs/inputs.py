@@ -3,6 +3,10 @@ import os
 import shutil
 from components.shared.inputs.inputs_type import InputType
 from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
+from settings import ASSETS_DIR
+
+IMAGE_DIR = ASSETS_DIR / "image"
 
 
 class Input:
@@ -22,7 +26,7 @@ class Input:
         self.max_date = max_date
         self.picker = None
         if self.type == "ImageField":
-            self.picker = ft.FilePicker(on_result=self.on_file_picked)
+            self.picker = ft.FilePicker()
         elif self.type == "DateField" or self.type == "DateTimeField":
             self.picker = ft.DatePicker(on_change=self.on_date_picked)
         self.filter = None
@@ -37,7 +41,8 @@ class Input:
             self.visible_table,
             self.picker,
             extra_config={
-                "relations": []  # por defecto vacío, se reemplaza en la vista
+                "relations": [],  # por defecto vacío, se reemplaza en la vista
+                "on_files_picked": self.on_file_picked,
             }
         ).get_widget()
         if self.type == "CharField" or self.type == "EmailField" or self.type == "IntergerField":
@@ -45,11 +50,11 @@ class Input:
         elif self.type == "RelationalSelectGroupField":
             self._select_component = self.widget
 
-    def on_file_picked(self, e: ft.FilePickerResultEvent):
+    def on_file_picked(self, files: list[ft.FilePickerFile] | None):
         if self.type == "ImageField":
-            if e.files:
-                file_name = os.path.basename(e.files[0].path)
-                self.widget.controls[0].data = {"path": e.files[0].path, "name": file_name}
+            if files:
+                file_name = os.path.basename(files[0].path)
+                self.widget.controls[0].data = {"path": files[0].path, "name": file_name}
                 self.widget.controls[1] = ft.Text(f"Seleccionada: {file_name}")
             else:
                 self.widget.controls[1] = ft.Text("Ninguna imagen seleccionada")
@@ -79,9 +84,9 @@ class Input:
                     return
 
                 src_path = data["path"]
-                dest_path = os.path.join("src/assets/image", data.get("name", ""))
+                dest_path = os.path.join(IMAGE_DIR, data.get("name", ""))
 
-                os.makedirs("src/assets/image", exist_ok=True)
+                os.makedirs(IMAGE_DIR, exist_ok=True)
 
                 if os.path.abspath(src_path) != os.path.abspath(dest_path):
                     shutil.copy(src_path, dest_path)
@@ -93,7 +98,7 @@ class Input:
 
     def set_value(self, value):
         if self.type == "ImageField":
-            self.widget.controls[0].data = {"path": "src/assets/image/" + value, "name": value}
+            self.widget.controls[0].data = {"path": str(IMAGE_DIR / value), "name": value}
             self.widget.controls[1] = ft.Text("Seleccionada: " + value)
         elif self.type == "DateField" or self.type == "DateTimeField":
             self.widget.controls[0].value = value

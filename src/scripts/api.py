@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Query, HTTPException, Path
 from data.manager.country_manager import CountryManager
 from data.manager.person_manager import PersonManager
@@ -8,7 +10,14 @@ from scripts.crud_router import create_crud_router
 from pydantic import BaseModel
 from typing import List, Optional
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Datos iniciales al arrancar la API
+    ensure_initial_data()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 country_manager = CountryManager()
 person_manager = PersonManager()
@@ -173,7 +182,3 @@ def ensure_initial_data():
         init_persons()
     if not community_manager.get_all():
         init_communities()
-
-@app.on_event("startup")
-def startup_event():
-    ensure_initial_data()

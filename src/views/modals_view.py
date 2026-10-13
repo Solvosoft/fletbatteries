@@ -23,7 +23,7 @@ def build_view_modals(page: ft.Page) -> ft.Container:
 
     detail_controls = [ft.Text("ID: 1"), ft.Text("Nombre: Ana"), ft.Text("Email: ana@gmail.com")]
 
-    btn_create = ft.ElevatedButton(
+    btn_create = ft.Button(
         "Agregar", icon=ft.Icons.ADD,
         on_click=lambda e: modal.open(
             kind="create",
@@ -36,7 +36,7 @@ def build_view_modals(page: ft.Page) -> ft.Container:
         ),
     )
 
-    btn_edit = ft.ElevatedButton(
+    btn_edit = ft.Button(
         "Editar", icon=ft.Icons.EDIT,
         on_click=lambda e: modal.open(
             kind="edit",
@@ -49,7 +49,7 @@ def build_view_modals(page: ft.Page) -> ft.Container:
         ),
     )
 
-    btn_delete = ft.ElevatedButton(
+    btn_delete = ft.Button(
         "Eliminar", icon=ft.Icons.DELETE,
         style=ft.ButtonStyle(bgcolor=ft.Colors.RED_600, color=ft.Colors.WHITE),
         on_click=lambda e: modal.open(
@@ -83,30 +83,30 @@ def build_view_modals(page: ft.Page) -> ft.Container:
                 ft.Container(
                     content=btn_create,
                     expand=True,
-                    alignment=ft.alignment.center,
+                    alignment=ft.Alignment.CENTER,
                 ),
                 ft.Divider(),
                 ft.Container(
                     content=btn_edit,
                     expand=True,
-                    alignment=ft.alignment.center,
+                    alignment=ft.Alignment.CENTER,
                 ),
                 ft.Divider(),
                 ft.Container(
                     content=btn_delete,
                     expand=True,
-                    alignment=ft.alignment.center,
+                    alignment=ft.Alignment.CENTER,
                 ),
                 ft.Divider(),
                 ft.Container(
                     content=btn_detail,
                     expand=True,
-                    alignment=ft.alignment.center,
+                    alignment=ft.Alignment.CENTER,
                 ),
             ],
             spacing=12,
-            alignment=ft.alignment.center,
+            alignment=ft.MainAxisAlignment.CENTER,
         ),
-        alignment=ft.alignment.center,
+        alignment=ft.Alignment.CENTER,
         padding=10,
     )

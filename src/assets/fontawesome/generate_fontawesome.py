@@ -28,25 +28,26 @@ with open(output_file, "w", encoding="utf-8") as f:
         f.write(f'    "{name}": "{icons[name]}",\n')
     f.write("}\n\n")
     f.write("""
-import os
 import re
-import tempfile
-import flet as ft
-import webbrowser
+from pathlib import Path
 
-def apply_color_to_svg(svg_path, color):
-    with open(svg_path, "r", encoding="utf-8") as f:
+import flet as ft
+
+FONTAWESOME_DIR = Path(__file__).resolve().parent
+
+
+def svg_content(path, color=None) -> bytes:
+    # Contenido del SVG (opcionalmente recoloreado) listo para `ft.Image(src=...)`
+    with open(FONTAWESOME_DIR / path, "r", encoding="utf-8") as f:
         content = f.read()
 
-    if 'fill="' in content:
-        content = re.sub(r'fill="[^"]+"', f'fill="{color}"', content)
-    else:
-        content = content.replace("<svg", f'<svg fill="{color}"', 1)
+    if color:
+        if 'fill="' in content:
+            content = re.sub(r'fill="[^"]+"', f'fill="{color}"', content)
+        else:
+            content = content.replace("<svg", f'<svg fill="{color}"', 1)
 
-    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".svg", mode="w", encoding="utf-8")
-    temp_file.write(content)
-    temp_file.close()
-    return temp_file.name
+    return content.encode("utf-8")
 
 
 def get_icon(name, color=None, size=40):
@@ -55,28 +56,27 @@ def get_icon(name, color=None, size=40):
         print(f"[get_icon] Icono no encontrado: {name}")
         return None
 
-    full_path = os.path.join("assets/fontwesome", path)
-
-    if color:
-        full_path = apply_color_to_svg(full_path, color)
-
+    # Los bytes funcionan igual en escritorio y en web (no dependen del cwd)
     return ft.Image(
-        src=full_path,
+        src=svg_content(path, color),
         width=size,
         height=size,
-        fit=ft.ImageFit.CONTAIN
+        fit=ft.BoxFit.CONTAIN
     )
 
 
 def social_item(name, link, tooltip="", color=None, width=100, height=100, size=40):
+    async def open_link(e):
+        await ft.UrlLauncher().launch_url(link)
+
     return ft.Card(
         content=ft.Container(
             width=width,
             height=height,
-            alignment=ft.alignment.center,
+            alignment=ft.Alignment.CENTER,
             padding=10,
             content=ft.GestureDetector(
-                on_tap=lambda e: webbrowser.open(link),
+                on_tap=open_link,
                 content=get_icon(name, size=size, color=color),
                 mouse_cursor=ft.MouseCursor.CLICK,
             ),

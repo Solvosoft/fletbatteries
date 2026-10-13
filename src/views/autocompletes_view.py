@@ -6,7 +6,7 @@ from controls.utils import get_form
 from data.manager.person_group_manager import PersonGroupManager
 from components.shared.generic_card import GenericCard
 
-API_URL = "http://127.0.0.1:8000/"
+from settings import API_URL
 
 GET_COUNTRIES_URL = API_URL + "countries"
 GET_PERSONS_URL = API_URL + "persons"
@@ -102,8 +102,8 @@ def build_view_autocompletes(page: ft.Page, forms: []) -> ft.Container:
                     )
                 ],
                 actions=[
-                    ft.ElevatedButton("Editar", on_click=lambda e, it=item: on_edit_item(it)),
-                    ft.ElevatedButton(
+                    ft.Button("Editar", on_click=lambda e, it=item: on_edit_item(it)),
+                    ft.Button(
                         "Eliminar",
                         style=ft.ButtonStyle(bgcolor=ft.Colors.RED_600, color=ft.Colors.WHITE),
                         on_click=lambda e, it=item: on_delete_item(it),
@@ -227,7 +227,7 @@ def build_view_autocompletes(page: ft.Page, forms: []) -> ft.Container:
                     [
                         ft.Text("People Groups", size=22, weight=ft.FontWeight.BOLD),
                         ft.Container(expand=True),
-                        ft.ElevatedButton("Add", on_click=on_add_item)
+                        ft.Button("Add", on_click=on_add_item)
                     ],
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 )

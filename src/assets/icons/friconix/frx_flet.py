@@ -12,6 +12,7 @@
 # ============================================================
 from __future__ import annotations
 import base64
+import dataclasses
 from typing import Dict, Optional
 import flet as ft
 
@@ -1645,7 +1646,7 @@ def frx_icon(
     stroke_width: Optional[int] = None,
     preserve_aspect_ratio: str = "xMidYMid meet",
     *,
-    use_svg_control: bool = True,   # << clave: usar ft.Svg (Flet >= 0.28)
+    use_svg_control: bool = True,   # sin efecto en Flet 1.x (se conserva por compatibilidad)
 ) -> ft.Control:
     if name not in PATHS:
         raise KeyError(f"Icono '{name}' no encontrado. Revisa PATHS.keys().")
@@ -1659,13 +1660,8 @@ def frx_icon(
         f'</svg>'
     )
 
-    if use_svg_control and hasattr(ft, "Svg"):
-        # Flet vectorial nativo (recomendado para SVG)
-        return ft.Svg(svg, width=size, height=size)  # en Flet ≥ 0.28, Svg acepta el contenido SVG como primer arg
-    else:
-        # Fallback (no recomendado para SVG; Image no renderiza SVG en desktop)
-        b64 = base64.b64encode(svg.encode("utf-8")).decode("ascii")
-        return ft.Image(src_base64=b64, width=size, height=size)
+    # En Flet 1.x, Image renderiza SVG directamente a partir de los bytes
+    return ft.Image(src=svg.encode("utf-8"), width=size, height=size)
 
 def frx_button(
     text: str,
@@ -1676,7 +1672,7 @@ def frx_button(
     bgcolor: str | None = None,
     spacing: int = 8,
     reverse: bool = False,
-    button_cls=ft.ElevatedButton,
+    button_cls=ft.Button,
     row_tight: bool = True,
     row_alignment: ft.MainAxisAlignment = ft.MainAxisAlignment.CENTER,
     expand: bool | None = None,
@@ -1699,7 +1695,7 @@ def frx_button(
         if not style:
             style = ft.ButtonStyle(bgcolor=bgcolor)
         else:
-            style = ft.ButtonStyle(**{**style.__dict__, "bgcolor": bgcolor})
+            style = dataclasses.replace(style, bgcolor=bgcolor)
         kwargs["style"] = style
 
     return button_cls(content=row, expand=expand, width=width, **kwargs)

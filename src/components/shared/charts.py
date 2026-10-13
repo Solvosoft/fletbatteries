@@ -1,4 +1,5 @@
 import flet as ft
+import flet_charts as fch
 from typing import Any, Dict, List, Optional, Callable
 
 
@@ -6,7 +7,7 @@ from typing import Any, Dict, List, Optional, Callable
 # PieChart
 # ____________________________________________________
 
-class GenericPieChart(ft.PieChart):
+class GenericPieChart(fch.PieChart):
     def __init__(
             self,
             data: [dict],
@@ -36,7 +37,7 @@ class GenericPieChart(ft.PieChart):
             size=18,
             color=ft.Colors.WHITE,
             weight=ft.FontWeight.BOLD,
-            shadow=ft.BoxShadow(blur_radius=2, color=ft.Colors.BLACK54),
+            shadow=ft.BoxShadow(blur_radius=2, color=ft.Colors.BLACK_54),
         )
         self.normal_title_style = normal_title_style or ft.TextStyle(
             size=12,
@@ -45,10 +46,11 @@ class GenericPieChart(ft.PieChart):
         )
         self.sections_space = sections_space
         self.center_space_radius = center_space_radius
-        self.on_chart_event = self.chart_event or callback_event
+        self.callback_event = callback_event
+        self.on_event = self.chart_event
         self.sections = self.build_sections()
         self.show_snackbar = show_snackbar
-        self.page = page
+        self.app_page = page
         self.snackbar_time = snackbar_time
 
     def build_sections(self):
@@ -60,7 +62,7 @@ class GenericPieChart(ft.PieChart):
                 print(f"Valor no encontrado para {item}")
                 continue
 
-            content = ft.PieChartSection(
+            content = fch.PieChartSection(
                 value=item.get("value"),
                 title=item.get("title", None) or f"{item.get('value')} %",
                 color=item.get("color", None) or colors[i],
@@ -94,18 +96,21 @@ class GenericPieChart(ft.PieChart):
 
         return colors
 
-    def section_badge(self, icon, size, tooltip, border: ft.border = None, bgcolor=None):
+    def section_badge(self, icon, size, tooltip, border: ft.Border = None, bgcolor=None):
         return ft.Container(
             ft.Icon(icon),
             width=size,
             height=size,
-            border=border or ft.border.all(1, ft.Colors.BLACK),
+            border=border or ft.Border.all(1, ft.Colors.BLACK),
             border_radius=size / 2,
             bgcolor=bgcolor or ft.Colors.WHITE,
             tooltip=tooltip,
         )
 
-    def chart_event(self, e: ft.PieChartEvent):
+    def chart_event(self, e: fch.PieChartEvent):
+        if self.callback_event:
+            self.callback_event(e)
+
         if not getattr(self, "sections", None):
             return
 
@@ -119,18 +124,17 @@ class GenericPieChart(ft.PieChart):
                 section.radius = self.normal_radius
                 section.title_style = self.normal_title_style
 
-        if self.show_snackbar and self.page and 0 <= idx < len(self.sections):
+        if self.show_snackbar and self.app_page and 0 <= idx < len(self.sections):
             title_text = str(self.sections[idx].title or "")
             if title_text:
                 snack_bar = ft.SnackBar(ft.Text(title_text), duration=self.snackbar_time)
-                self.page.open(snack_bar)
-                self.page.update()
+                self.app_page.show_dialog(snack_bar)
 
         self.update()
 
     def update_data(self, new_data):
         self.values = new_data
-        self.sections = self._build_sections()
+        self.sections = self.build_sections()
         self.update()
 
     def get_labels_column(self):
@@ -144,7 +148,7 @@ class GenericPieChart(ft.PieChart):
                             ft.Icon(ft.Icons.SQUARE, color=section.color),
                             ft.Text(self.values[i].get("label")),
                         ],
-                        alignment=ft.alignment.center,
+                        alignment=ft.MainAxisAlignment.CENTER,
                         expand=True,
                         spacing=5,
                     )
@@ -152,7 +156,7 @@ class GenericPieChart(ft.PieChart):
 
         return ft.Column(
             controls=labels,
-            alignment=ft.alignment.center,
+            alignment=ft.MainAxisAlignment.CENTER,
             expand=True,
             scroll=ft.ScrollMode.AUTO,
         )
@@ -164,7 +168,7 @@ class GenericPieChart(ft.PieChart):
                 self,
                 self.get_labels_column(),
             ],
-            alignment=ft.alignment.center,
+            alignment=ft.MainAxisAlignment.CENTER,
             expand=True,
             spacing=10,
         )
@@ -174,7 +178,7 @@ class GenericPieChart(ft.PieChart):
 # BarChart
 # ____________________________________________________
 
-class GenericBarChart(ft.BarChart):
+class GenericBarChart(fch.BarChart):
     def __init__(
             self,
             *,
@@ -197,7 +201,7 @@ class GenericBarChart(ft.BarChart):
         self.labels_bottom = labels_bottom
         self.grid_lines = grid_lines
         self.add_grid_lines()
-        self.tooltip_bgcolor = tooltip_bgcolor or ft.Colors.with_opacity(0.5, ft.Colors.GREY_300)
+        self.tooltip = fch.BarChartTooltip(bgcolor=tooltip_bgcolor or ft.Colors.with_opacity(0.5, ft.Colors.GREY_300))
         self.max_y = max_y
         self.interactive = interactive
         self.expand = expand
@@ -205,7 +209,7 @@ class GenericBarChart(ft.BarChart):
         self.title = title
         self.title_size = title_size
         self.bar_width = bar_width
-        self.border = border or ft.border.all(1, ft.Colors.GREY_400)
+        self.border = border or ft.Border.all(1, ft.Colors.GREY_400)
         self.values = data
         self.width = width
         self.height = height
@@ -220,8 +224,8 @@ class GenericBarChart(ft.BarChart):
         if not self.title:
             return
 
-        self.left_axis = ft.ChartAxis(
-            labels_size=self.labels_size,
+        self.left_axis = fch.ChartAxis(
+            label_size=self.labels_size,
             title=ft.Text(self.title, weight=ft.FontWeight.BOLD),
             title_size=self.title_size,
         )
@@ -230,7 +234,7 @@ class GenericBarChart(ft.BarChart):
         if not self.grid_lines:
             return
 
-        self.horizontal_grid_lines = ft.ChartGridLines(
+        self.horizontal_grid_lines = fch.ChartGridLines(
             color=ft.Colors.GREY_300, width=1, dash_pattern=[3, 3]
         )
 
@@ -238,9 +242,9 @@ class GenericBarChart(ft.BarChart):
         if not self.labels_bottom:
             return
 
-        self.bottom_axis = ft.ChartAxis(
+        self.bottom_axis = fch.ChartAxis(
             labels=self.build_bottom_axis(),
-            labels_size=self.labels_size,
+            label_size=self.labels_size,
         )
 
     def build_bottom_axis(self):
@@ -248,7 +252,7 @@ class GenericBarChart(ft.BarChart):
 
         for i, label in enumerate(self.labels_bottom):
             labels.append(
-                ft.ChartAxisLabel(
+                fch.ChartAxisLabel(
                     value=i, label=ft.Container(ft.Text(label), padding=10)
                 )
             )
@@ -259,17 +263,17 @@ class GenericBarChart(ft.BarChart):
         if not self.values:
             return
 
-        self.bar_groups = self.build_bar_groups()
+        self.groups = self.build_bar_groups()
 
     def build_bar_groups(self):
         bar_groups = []
         colors = self.random_color()
 
         for i, item in enumerate(self.values):
-            bar = ft.BarChartGroup(
+            bar = fch.BarChartGroup(
                 x=i,
-                bar_rods=[
-                    ft.BarChartRod(
+                rods=[
+                    fch.BarChartRod(
                         from_y=0,
                         to_y=item.get("value", 0),
                         width=self.bar_width,
@@ -294,7 +298,7 @@ class GenericBarChart(ft.BarChart):
 
     def update_data(self, new_data):
         self.values = new_data
-        self.bar_groups = self._build_bar_groups()
+        self.groups = self.build_bar_groups()
         self.update()
 
 
@@ -302,7 +306,7 @@ class GenericBarChart(ft.BarChart):
 # LineChart
 # ____________________________________________________
 
-class GenericLineChart(ft.LineChart):
+class GenericLineChart(fch.LineChart):
     def __init__(
             self,
             data: [dict],
@@ -327,7 +331,7 @@ class GenericLineChart(ft.LineChart):
             interactive: bool = True,
     ):
         super().__init__()
-        self.tooltip_bgcolor = tooltip_bgcolor or ft.Colors.with_opacity(0.5, ft.Colors.GREY_300)
+        self.tooltip = fch.LineChartTooltip(bgcolor=tooltip_bgcolor or ft.Colors.with_opacity(0.5, ft.Colors.GREY_300))
         self.values = data
         self.expand = expand
         self.grid_lines_h = grid_lines_h
@@ -343,7 +347,7 @@ class GenericLineChart(ft.LineChart):
         self.labels_size = labels_size
         self.curved = curved
         self.line_width = line_width
-        self.border = border or ft.border.all(1, ft.Colors.GREY_400)
+        self.border = border or ft.Border.all(1, ft.Colors.GREY_400)
         self.width = width
         self.height = height
         self.interactive = interactive
@@ -368,20 +372,20 @@ class GenericLineChart(ft.LineChart):
         if not self.title:
             return
 
-        self.top_axis = ft.ChartAxis(
-            labels_size=self.labels_size,
+        self.top_axis = fch.ChartAxis(
+            label_size=self.labels_size,
             title=ft.Text(self.title, weight=ft.FontWeight.BOLD),
             title_size=self.title_size,
         )
 
     def add_grid_lines(self):
         if self.grid_lines_h:
-            self.horizontal_grid_lines = ft.ChartGridLines(
+            self.horizontal_grid_lines = fch.ChartGridLines(
                 dash_pattern=[3, 3], color=ft.Colors.with_opacity(0.2, ft.Colors.ON_SURFACE), width=1
             )
 
         if self.grid_lines_v:
-            self.vertical_grid_lines = ft.ChartGridLines(
+            self.vertical_grid_lines = fch.ChartGridLines(
                 dash_pattern=[3, 3], color=ft.Colors.with_opacity(0.2, ft.Colors.ON_SURFACE), width=1
             )
 
@@ -389,18 +393,18 @@ class GenericLineChart(ft.LineChart):
         if not self.labels_bottom:
             return
 
-        self.bottom_axis = ft.ChartAxis(
+        self.bottom_axis = fch.ChartAxis(
             labels=self.build_labels_axis(self.labels_bottom, "x"),
-            labels_size=self.labels_size,
+            label_size=self.labels_size,
         )
 
     def add_labels_left(self):
         if not self.labels_left:
             return
 
-        self.left_axis = ft.ChartAxis(
+        self.left_axis = fch.ChartAxis(
             labels=self.build_labels_axis(self.labels_left, "y"),
-            labels_size=self.labels_size,
+            label_size=self.labels_size,
         )
 
     def build_labels_axis(self, data, axis):
@@ -411,7 +415,7 @@ class GenericLineChart(ft.LineChart):
                 continue
 
             labels.append(
-                ft.ChartAxisLabel(
+                fch.ChartAxisLabel(
                     value=item.get("value"), label=ft.Container(ft.Text(item.get("label")), padding=10)
                 )
             )
@@ -433,12 +437,12 @@ class GenericLineChart(ft.LineChart):
                 print("Points no found.")
                 continue
 
-            line = ft.LineChartData(
-                data_points=self.build_points_item(item.get("points", None)),
+            line = fch.LineChartData(
+                points=self.build_points_item(item.get("points", None)),
                 stroke_width=self.line_width,
                 color=item.get("color", None) or colors[i],
                 curved=self.curved,
-                stroke_cap_round=True,
+                rounded_stroke_cap=True,
             )
 
             line_groups.append(line)
@@ -454,7 +458,7 @@ class GenericLineChart(ft.LineChart):
 
         for point in points:
             points_item.append(
-                ft.LineChartDataPoint(
+                fch.LineChartDataPoint(
                     x=point.get("x", 0),
                     y=point.get("y", 0),
                     tooltip=point.get("tooltip", None),
@@ -465,5 +469,5 @@ class GenericLineChart(ft.LineChart):
 
     def update_data(self, new_data):
         self.values = new_data
-        self.data_series = self._build_line_points()
+        self.data_series = self.build_line_points()
         self.update()

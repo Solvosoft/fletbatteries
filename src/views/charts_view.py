@@ -112,10 +112,10 @@ def build_view_charts(page: ft.Page) -> ft.Container:
                 ft.Container(height=10, expand=True),  # divider
                 line_chart_1,
             ],
-            alignment=ft.alignment.center,
+            alignment=ft.MainAxisAlignment.CENTER,
             expand=True,
             scroll=ft.ScrollMode.AUTO,
         ),
-        alignment=ft.alignment.center,
+        alignment=ft.Alignment.CENTER,
         padding=10,
     )

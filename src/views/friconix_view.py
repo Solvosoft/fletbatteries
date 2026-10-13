@@ -48,6 +48,9 @@ def build_view_friconix(page: ft.Page) -> ft.Container:
         vertical_alignment=ft.CrossAxisAlignment.CENTER,
     )
 
+    async def open_google(e):
+        await ft.UrlLauncher().launch_url("https://www.google.com")
+
     btn_link = frx_button(
         "Ir a Google",
         "link-solid",
@@ -56,7 +59,7 @@ def build_view_friconix(page: ft.Page) -> ft.Container:
         bgcolor="#2563eb",
         button_cls=ft.FilledButton,
         tooltip="Haz clic aquí para ir a Google",
-        on_click=lambda e: e.page.launch_url("https://www.google.com")
+        on_click=open_google
     )
 
     return ft.Container(
@@ -69,19 +72,19 @@ def build_view_friconix(page: ft.Page) -> ft.Container:
                 ft.Container(
                     content=defaults,
                     expand=True,
-                    alignment=ft.alignment.center,
+                    alignment=ft.Alignment.CENTER,
                 ),
                 ft.Text("Custom icons", size=20),
                 ft.Container(
                     content=customs,
                     expand=True,
-                    alignment=ft.alignment.center,
+                    alignment=ft.Alignment.CENTER,
                 ),
                 ft.Text("Button icons", size=20),
                 ft.Container(
                     content=btn,
                     expand=False,
-                    alignment=ft.alignment.center,
+                    alignment=ft.Alignment.CENTER,
                 ),
                 ft.Row(
                     controls=[
@@ -95,17 +98,17 @@ def build_view_friconix(page: ft.Page) -> ft.Container:
                                    button_cls=ft.FilledButton, style=ft.ButtonStyle(padding=20, side=ft.BorderSide(1, "#000000"))),
                     ],
                     expand=False,
-                    alignment=ft.alignment.center,
+                    alignment=ft.MainAxisAlignment.CENTER,
                 ),
                 ft.Text("Buttons with link", size=20),
                 ft.Container(
                     content=btn_link,
                     expand=False,
-                    alignment=ft.alignment.center,
+                    alignment=ft.Alignment.CENTER,
                 ),
             ],
-            alignment=ft.alignment.center,
+            alignment=ft.MainAxisAlignment.CENTER,
         ),
-        alignment=ft.alignment.center,
+        alignment=ft.Alignment.CENTER,
         padding=10,
     )

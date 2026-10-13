@@ -1,4 +1,5 @@
 import flet as ft
+from controls.utils import is_mounted
 
 from components.shared.generic_card import GenericCard
 from components.shared.rotating_boxes_loader import RotatingBoxesLoader
@@ -89,7 +90,7 @@ class GenericCardCRUD:
                 new_controls = self.build_item_cards(page_items)
 
                 self.list_item_container.controls.extend(new_controls)
-                if self.list_item_container.page:
+                if is_mounted(self.list_item_container):
                     self.list_item_container.update()
             finally:
                 self.spinner.visible = False
@@ -160,7 +161,7 @@ class GenericCardCRUD:
             spacing=20,
             run_spacing=15,
             on_scroll=self._on_grid_scroll,
-            on_scroll_interval=100,
+            scroll_interval=100,
             controls=[],
         )
         container =  ft.Container(
@@ -192,7 +193,7 @@ class GenericCardCRUD:
                             controls=[
                                 ft.Row(
                                     controls=[
-                                        ft.ElevatedButton(
+                                        ft.Button(
                                             content=get_icon("eraser", color="black", size=15),
                                             on_click=lambda e: self.clear_filters(),
                                         ),
@@ -212,13 +213,13 @@ class GenericCardCRUD:
                             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                             alignment=ft.MainAxisAlignment.CENTER,
                         ),
-                        alignment=ft.alignment.center,
+                        alignment=ft.Alignment.CENTER,
                     ),
                     ft.Container(
                         expand=True,
                         padding=20,
                         content=self.list_item_container,
-                        alignment=ft.alignment.center,
+                        alignment=ft.Alignment.CENTER,
                     ),
                 ]
             )

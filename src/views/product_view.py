@@ -14,18 +14,18 @@ class ProductView:
         self.product_control = ProductControl()
         self.forms = forms
         self.top_actions = [
-            ft.ElevatedButton(
+            ft.Button(
                 content=ft.Icon(ft.Icons.ADD),
                 on_click=lambda e: self.on_add_item(e),
             )
         ]
         self.form_dialog = CrudModal(self.page)
         self.card_actions = [
-            lambda item: ft.ElevatedButton(
+            lambda item: ft.Button(
                 content=ft.Icon(ft.Icons.EDIT),
                 on_click=lambda e, it=item: self.on_select_item(it),
             ),
-            lambda item: ft.ElevatedButton(
+            lambda item: ft.Button(
                 content=ft.Icon(ft.Icons.DELETE),
                 on_click=lambda e, it=item: self.on_delete_item(it),
             ),
@@ -139,7 +139,7 @@ class ProductView:
             card_content=lambda item:[
                 ft.Image(
                     src=f"/image/{item['image']}",
-                    fit=ft.ImageFit.COVER,
+                    fit=ft.BoxFit.COVER,
                     width=400,
                     height=300,
                 ),
