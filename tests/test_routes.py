@@ -1,7 +1,7 @@
 import flet as ft
 import pytest
 
-from tests.harness import children
+from tests.harness import layout_errors
 
 ROUTES = [
     ("/", "Inicio"),
@@ -20,17 +20,27 @@ ROUTES = [
     ("/test", None),
     ("/autocompletes", None),
     ("/autocomplete_related", None),
+    ("/widgets", "Widgets"),
+    ("/forms", "Formularios"),
+    ("/admin/users", "Usuarios"),
+    ("/admin/groups", "Grupos"),
+    ("/admin/permissions", "Permisos"),
+    ("/notes", "Notas"),
+    ("/maps", "Mapa de notas"),
+    ("/history", "Historial"),
+    ("/trash", "Papelera"),
 ]
 
 
 async def test_starts_on_login(app):
     assert app.page.route == "/login"
-    app.find_one(text="Login")
+    app.find_one(key="login_submit")
     app.assert_no_errors()
 
 
 @pytest.mark.parametrize("route,expected_text", ROUTES)
-async def test_route_renders(app, route, expected_text):
+async def test_route_renders(logged_app, route, expected_text):
+    app = logged_app
     await app.goto(route)
     app.assert_no_errors()
     assert app.page.route == route
@@ -41,38 +51,40 @@ async def test_route_renders(app, route, expected_text):
         assert expected_text in app.all_texts()
 
 
-def _check_types(ctrl, errors):
-    """Valida tipos que Flet no comprueba en Python pero que rompen el render en Flutter."""
-    name = type(ctrl).__name__
-    if isinstance(ctrl, (ft.Row, ft.Column, ft.ResponsiveRow)):
-        if ctrl.alignment is not None and not isinstance(ctrl.alignment, ft.MainAxisAlignment):
-            errors.append(f"{name}.alignment={ctrl.alignment!r}")
-        cross = "horizontal_alignment" if isinstance(ctrl, ft.Column) else "vertical_alignment"
-        value = getattr(ctrl, cross, None)
-        if value is not None and not isinstance(value, ft.CrossAxisAlignment):
-            errors.append(f"{name}.{cross}={value!r}")
-    if isinstance(ctrl, (ft.Container, ft.Stack)):
-        value = getattr(ctrl, "alignment", None)
-        if value is not None and not isinstance(value, ft.Alignment):
-            errors.append(f"{name}.alignment={value!r}")
-    for child in children(ctrl):
-        _check_types(child, errors)
-
-
-@pytest.mark.parametrize("route", ["/login"] + [r for r, _ in ROUTES])
-async def test_route_control_types(app, route):
+@pytest.mark.parametrize("route", [r for r, _ in ROUTES])
+async def test_route_control_types(logged_app, route):
+    app = logged_app
     await app.goto(route)
-    errors = []
-    _check_types(app.page, errors)
+    errors = layout_errors(app.page)
     assert not errors, "\n".join(errors)
 
 
-async def test_deep_link_opens_route():
+async def test_login_control_types(app):
+    errors = layout_errors(app.page)
+    assert not errors, "\n".join(errors)
+
+
+def test_layout_rules_detect_flutter_errors():
+    cases = [
+        ft.Row([ft.Container(expand=True)], wrap=True),
+        ft.ListView([ft.TextButton("x", expand=True)]),
+        ft.Row([ft.Text("x")], alignment=ft.Alignment.CENTER),
+    ]
+    for ctrl in cases:
+        assert layout_errors(ctrl), ctrl
+    assert not layout_errors(ft.Column([ft.Container(expand=True)], expand=True))
+
+
+async def test_deep_link_goes_to_login_and_back():
     from main import main
     from tests.harness import AppHarness
 
     app = await AppHarness(main, route="/charts").start()
     try:
+        assert app.page.route == "/login?next=%2Fcharts"
+        await app.fill(app.find_one(key="login_username"), "admin")
+        await app.fill(app.find_one(key="login_password"), "admin")
+        await app.click(app.find_one(key="login_submit"))
         assert app.page.route == "/charts"
         assert "Charts" in app.all_texts()
         app.assert_no_errors()
@@ -86,21 +98,27 @@ async def test_unknown_route_goes_to_login():
 
     app = await AppHarness(main, route="/no-existe").start()
     try:
-        assert app.page.route == "/login"
+        assert app.page.route == "/login?next=%2Fno-existe"
         app.assert_no_errors()
     finally:
         await app.stop()
 
 
-def _all_views():
-    from controls.router.views import Views
+async def test_unknown_route_when_logged_shows_not_found(logged_app):
+    await logged_app.goto("/no-existe")
+    assert logged_app.find(text="Página no encontrada")
+    logged_app.assert_no_errors()
 
-    return Views(page=None, forms=None).views
+
+def _all_routes():
+    from main import app
+
+    return [r.path for r in app.routes]
 
 
 def test_route_list_covers_all_views():
-    tested = {"/login"} | {r for r, _ in ROUTES}
-    assert {v.route for v in _all_views()} == tested
+    tested = {"/login", "/customers/:id"} | {r for r, _ in ROUTES}
+    assert set(_all_routes()) == tested
 
 
 def test_routes_do_not_collide_with_assets():
@@ -108,20 +126,36 @@ def test_routes_do_not_collide_with_assets():
     from settings import ASSETS_DIR
 
     assets = {p.name for p in ASSETS_DIR.iterdir()}
-    collisions = [v.route for v in _all_views() if v.route.strip("/").split("/")[0] in assets]
-    assert not collisions, f"Rutas que chocan con src/assets: {collisions}"
+    collisions = [r for r in _all_routes() if r.strip("/").split("/")[0] in assets]
+    assert not collisions, f"Rutas que chocan con demo/assets: {collisions}"
 
 
 async def test_app_does_not_depend_on_cwd(tmp_path, monkeypatch):
-    """`flet run` ejecuta la app con el cwd en src/: no debe haber rutas relativas al cwd."""
+    """`flet run` ejecuta la app con el cwd en demo/: no debe haber rutas relativas al cwd."""
+    from fletbatteries.auth import AuthUser, login
     from main import main
     from tests.harness import AppHarness
 
     monkeypatch.chdir(tmp_path)
     app = await AppHarness(main).start()
+    login(app.page, AuthUser(id=1, username="admin", is_superuser=True))
     try:
         for route in [r for r, _ in ROUTES]:
             await app.goto(route)
         app.assert_no_errors()
     finally:
         await app.stop()
+
+
+def test_models_configure_in_a_fresh_process():
+    """Las relaciones entre modelos deben resolverse sin depender del orden de imports de las pruebas."""
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parent.parent
+    code = "import main\nfrom sqlalchemy.orm import configure_mappers\nconfigure_mappers()\n"
+    env = {**os.environ, "PYTHONPATH": f"{root / 'demo'}{os.pathsep}{root / 'src'}"}
+    result = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr

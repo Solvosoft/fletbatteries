@@ -6,9 +6,11 @@ PORT ?= 8550
 API_PORT ?= 8000
 ROUTES ?=
 PYTEST_ARGS ?=
+# Cliente de escritorio de Flet en Linux: light (sin Rive/mapas) o full (necesita libmpv2)
+FLAVOR ?= light
 
 RUN := $(UV) run
-SRC_ENV := PYTHONPATH=src
+SRC_ENV := PYTHONPATH=demo
 
 ##--------------------------------------------------------
 ## Help
@@ -44,23 +46,23 @@ setup: ## Configuración inicial: recrea .venv, instala dependencias, crea la BD
 sync: ## Sincronizar .venv con uv.lock
 	$(UV) sync
 
-run: ## Ejecutar la app de escritorio
-	$(RUN) flet run src/main.py
+run: ## Ejecutar la app de escritorio (FLAVOR=full para el cliente con Rive/mapas, requiere libmpv2)
+	FLET_DESKTOP_FLAVOR=$(FLAVOR) $(RUN) flet run demo/main.py
 
 web: ## Ejecutar la app en el navegador (PORT=8550)
-	$(RUN) flet run --web --port $(PORT) src/main.py
+	$(RUN) flet run --web --port $(PORT) demo/main.py
 
 api: ## Iniciar la API (FastAPI) usada por las vistas de autocompletes (API_PORT=8000)
-	$(RUN) uvicorn scripts.api:app --reload --app-dir src --port $(API_PORT)
+	$(RUN) uvicorn scripts.api:app --reload --app-dir demo --port $(API_PORT)
 
 init_db: ## Crear las tablas que falten en la base de datos
-	$(SRC_ENV) $(RUN) python src/scripts/init_db.py create_db
+	$(SRC_ENV) $(RUN) python demo/scripts/init_db.py create_db
 
 reset_db: ## Eliminar y volver a crear todas las tablas (pierdes datos)
-	$(SRC_ENV) $(RUN) python src/scripts/init_db.py reset_db
+	$(SRC_ENV) $(RUN) python demo/scripts/init_db.py reset_db
 
 update_schema: ## Actualizar esquema de la base de datos
-	$(SRC_ENV) $(RUN) python src/scripts/init_db.py update_schema
+	$(SRC_ENV) $(RUN) python demo/scripts/init_db.py update_schema
 
 ##--------------------------------------------------------
 ## Calidad
@@ -73,13 +75,13 @@ screenshots: ## Capturas PNG de cada ruta en screenshots/ (ROUTES="/calendar /ch
 	$(RUN) python tools/screenshots.py $(ROUTES)
 
 lint: ## Revisar errores con ruff
-	$(RUN) ruff check src tests tools
+	$(RUN) ruff check src demo tests tools
 
 doctor: ## Diagnóstico del entorno de Flet
 	$(RUN) flet doctor
 
-requirements: ## Regenerar requirements.txt desde uv.lock (para quien use pip)
-	$(UV) export --no-dev --no-hashes --no-emit-project --format requirements-txt -o requirements.txt
+requirements: ## Regenerar requirements.txt (paquete + demo) desde uv.lock (para quien use pip)
+	$(UV) export --no-dev --group demo --all-extras --no-hashes --no-emit-project --format requirements-txt -o requirements.txt
 
 ##--------------------------------------------------------
 ## Utilidades genéricas

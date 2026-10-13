@@ -37,3 +37,26 @@ def test_person_group_crud(api_client):
 
     assert api_client.delete(f"/persons_groups/{group_id}").status_code == 200
     assert api_client.get(f"/persons_groups/{group_id}").status_code == 404
+
+
+def test_api_starts_in_a_fresh_process(tmp_path):
+    """La API debe configurar sola la base de datos (como cuando la levanta uvicorn)."""
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parent.parent
+    code = (
+        "from fastapi.testclient import TestClient\n"
+        "from scripts.api import app\n"
+        "with TestClient(app) as c:\n"
+        "    assert c.get('/api/countries').json()['total'] > 0\n"
+    )
+    env = {**os.environ, "PYTHONPATH": f"{root / 'demo'}{os.pathsep}{root / 'src'}",
+           "FLETBATTERIES_DB_URL": f"sqlite:///{tmp_path / 'fresh.db'}"}
+    init = subprocess.run([sys.executable, str(root / "demo" / "scripts" / "init_db.py"), "create_db"],
+                          env=env, capture_output=True, text=True)
+    assert init.returncode == 0, init.stderr
+    result = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True, cwd=tmp_path)
+    assert result.returncode == 0, result.stderr

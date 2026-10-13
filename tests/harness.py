@@ -94,6 +94,9 @@ class AppHarness:
         self._log_handler = _ErrorLogHandler(self.errors)
         self._executor = ThreadPoolExecutor()
         self._prev_excepthook = None
+        # Revisa el layout en cada settle(); los problemas se agregan a `errors`
+        self.check_layout = True
+        self._layout_seen: set[str] = set()
 
     @property
     def page(self) -> ft.Page:
@@ -162,6 +165,11 @@ class AppHarness:
         for _ in range(rounds):
             await asyncio.sleep(delay)
             await self._dismiss_closed_dialogs()
+        if self.check_layout and self.session is not None:
+            for problem in layout_errors(self.page):
+                if problem not in self._layout_seen:
+                    self._layout_seen.add(problem)
+                    self.errors.append(f"Layout inválido para Flutter: {problem}")
 
     async def _dismiss_closed_dialogs(self):
         # Flutter envía `dismiss` cuando termina de cerrar un diálogo; Flet lo
@@ -267,6 +275,52 @@ class AppHarness:
 
     def assert_no_errors(self):
         assert not self.errors, "Errores en la app:\n" + "\n\n".join(self.errors)
+
+
+def _path(chain: list[BaseControl]) -> str:
+    names = [getattr(c, "key", None) or type(c).__name__ for c in chain[-4:]]
+    return " > ".join(str(n) for n in names)
+
+
+def _expanded(controls) -> list[BaseControl]:
+    return [c for c in controls or [] if getattr(c, "expand", None)]
+
+
+def layout_errors(root: BaseControl) -> list[str]:
+    """
+    Combinaciones que Flet acepta en Python pero que Flutter no puede dibujar
+    (se ve una caja gris o nada). Revisa también los controles ocultos, porque
+    fallarán cuando se muestren.
+    """
+    errors: list[str] = []
+    stack = [(root, [root])]
+    seen = set()
+    while stack:
+        ctrl, chain = stack.pop()
+        if id(ctrl) in seen:
+            continue
+        seen.add(id(ctrl))
+        name = type(ctrl).__name__
+        where = _path(chain)
+        if isinstance(ctrl, (ft.Row, ft.Column, ft.ResponsiveRow)):
+            if ctrl.alignment is not None and not isinstance(ctrl.alignment, ft.MainAxisAlignment):
+                errors.append(f"{where}: {name}.alignment={ctrl.alignment!r}")
+            cross = "horizontal_alignment" if isinstance(ctrl, ft.Column) else "vertical_alignment"
+            value = getattr(ctrl, cross, None)
+            if value is not None and not isinstance(value, ft.CrossAxisAlignment):
+                errors.append(f"{where}: {name}.{cross}={value!r}")
+        if isinstance(ctrl, ft.Row) and ctrl.wrap and _expanded(ctrl.controls):
+            errors.append(f"{where}: Row(wrap=True) con hijos expand")
+        if isinstance(ctrl, (ft.ListView, ft.GridView)) and _expanded(ctrl.controls):
+            kids = [type(c).__name__ for c in _expanded(ctrl.controls)]
+            errors.append(f"{where}: {name} con hijos expand: {kids}")
+        if isinstance(ctrl, (ft.Container, ft.Stack)):
+            value = getattr(ctrl, "alignment", None)
+            if value is not None and not isinstance(value, ft.Alignment):
+                errors.append(f"{where}: {name}.alignment={value!r}")
+        for child in children(ctrl):
+            stack.append((child, chain + [child]))
+    return errors
 
 
 def is_shown(ctrl: BaseControl) -> bool:

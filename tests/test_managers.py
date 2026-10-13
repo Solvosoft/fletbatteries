@@ -10,16 +10,16 @@ from data.models.calendar_event import Event
 
 def test_product_crud():
     pm = ProductManager()
-    created = pm.create_product("P-100", "Producto", 10.5, "ejemplo.jpg")
-    assert pm.get_product_by_id(created["id"])["name"] == "Producto"
+    created = pm.create(code="P-100", name="Producto", price=10.5, image="ejemplo.jpg")
+    assert pm.get(created.id).name == "Producto"
 
-    with pytest.raises(ValueError):
-        pm.create_product("P-100", "Duplicado", 1, "x.jpg")
+    with pytest.raises(ValueError, match="P-100"):
+        pm.create(code="P-100", name="Duplicado", price=1, image="x.jpg")
 
-    updated = pm.update_product(created["id"], "P-100", "Producto 2", 20, "ejemplo.jpg")
-    assert updated["name"] == "Producto 2"
-    assert pm.delete_product(created["id"]) is True
-    assert pm.delete_product(created["id"]) is False
+    updated = pm.update(created.id, name="Producto 2", price=20)
+    assert updated.name == "Producto 2" and updated.code == "P-100"
+    assert pm.delete(created.id) is True
+    assert pm.delete(created.id) is False
 
 
 def test_country_create_and_list():

@@ -2,7 +2,7 @@
 """
 Toma capturas de pantalla de la app ejecutándose en modo web.
 
-Levanta `src/main.py` como servidor web (sin abrir navegador) contra una copia
+Levanta `demo/main.py` como servidor web (sin abrir navegador) contra una copia
 temporal de la base de datos, abre cada ruta con Chromium headless (Playwright)
 y guarda `screenshots/<ruta>.png` y `screenshots/report.json`.
 
@@ -29,16 +29,18 @@ import urllib.request
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-SRC_DIR = BASE_DIR / "src"
+DEMO_DIR = BASE_DIR / "demo"
+LIB_DIR = BASE_DIR / "src"
 
 
 
 def app_routes() -> list[str]:
     """Rutas registradas en la app (login primero)."""
-    sys.path.insert(0, str(SRC_DIR))
-    from controls.router.views import Views
+    sys.path.insert(0, str(DEMO_DIR))
+    sys.path.insert(0, str(LIB_DIR))
+    from main import app
 
-    routes = [v.route for v in Views(page=None, forms=None).views]
+    routes = [r.path for r in app.routes if ":" not in r.path]
     return sorted(routes, key=lambda r: (r != "/login", r != "/"))
 
 
@@ -46,10 +48,10 @@ def app_routes() -> list[str]:
 def is_app_error(block: str) -> bool:
     """
     Un bloque del log es un error de la app si Flet reporta un handler fallido o
-    si el traceback pasa por código de `src/`. Se ignoran las desconexiones de
+    si el traceback pasa por código de `demo/` o `src/`. Se ignoran las desconexiones de
     websocket que ocurren al cerrar cada pestaña.
     """
-    return "Unhandled error" in block or f'File "{SRC_DIR}{os.sep}' in block
+    return "Unhandled error" in block or any(f'File "{d}{os.sep}' in block for d in (DEMO_DIR, LIB_DIR))
 
 
 def free_port() -> int:
@@ -72,7 +74,11 @@ def wait_http(url: str, timeout: float) -> None:
 
 
 def route_file_name(route: str) -> str:
-    name = route.strip("/").replace("/", "_") or "home"
+    """`/widgets?visual=open` -> `widgets__visual-open.png`."""
+    path, _sep, query = route.partition("?")
+    name = path.strip("/").replace("/", "_") or "home"
+    if query:
+        name += "__" + query.replace("=", "-").replace("&", "_")
     return f"{name}.png"
 
 
@@ -146,15 +152,15 @@ def main() -> int:
     }
     # Asegura que el esquema esté completo (p. ej. tablas nuevas como calendar_events)
     subprocess.run(
-        [sys.executable, str(SRC_DIR / "scripts" / "init_db.py"), "update_schema"],
-        cwd=BASE_DIR, env={**env, "PYTHONPATH": str(SRC_DIR)}, check=True, stdout=subprocess.DEVNULL,
+        [sys.executable, str(DEMO_DIR / "scripts" / "init_db.py"), "update_schema"],
+        cwd=BASE_DIR, env={**env, "PYTHONPATH": str(DEMO_DIR)}, check=True, stdout=subprocess.DEVNULL,
     )
 
     report = {"base_url": base_url, "api_url": api_url, "routes": [], "server_errors": []}
     with open(server_log_path, "w") as server_log, open(api_log_path, "w") as api_log:
         # La API la consumen las vistas de autocompletes
         api = subprocess.Popen(
-            [sys.executable, "-m", "uvicorn", "scripts.api:app", "--app-dir", str(SRC_DIR),
+            [sys.executable, "-m", "uvicorn", "scripts.api:app", "--app-dir", str(DEMO_DIR),
              "--host", "127.0.0.1", "--port", str(api_port)],
             cwd=BASE_DIR,
             env=env,
@@ -162,7 +168,7 @@ def main() -> int:
             stderr=subprocess.STDOUT,
         )
         server = subprocess.Popen(
-            [sys.executable, str(SRC_DIR / "main.py")],
+            [sys.executable, str(DEMO_DIR / "main.py")],
             cwd=BASE_DIR,
             env=env,
             stdout=server_log,
@@ -196,7 +202,9 @@ def main() -> int:
                         console_errors.append(f"Timeout/carga: {ex}".splitlines()[0])
                     png = page.screenshot(path=str(file))
                     entry["final_url"] = page.url
-                    entry["redirected"] = urllib.parse.urlsplit(page.url).path != route
+                    # Con FLETBATTERIES_SKIP_LOGIN el login redirige al inicio: es lo esperado
+                    expected_path = urllib.parse.urlsplit(route).path
+                    entry["redirected"] = urllib.parse.urlsplit(page.url).path != expected_path and route != "/login"
                     entry["blank"] = is_blank(png)
                     report["routes"].append(entry)
                     status = "REVISAR" if has_problem(entry) else "OK"

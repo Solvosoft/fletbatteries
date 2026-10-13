@@ -19,6 +19,7 @@ def _create_schema():
     import scripts.init_db as init_db
 
     init_db.db.create_db()
+    init_db.seed()
 
 
 _create_schema()
@@ -63,6 +64,9 @@ async def app():
 
 @pytest.fixture
 async def logged_app(app):
-    """App ya en la vista de inicio (después del login)."""
+    """App con un superusuario en la sesión, ya en la vista de inicio."""
+    from fletbatteries.auth import AuthUser, login
+
+    login(app.page, AuthUser(id=1, username="admin", is_superuser=True))
     await app.goto("/")
     return app

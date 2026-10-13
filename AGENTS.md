@@ -1,6 +1,11 @@
 # Guía para agentes
 
-FletBatteries es una app Flet **1.0.4** (Python 3.13, entorno gestionado con `uv`). El código fuente está en `src/` y se ejecuta con `src/` en el `PYTHONPATH`. Por eso los imports son `from components...`, `from views...`, etc.
+FletBatteries es un framework para Flet **1.0.4** inspirado en django-gentelella-widgets (Python 3.13, entorno gestionado con `uv`). Tiene dos partes:
+
+- `src/fletbatteries/`: el paquete instalable (formularios declarativos, widgets, CRUD, app shell, contrib). Se importa como `from fletbatteries...`.
+- `demo/`: la app de ejemplo que usa el paquete. Se ejecuta con `demo/` en el `PYTHONPATH`, por eso sus imports son `from views...`, `from data...`, etc.
+
+Lo genérico va en `src/fletbatteries/` (con textos en inglés envueltos en `_()` y su traducción en `src/fletbatteries/i18n/es.py`); lo específico de la demo va en `demo/`.
 
 ## Comandos
 
@@ -21,14 +26,17 @@ Para agregar una dependencia usa `uv add <paquete>` (o `uv add --dev <paquete>`)
    - `tests/harness.py` (`AppHarness`) ejecuta el `main(page)` real contra la `Session` de Flet en memoria, sin Flutter ni display.
    - Permite navegar (`await app.goto("/ruta")`), buscar controles (`app.find(text=..., type=..., key=...)`), hacer clic (`await app.click(ctrl)`), escribir (`await app.fill(ctrl, "valor")`) y elegir opciones (`await app.select(dropdown, "valor")`).
    - Cualquier excepción en un handler queda en `app.errors`. Termina siempre con `app.assert_no_errors()`.
+   - En cada `settle()` el harness revisa el layout con `layout_errors()` (por ejemplo un hijo con `expand` dentro de un `ListView` o de un `Row(wrap=True)`, que Flutter dibuja como una caja gris) y lo agrega a `app.errors`. Así se validan también los estados intermedios: dropdowns abiertos, diálogos, etc.
    - Para un servicio del cliente (FilePicker, etc.), registra la respuesta en `app.client_methods["pick_files"] = lambda args: [...]`.
    - Cada sesión de pytest usa una SQLite temporal. Las vistas que llaman a la API con `requests` se redirigen al `TestClient` de FastAPI.
 2. **Revisión visual (`make screenshots`)**. Levanta la app en modo web y la API, abre cada ruta en Chromium headless y guarda PNGs en `screenshots/`. Lee las imágenes para comprobar cómo se ve.
    - `screenshots/report.json` marca las rutas en blanco, con redirecciones inesperadas o con errores de consola.
    - `screenshots/server.log` y `screenshots/api.log` guardan los tracebacks.
    - Los servidores usan una copia de `template.db`, así que no modifican datos.
+   - Para revisar estados interactivos, las vistas aceptan un query: `make screenshots ROUTES="/widgets?visual=open /modals?visual=form"` abre los dropdowns, pone el Markdown en vista previa y carga una imagen ya guardada (dentro de un modal en el segundo caso). Usa `fletbatteries.utils.route_query(page)` y `run_after_mount(page, fn)` para agregar estados así en otras vistas.
+3. **Escritorio (`make run`)**. En Linux, Flet usa el cliente "light", que no incluye extensiones como Rive o mapas ("Unknown control: Rive"). `make run FLAVOR=full` usa el cliente full (requiere `libmpv2`); en Debian 13 ese cliente se cierra al arrancar por una aserción de libc++ al cargar media_kit, así que allí las animaciones se revisan en web (`make web`), donde sí funcionan.
 
-Si agregas una vista nueva, regístrala en `src/controls/router/views.py` y añádela a `ROUTES` en `tests/test_routes.py`. Una prueba falla si falta. Agrega también una prueba de flujo en `tests/test_flows.py` si la vista tiene interacción.
+Si agregas una vista nueva, regístrala en `demo/controls/router/views.py` y añádela a `ROUTES` en `tests/test_routes.py`. Una prueba falla si falta. Agrega también una prueba de flujo en `tests/test_flows.py` si la vista tiene interacción.
 
 ## Flet 1.x: diferencias que importan (respecto a 0.28)
 
@@ -37,32 +45,72 @@ Si agregas una vista nueva, regístrala en `src/controls/router/views.py` y añ�
   - `page.navigate(route)` (sync) o `await page.push_route(route)` reemplazan a `page.go(...)`.
 - **Diálogos:**
   - `page.show_dialog(dlg)` abre un diálogo.
-  - `page.pop_dialog()` cierra **el diálogo abierto más reciente**, que puede ser un SnackBar. Para cerrar uno concreto usa `controls.utils.close_dialog(dlg)`.
+  - `page.pop_dialog()` cierra **el diálogo abierto más reciente**, que puede ser un SnackBar. Para cerrar uno concreto usa `fletbatteries.utils.close_dialog(dlg)`.
 - **Helpers de estilo:** `ft.Padding.all/only/symmetric`, `ft.Margin.*`, `ft.Border.*`, `ft.BorderRadius.*`, `ft.Alignment.CENTER`, etc. Los módulos en minúscula (`ft.padding`, `ft.alignment`, …) ya no existen.
 - **Alineación de `Row` y `Column`:** usa `ft.MainAxisAlignment` / `ft.CrossAxisAlignment`, nunca `ft.Alignment`. Flet no lo valida, pero `tests/test_routes.py::test_route_control_types` sí.
 - **Botones:** `ft.Button(content=...)` reemplaza a `ElevatedButton(text=...)`. Todos los `text=` de los botones pasan a `content=`.
 - **Constructores:** los controles son dataclasses y los kwargs desconocidos lanzan `TypeError`.
 - **Dropdown:** `on_select` reemplaza a `on_change`, y las opciones son `ft.DropdownOption(key, text)`.
 - **Charts:** viven en `flet_charts` (`import flet_charts as fch`).
-- **`control.page`:** lanza `RuntimeError` si el control no está montado. No lo uses como booleano; usa `controls.utils.is_mounted(ctrl)` / `safe_update(ctrl)`. Las subclases de controles no deben asignar `self.page`; usa otro nombre, como `self.app_page`.
+- **`control.page`:** lanza `RuntimeError` si el control no está montado. No lo uses como booleano; usa `fletbatteries.utils.is_mounted(ctrl)` / `safe_update(ctrl)` / `get_page(ctrl)`. Las subclases de controles no deben asignar `self.page`; usa otro nombre, como `self.app_page`.
+- **Archivos ya guardados:** al editar, `FileField`/`ImageField` convierten el nombre guardado en `UploadedFile(stored=True)` (con `media_url` para la vista previa). `save_file` solo copia los archivos nuevos (`is_new`).
+- **Subclases de controles:** no definas atributos privados que Flet ya usa (por ejemplo `_notify`, que el SDK llama en cada cambio de propiedad). Un `Row(wrap=True)` no admite hijos con `expand` (Flutter dibuja una caja gris); `test_route_control_types` lo detecta.
 - **Servicios:**
   - `ft.FilePicker()`, `ft.UrlLauncher()`, etc. se registran solos en la página.
   - Sus métodos son `async`: `files = await picker.pick_files(...)`.
   - `TextField.focus()` también es async.
 - **Tareas de fondo:** usa `page.run_task(coroutine_fn)` con `asyncio.sleep`. No uses hilos que llamen a `update()`.
 - **Assets:**
-  - Se referencian relativos a `src/assets` (`src="image/icon.png"`).
-  - En web se sirven en la raíz: una ruta de la app no puede llamarse igual que una carpeta de `src/assets`. `test_routes_do_not_collide_with_assets` lo verifica.
+  - Se referencian relativos a `demo/assets` (`src="image/icon.png"`).
+  - En web se sirven en la raíz: una ruta de la app no puede llamarse igual que una carpeta de `demo/assets`. `test_routes_do_not_collide_with_assets` lo verifica.
   - Para SVG en memoria usa `ft.Image(src=svg_bytes)`.
 - **Referencia:** el código fuente del SDK instalado está en `.venv/lib/python3.13/site-packages/flet/`. Ahí se puede revisar cualquier API.
 
 ## Estructura
 
-- `src/main.py`: `AppTemplate` + `main(page)`.
-- `src/settings.py`: rutas y configuración (`FLETBATTERIES_DB_URL`, `FLETBATTERIES_API_URL`, `FLETBATTERIES_SKIP_LOGIN`).
-- `src/controls/router/`: vistas registradas (`views.py`) y router.
-- `src/components/shared/`: componentes reutilizables (form, datatable, calendar, color_picker, selects, …).
-- `src/data/models` y `src/data/manager`: modelos SQLAlchemy y managers CRUD. El modelo nuevo se registra en `src/scripts/init_db.py`.
-- `src/scripts/api.py`: API FastAPI (`make api`).
-- `tests/`: harness y pruebas.
+### Paquete `src/fletbatteries/`
+
+- `app.py`: `FletBatteriesApp` (registro de vistas con `add_view` / `@app.view` / `add_crud`, rutas con parámetros `/x/:id`, guards de login y permisos, menú, breadcrumbs, tema persistente) y `AppShell` (estado por sesión, `shell_of(page)`).
+- `forms/`: `Form` y `ModelForm` declarativos (render `plain`/`horizontal`/`inline`/`grid`), `fields.py` (CharField, DateField, ChoiceField, ModelChoiceField, FileField, MarkdownField, MapPointField, …), validadores, `formset_factory`. Campos dependientes con `depends_on` + `related_choices`/`related_filter`.
+- `widgets/`: controles con el contrato `value` / `error` / `on_change` (`base.Widget`): inputs, máscaras, fechas, selects con búsqueda (`selects.py`), choices avanzados, sliders, archivos, color, Markdown, mapas, `DataTable` server-side, `CardList`, `CrudModal`, calendario, gráficos y stat tiles.
+- `data/`: `Database`/`set_default_database`, `BaseManager` (CRUD, filtros `campo__op`, búsqueda, orden, paginación, `unique_fields`) y `DataSource` (`SQLAlchemySource`, `APISource`, `ListSource`).
+- `crud/`: `CRUDView` e `InlineCRUD`.
+- `api/`: `crud_router(manager, prefix=...)` para FastAPI (lo consume `APISource`).
+- `auth/`: sesión (`login`, `get_user`, `has_perm`), modelos `fb_users`/`fb_groups`/`fb_permissions`, `DatabaseAuthBackend`, vista de login y CRUD de administración.
+- `layout/`: navbar, sidebar, breadcrumbs, footer, `MenuItem`.
+- `contrib/`: `settings` (configuración en BD), `notifications` (campana), `help` (ayuda editable), `history` (`HistoryMixin`, `HistoryCRUD`), `trash` (`SoftDeleteMixin`, `TrashMixin`, `build_trash_view`).
+- `i18n/`: `_()`, `set_language()`; catálogo español en `es.py`.
+
+### Demo `demo/`
+
+- `demo/main.py`: crea `app = FletBatteriesApp(...)` y `main(page)`.
+- `demo/controls/router/views.py`: `register_views(app)`. Toda vista nueva se registra aquí y se agrega a `ROUTES` en `tests/test_routes.py` (una prueba falla si falta).
+- `demo/settings.py`: configuración (`FLETBATTERIES_DB_URL`, `FLETBATTERIES_API_URL`, `FLETBATTERIES_SKIP_LOGIN`) y base de datos por defecto.
+- `demo/app_forms.py`: formularios de la demo.
+- `demo/data/models` y `demo/data/manager`: modelos y managers (`BaseManager`). Un modelo nuevo se importa en `demo/data/models/__init__.py` y en `demo/scripts/init_db.py`.
+- `demo/scripts/api.py`: API FastAPI (`make api`). `init_db.py create_db` crea el usuario `admin`/`admin` (solo desarrollo).
+- `tests/`: harness y pruebas. `logged_app` deja un superusuario en la sesión.
 - `tools/screenshots.py`: capturas.
+
+### Ejemplo mínimo
+
+```python
+from fletbatteries import forms
+from fletbatteries.app import FletBatteriesApp
+from fletbatteries.crud import CRUDView
+
+class CustomerForm(forms.ModelForm):
+    class Meta:
+        model = Customer
+        fields = ["name", "email"]
+
+class CustomerCRUD(CRUDView):
+    title = "Clientes"
+    manager = CustomerManager()
+    form_class = CustomerForm
+    filter_fields = ["name"]
+
+app = FletBatteriesApp(title="Mi app")
+app.add_crud(CustomerCRUD, "/customers", icon=ft.Icons.PEOPLE)
+app.run()
+```
