@@ -18,7 +18,7 @@ class UserView:
         self.form = get_form(forms, "UserForm")
         self.formset = None
         self.actions = [
-            lambda form: ft.ElevatedButton(
+            lambda form: ft.Button(
                 content=ft.Icon(ft.Icons.SAVE),
                 on_click=lambda e, ft=form: self.handle_submit_click(ft)
             )
@@ -52,7 +52,7 @@ class UserView:
     Refreshes the view (self.formset.refresh_view())."""
     def handle_submit_click(self,form):
         ok = self.submit(form)
-        self.page.open(show_snackbar("Guardado" if ok else "Error al guardar", ok))
+        self.page.show_dialog(show_snackbar("Guardado" if ok else "Error al guardar", ok))
         self.formset.refresh_view()
 
     """Submits (creates/updates) a user based on form state.

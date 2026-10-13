@@ -4,7 +4,7 @@ from components.shared.selects import AutoCompleteSelect, AutoCompleteSelectMult
 class RelationalSelectGroup(ft.Column):
     def __init__(self, page, relations):
         super().__init__(spacing=20)
-        self.page = page
+        self.app_page = page
         self.relations = relations
         self.selects = []
 
@@ -12,14 +12,14 @@ class RelationalSelectGroup(ft.Column):
         for i, rel in enumerate(self.relations):
             if rel["type"] == "single":
                 select = AutoCompleteSelect(
-                    self.page,
+                    self.app_page,
                     data=rel["data_fn"](None, None),
                     label=rel["label"],
                     on_change=lambda self_ref, vals, items, idx=i: self._on_change(idx, vals, items),
                 )
             else:
                 select = AutoCompleteSelectMultiple(
-                    self.page,
+                    self.app_page,
                     data=rel["data_fn"](None, None),
                     label=rel["label"],
                     on_change=lambda self_ref, vals, items, idx=i: self._on_change(idx, vals, items),
@@ -39,7 +39,7 @@ class RelationalSelectGroup(ft.Column):
             data = next_rel["data_fn"](values, items)
             next_select.set_data(data)
 
-        self.page.update()
+        self.app_page.update()
 
     def set_values(self, values_list):
         """
@@ -66,4 +66,4 @@ class RelationalSelectGroup(ft.Column):
                     next_data = next_rel["data_fn"](val.get("value"), items)
                     next_select.set_data(next_data)
 
-        self.page.update()
+        self.app_page.update()

@@ -5,7 +5,7 @@ from controls.utils import get_form
 from components.shared.autocompletes_related import RelationalSelectGroup
 from components.shared.generic_card import GenericCard
 
-API_URL = "http://127.0.0.1:8000/"
+from settings import API_URL
 ABC_URL = API_URL + "abc"
 
 
@@ -215,8 +215,8 @@ def build_view_autocompletes_related(page: ft.Page, forms: []) -> ft.Container:
                     )
                 ],
                 actions=[
-                    ft.ElevatedButton("Edit", on_click=lambda e, it=item: on_edit_item(it)),
-                    ft.ElevatedButton(
+                    ft.Button("Edit", on_click=lambda e, it=item: on_edit_item(it)),
+                    ft.Button(
                         "Delete",
                         style=ft.ButtonStyle(bgcolor=ft.Colors.RED_600, color=ft.Colors.WHITE),
                         on_click=lambda e, it=item: on_delete_item(it),
@@ -248,7 +248,7 @@ def build_view_autocompletes_related(page: ft.Page, forms: []) -> ft.Container:
                     [
                         ft.Text("ABC Groups", size=22, weight=ft.FontWeight.BOLD),
                         ft.Container(expand=True),
-                        ft.ElevatedButton("Add", on_click=on_add_item)
+                        ft.Button("Add", on_click=on_add_item)
                     ],
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 ),

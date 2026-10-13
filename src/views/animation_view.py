@@ -12,7 +12,7 @@ def build_view_animation(page: ft.Page) -> ft.Container:
         )
 
     animation2 = fr.Rive(
-        "src/assets/animations/tree-animation.riv",
+        "animations/tree-animation.riv",
             placeholder=ft.ProgressBar(),
             width=300,
             height=200,
@@ -32,11 +32,11 @@ def build_view_animation(page: ft.Page) -> ft.Container:
                 animation2,
 
             ],
-            alignment=ft.alignment.center,
+            alignment=ft.MainAxisAlignment.CENTER,
             spacing=10,
             scroll=ft.ScrollMode.AUTO,
             expand=True,
         ),
-        alignment=ft.alignment.center,
+        alignment=ft.Alignment.CENTER,
         padding=10,
     )

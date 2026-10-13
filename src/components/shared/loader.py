@@ -1,8 +1,7 @@
 import flet as ft
-from flet import alignment, border_radius, Rotate, Animation
+from flet import Rotate, Animation
 from math import pi
-import threading
-import time
+import asyncio
 
 
 class SpinnerLoader(ft.Column):
@@ -21,7 +20,7 @@ class SpinnerLoader(ft.Column):
         text_weight: ft.FontWeight = ft.FontWeight.W_600,
         text_color: str = "#666666",
     ):
-        super().__init__(spacing=10, horizontal_alignment=ft.alignment.center)
+        super().__init__(spacing=10, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
 
         self.steps = steps
         self.size = size
@@ -36,7 +35,6 @@ class SpinnerLoader(ft.Column):
         self.text_color = text_color
 
         self._running = False
-        self._thread: threading.Thread | None = None
 
         self._ticks: list[ft.Container] = []
         for i in range(self.steps):
@@ -44,13 +42,13 @@ class SpinnerLoader(ft.Column):
                 width=self.thickness,
                 height=self.arm_length,
                 bgcolor=self.base_color,
-                border_radius=border_radius.all(self.thickness // 2),
+                border_radius=ft.BorderRadius.all(self.thickness // 2),
                 opacity=1.0 if i == 0 else self.min_opacity,
             )
             canvas = ft.Container(
                 width=self.size,
                 height=self.size,
-                alignment=alignment.top_center,
+                alignment=ft.Alignment.TOP_CENTER,
                 content=bar,
                 rotate=Rotate(angle=(i * 2 * pi / self.steps)),
                 animate_rotation=Animation(400, ft.AnimationCurve.LINEAR),
@@ -61,7 +59,7 @@ class SpinnerLoader(ft.Column):
             width=self.size,
             height=self.size,
             controls=self._ticks,
-            alignment=alignment.center,
+            alignment=ft.Alignment.CENTER,
         )
 
         if self.text is not None:
@@ -78,8 +76,7 @@ class SpinnerLoader(ft.Column):
 
     def did_mount(self):
         self._running = True
-        self._thread = threading.Thread(target=self._animate_loop, daemon=True)
-        self._thread.start()
+        self.page.run_task(self._animate_loop)
 
     def will_unmount(self):
         self._running = False
@@ -105,13 +102,17 @@ class SpinnerLoader(ft.Column):
             self.update()
 
     # animation
-    def _animate_loop(self):
+    async def _animate_loop(self):
         head = 0
         while self._running:
             for idx, tick in enumerate(self._ticks):
                 d = (idx - head) % self.steps
                 opacity = max(self.min_opacity, 1.0 - (d / (self.steps - 1)))
                 tick.content.opacity = opacity
-                tick.update()
+            try:
+                self._spinner.update()
+            except RuntimeError:
+                # El loader ya no está en la página
+                break
             head = (head + 1) % self.steps
-            time.sleep(self.interval)
+            await asyncio.sleep(self.interval)

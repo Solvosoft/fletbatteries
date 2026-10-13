@@ -93,7 +93,7 @@ class Formset:
         )
         return ft.Container(
             expand=True,
-            alignment=ft.alignment.top_center,
+            alignment=ft.Alignment.TOP_CENTER,
             content=ft.Column(
                 spacing=16,
                 alignment=ft.MainAxisAlignment.CENTER,
@@ -116,8 +116,8 @@ class Formset:
                         content=self._cards_column,
                     ),
                     ft.Container(
-                        alignment=ft.alignment.center,
-                        content=ft.ElevatedButton(
+                        alignment=ft.Alignment.CENTER,
+                        content=ft.Button(
                             content=ft.Icon(ft.Icons.ADD, size=30, color=ft.Colors.WHITE),
                             on_click=lambda e: self.add_item(),
                             tooltip="Add new item",

@@ -1,6 +1,6 @@
 import flet as ft
 from typing import Callable, Optional, Literal
-from controls.utils import show_snackbar
+from controls.utils import show_snackbar, close_dialog
 
 ModalKind = Literal["create", "edit", "delete", "detail"]
 
@@ -37,8 +37,8 @@ class CrudModal:
         # ancho efectivo
         title_ctl = ft.Container(
             width=width,
-            padding=ft.padding.symmetric(horizontal=12, vertical=10),
-            border=ft.border.only(bottom=ft.BorderSide(2, ft.Colors.PRIMARY)),
+            padding=ft.Padding.symmetric(horizontal=12, vertical=10),
+            border=ft.Border.only(bottom=ft.BorderSide(2, ft.Colors.PRIMARY)),
             content=ft.Text(title, size=18, weight=ft.FontWeight.BOLD),
         )
 
@@ -59,7 +59,7 @@ class CrudModal:
             style = None
             if kind == "delete":
                 style = ft.ButtonStyle(bgcolor=ft.Colors.RED_600, color=ft.Colors.WHITE)
-            self._btn_accept = ft.ElevatedButton(label, on_click=self._on_accept_click, style=style)
+            self._btn_accept = ft.Button(label, on_click=self._on_accept_click, style=style)
 
         actions = [self._btn_cancel] if self._btn_accept is None else [self._btn_cancel, self._btn_accept]
 
@@ -72,11 +72,11 @@ class CrudModal:
         )
 
 
-        self.page.open(self.dialog)
+        self.page.show_dialog(self.dialog)
 
     def _close(self):
         if self.dialog:
-            self.page.close(self.dialog)
+            close_dialog(self.dialog)
 
     def _set_processing(self, value: bool):
         if self._btn_cancel:
@@ -109,5 +109,5 @@ class CrudModal:
 
     def _show_snackbar(self, message: str, success: bool):
         snack = show_snackbar(message, success)
-        self.page.open(snack)
+        self.page.show_dialog(snack)
 

@@ -1,5 +1,3 @@
-import sys
-
 import flet as ft
 from ..selects import AutoCompleteSelect, AutoCompleteSelectMultiple
 from ..autocompletes_related import RelationalSelectGroup
@@ -28,16 +26,21 @@ class InputType:
                 visible=self.visible_form,
             )
         elif self.type == "ImageField":
-            self.page.overlay.append(self.picker)
+            async def pick_image(e):
+                files = await self.picker.pick_files(
+                    allow_multiple=False,
+                    allowed_extensions=["jpg", "jpeg", "png"]
+                )
+                on_files_picked = self.extra_config.get("on_files_picked")
+                if on_files_picked:
+                    on_files_picked(files)
+
             widget = ft.Row(
                 controls=[
-                    ft.ElevatedButton(
-                        text="Seleccionar Imagen",
+                    ft.Button(
+                        content="Seleccionar Imagen",
                         icon=ft.Icons.IMAGE,
-                        on_click=lambda _: self.picker.pick_files(
-                            allow_multiple=False,
-                            allowed_extensions=["jpg", "jpeg", "png"]
-                        )
+                        on_click=pick_image,
                     ),
                     ft.Text("Ninguna imagen seleccionada")
                 ],
@@ -62,7 +65,7 @@ class InputType:
                     ft.IconButton(
                         icon=ft.Icons.CALENDAR_MONTH,
                         tooltip="Seleccionar fecha",
-                        on_click=lambda e: self.page.open(self.picker)
+                        on_click=lambda e: self.page.show_dialog(self.picker)
                     ),
                 ],
                 spacing=10,
@@ -75,7 +78,7 @@ class InputType:
                     ft.IconButton(
                         icon=ft.Icons.CALENDAR_MONTH,
                         tooltip="Seleccionar fecha y hora",
-                        on_click=lambda e: self.page.open(self.picker)
+                        on_click=lambda e: self.page.show_dialog(self.picker)
                     ),
                 ],
                 spacing=10,

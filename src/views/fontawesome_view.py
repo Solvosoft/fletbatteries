@@ -23,23 +23,23 @@ def build_view_fontawesome(page: ft.Page) -> ft.Container:
                 ft.Container(
                     content=icon,
                     expand=True,
-                    alignment=ft.alignment.center,
+                    alignment=ft.Alignment.CENTER,
                 ),
                 ft.Text("Media items", size=20),
                 ft.Container(
                     content=media_item,
                     expand=True,
-                    alignment=ft.alignment.center,
+                    alignment=ft.Alignment.CENTER,
                 ),
                 ft.Text("Button icons", size=20),
                 ft.Container(
                     content=btn_icon,
                     expand=True,
-                    alignment=ft.alignment.center,
+                    alignment=ft.Alignment.CENTER,
                 ),
             ],
-            alignment=ft.alignment.center,
+            alignment=ft.MainAxisAlignment.CENTER,
         ),
-        alignment=ft.alignment.center,
+        alignment=ft.Alignment.CENTER,
         padding=10,
     )

@@ -19,12 +19,11 @@ class Navbar:
                     content=ft.PopupMenuButton(
                         items=self.appbar_items
                     ),
-                    margin=ft.margin.only(left=50, right=25)
+                    margin=ft.Margin.only(left=50, right=25)
                 )
             ],
         )
         self.page.appbar = self.appbar
-        self.page.update()
 
     def create_header(self):
         return ft.Row(

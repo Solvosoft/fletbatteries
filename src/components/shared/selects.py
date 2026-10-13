@@ -1,6 +1,6 @@
 import flet as ft
 import unicodedata
-import threading
+import asyncio
 from abc import ABC, abstractmethod
 
 def _normalize_text(text: str) -> str:
@@ -62,12 +62,12 @@ class _Select(ABC):
 
         self._dropdown_container = ft.Container(
             content=ft.Column(controls=dropdown_content, spacing=0),
-            border=ft.border.all(1, ft.Colors.OUTLINE),
+            border=ft.Border.all(1, ft.Colors.OUTLINE),
             border_radius=5,
             padding=5,
             visible=False,
             bgcolor=ft.Colors.SURFACE,
-            shadow=ft.BoxShadow(spread_radius=1, blur_radius=5, color=ft.Colors.BLACK38),
+            shadow=ft.BoxShadow(spread_radius=1, blur_radius=5, color=ft.Colors.BLACK_38),
             on_hover=self._on_dropdown_hover,
             on_click=self._handle_dropdown_click
         )
@@ -75,15 +75,23 @@ class _Select(ABC):
         if data:
             self.set_data(data)
 
+    def _run_later(self, delay: float, callback):
+        """Ejecuta `callback` en el loop de la página tras `delay` segundos; devuelve un Future cancelable."""
+        async def run():
+            await asyncio.sleep(delay)
+            callback()
+
+        return self.page.run_task(run)
+
     def _on_scroll(self, e: ft.OnScrollEvent):
         """Handles infinite scrolling by calling the provided `on_load_more` callback."""
         if e.pixels >= e.max_scroll_extent - 10 and self._data["pagination"].get("more") and self.on_load_more_cb:
             skip = len(self._data["results"])
             filter_text = self._search_field.value or ""
 
-            def bg_load():
+            async def bg_load():
                 try:
-                    data = self.on_load_more_cb(skip, self.items_per_load, filter_text)
+                    data = await asyncio.to_thread(self.on_load_more_cb, skip, self.items_per_load, filter_text)
                     if not data or "results" not in data:
                         return
                     results_list = list(data["results"].values()) if isinstance(data["results"], dict) else data["results"]
@@ -93,22 +101,21 @@ class _Select(ABC):
                 except Exception:
                     return
 
-            threading.Thread(target=bg_load, daemon=True).start()
+            self.page.run_task(bg_load)
 
     def _on_search(self, e):
         """Debounces the search input before executing a query."""
         if self._search_timer:
             self._search_timer.cancel()
-        self._search_timer = threading.Timer(self.search_delay, self._execute_search)
-        self._search_timer.start()
+        self._search_timer = self._run_later(self.search_delay, self._execute_search)
 
     def _execute_search(self):
         """Executes a search using the API callback or falls back to local filtering."""
         filter_text = self._search_field.value or ""
         if self.on_search_api_cb:
-            def bg_search():
+            async def bg_search():
                 try:
-                    data = self.on_search_api_cb(skip=0, limit=self.items_per_load, filter_text=filter_text)
+                    data = await asyncio.to_thread(self.on_search_api_cb, skip=0, limit=self.items_per_load, filter_text=filter_text)
                     if data and "results" in data:
                         results_list = list(data["results"].values()) if isinstance(data["results"], dict) else data["results"]
                         more = bool(data.get("pagination", {}).get("more", False))
@@ -119,7 +126,7 @@ class _Select(ABC):
                 except Exception as e:
                     print("Search error:", e)
 
-            threading.Thread(target=bg_search, daemon=True).start()
+            self.page.run_task(bg_search)
         else:
             self._refresh_options(filter_text)
 
@@ -161,8 +168,8 @@ class _Select(ABC):
         if self._blur_timer:
             self._blur_timer.cancel()
             self._blur_timer = None
-        self._search_field.focus()
-        threading.Timer(0.1, lambda: setattr(self, "_is_interacting", False)).start()
+        self.page.run_task(self._search_field.focus)
+        self._run_later(0.1, lambda: setattr(self, "_is_interacting", False))
 
     def _handle_focus(self, e):
         if self._blur_timer:
@@ -172,8 +179,7 @@ class _Select(ABC):
     def _handle_blur(self, e):
         if self._blur_timer:
             self._blur_timer.cancel()
-        self._blur_timer = threading.Timer(0.15, self._delayed_close)
-        self._blur_timer.start()
+        self._blur_timer = self._run_later(0.15, self._delayed_close)
 
     def _delayed_close(self):
         if not self._is_interacting and self._is_dropdown_open:
@@ -186,7 +192,7 @@ class _Select(ABC):
             self._close_dropdown()
         else:
             self._open_dropdown()
-        threading.Timer(0.1, lambda: setattr(self, "_is_interacting", False)).start()
+        self._run_later(0.1, lambda: setattr(self, "_is_interacting", False))
 
     def _open_dropdown(self):
         self._is_dropdown_open = True
@@ -267,7 +273,7 @@ class _Select(ABC):
                 self._text_field.error = self._error_text
             self._text_field.update()
         elif isinstance(self, AutoCompleteSelectMultiple):
-            self._bordered_content.border = ft.border.all(1, ft.Colors.RED if message else ft.Colors.OUTLINE)
+            self._bordered_content.border = ft.Border.all(1, ft.Colors.RED if message else ft.Colors.OUTLINE)
             self._error_container.visible = bool(message)
             self._main_column.update()
 
@@ -301,10 +307,6 @@ class AutoCompleteSelect(_Select):
 
     def _is_selected(self, item_id: str) -> bool:
         return self._selected_value == item_id
-
-    @property
-    def value(self):
-        return self._selected_value
 
     @property
     def selected_item(self):
@@ -357,14 +359,14 @@ class AutoCompleteSelectMultiple(_Select):
         self._search_field.border_color = ft.Colors.OUTLINE
         self._search_field.on_click = self._toggle_dropdown
 
-        self._error_container = ft.Container(content=self._error_text,margin=ft.margin.only(left=12, top=4), visible=False)#The error message is wrapped in a container to be able to apply margin.
+        self._error_container = ft.Container(content=self._error_text,margin=ft.Margin.only(left=12, top=4), visible=False)#The error message is wrapped in a container to be able to apply margin.
 
         self._bordered_content = ft.Container(
             content=ft.Column(
                 controls=[self._chips_container, ft.Row([self._search_field], alignment=ft.MainAxisAlignment.START)],
                 spacing=10,
             ),
-            border=ft.border.all(1, ft.Colors.OUTLINE),
+            border=ft.Border.all(1, ft.Colors.OUTLINE),
             border_radius=6,
             padding=10,
             bgcolor=ft.Colors.SURFACE,
@@ -374,10 +376,6 @@ class AutoCompleteSelectMultiple(_Select):
 
     def _is_selected(self, item_id: str) -> bool:
         return item_id in self._selected_values
-
-    @property
-    def value(self):
-        return self._selected_values
 
     @property
     def selected_items(self):

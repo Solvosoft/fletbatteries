@@ -18,7 +18,7 @@ class TestView:
             {"date": "06-01-2023", "datetime": "06-01-2023 12:00:00", "name": "Test 6"},
         ]
         self.actions = [
-            lambda form: ft.ElevatedButton(
+            lambda form: ft.Button(
                 content=ft.Icon(ft.Icons.SAVE),
                 on_click=lambda e, ft=form: self.handle_submit_click(ft)
             )
@@ -47,7 +47,7 @@ class TestView:
             else:
                 self.page.update()
                 ok = False
-            self.page.open(show_snackbar("Guardado" if ok else "Error al guardar", ok))
+            self.page.show_dialog(show_snackbar("Guardado" if ok else "Error al guardar", ok))
         except Exception as ex:
             print(f"[handle_submit_click] Error al guardar: {ex!r}")
             traceback.print_exc()

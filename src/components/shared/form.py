@@ -1,5 +1,6 @@
 import flet as ft
 import json
+from pathlib import Path
 import os
 import shutil
 from uuid import uuid4
@@ -93,17 +94,20 @@ class Form:
     from uuid import uuid4
 
 
+FORMS_FILE = Path(__file__).resolve().parent / "form_example.json"
+
+
 class GenerateForms:
     def __init__(self, page: ft.Page):
         self.page = page
         self.forms = []
         self.data = None
-        with open("src/components/shared/form_example.json") as f:
+        with open(FORMS_FILE, encoding="utf-8") as f:
             self.data = json.load(f)
 
     def generate_forms(self):
         if self.data is None:
-            with open("src/components/shared/form_example.json") as f:
+            with open(FORMS_FILE, encoding="utf-8") as f:
                 self.data = json.load(f)
         for form in self.data["forms"]:
             inputs = []

@@ -5,20 +5,21 @@ from components.layout.footer import Footer
 from controls.router.views import Views
 from controls.router.router import router
 from components.shared.form import GenerateForms
+from settings import ASSETS_DIR, SKIP_LOGIN
 
 
-class AppTemplate(ft.Container):
-    def __init__(self, page):
-        super().__init__()
+class AppTemplate:
+    def __init__(self, page: ft.Page):
         self.page = page
         self.page.title = "FletBatteries"
         self.page.padding = 0
         self.page.theme_mode = ft.ThemeMode.LIGHT
-        self.page.theme = ft.Theme(font_family="Verdana", color_scheme_seed=ft.Colors.BLUE_GREY_500)
-        self.page.theme.page_transitions.windows = ft.PageTransitionTheme.CUPERTINO
-        self.page.fonts = {"Pacifico": "./fonts/Pacifico-Regular.ttf"}
-        # self.page.scroll = ft.ScrollMode.AUTO
-        self.page.expand = True
+        self.page.theme = ft.Theme(
+            font_family="Verdana",
+            color_scheme_seed=ft.Colors.BLUE_GREY_500,
+            page_transitions=ft.PageTransitionsTheme(windows=ft.PageTransitionTheme.CUPERTINO),
+        )
+        self.page.fonts = {"Pacifico": "fonts/Pacifico-Regular.ttf"}
         self.generate_forms = GenerateForms(self.page)
         self.forms = self.generate_forms.generate_forms()
         self.views = Views(page=self.page, forms=self.forms).views
@@ -26,9 +27,7 @@ class AppTemplate(ft.Container):
         self.layout = Layout(self.navbar, page, self.views)
         self.footer = Footer()
         self.layout_container = self.create_layout()
-        self.page.add(self.create_layout())
         self.page.add(self.layout_container)
-        page.update()
         self.build_view()
 
     def create_layout(self):
@@ -38,28 +37,41 @@ class AppTemplate(ft.Container):
                 self.footer
             ],
             expand=True,
-            alignment=ft.alignment.top_center,
+            alignment=ft.MainAxisAlignment.START,
         )
 
     def build_view(self):
-        self.page.on_route_change = lambda r: router(self, self.page.route, self.views)
-        self.page.go("/login")
+        self.page.on_route_change = lambda e: router(self, e.route, self.views)
+        # Respeta la ruta inicial (p. ej. una URL abierta directamente en modo web);
+        # si no corresponde a ninguna vista se inicia en el login
+        routes = {v.route for v in self.views}
+        if not SKIP_LOGIN:
+            routes.discard("/")
+        initial = self.page.route if self.page.route in routes else "/login"
+        if self.page.route == initial:
+            router(self, initial, self.views)
+        else:
+            self.page.navigate(initial)
 
     def navbar_settings(self):
         return {
             "title": "FletBatteries",
-            "logo": "src/assets/image/icon.png",
+            "logo": "image/icon.png",
             "color_bg": ft.Colors.LIGHT_BLUE_ACCENT_700,
             "color_text": ft.Colors.WHITE,
             "items": [
-                ft.PopupMenuItem(text=v.name, data=v.route, icon=v.icon, on_click=lambda e: self.redirect_navbar(e))
+                ft.PopupMenuItem(content=v.name, data=v.route, icon=v.icon, on_click=self.redirect_navbar)
                 for v in self.views if v.position == 0
             ]
         }
 
     def redirect_navbar(self, e):
-        self.page.go(e.control.data)
+        self.page.navigate(e.control.data)
 
-    
+
+def main(page: ft.Page):
+    AppTemplate(page)
+
+
 if __name__ == "__main__":
-    ft.app(target=AppTemplate, assets_dir="src/assets")
+    ft.run(main, assets_dir=str(ASSETS_DIR))

@@ -1,8 +1,7 @@
 import flet as ft
-from flet import Rotate, Animation, border, alignment
+from flet import Rotate, Animation
 from math import pi
-import threading
-import time
+import asyncio
 
 
 class AnimatedBox(ft.Container):
@@ -10,10 +9,10 @@ class AnimatedBox(ft.Container):
         super().__init__(
             width=size,
             height=size,
-            border=border.all(border_width, border_color),
+            border=ft.Border.all(border_width, border_color),
             bgcolor=bg_color,
             border_radius=2,
-            rotate=Rotate(angle=rotate_angle, alignment=alignment.center),
+            rotate=Rotate(angle=rotate_angle, alignment=ft.Alignment.CENTER),
             animate_rotation=Animation(700, ft.AnimationCurve.EASE_IN_OUT),
         )
 
@@ -33,7 +32,7 @@ class RotatingBoxesLoader(ft.Stack):
         step_seconds: float = 0.7,
         border_width: float = 2.5,
     ):
-        super().__init__(alignment=ft.alignment.center)
+        super().__init__(alignment=ft.Alignment.CENTER)
 
         self.size = size
         self.color_a_border = color_a_border
@@ -57,37 +56,44 @@ class RotatingBoxesLoader(ft.Stack):
         self.controls = controls
 
         self._running = False
-        self._thread: threading.Thread | None = None
 
     def did_mount(self):
         self._running = True
-        self._thread = threading.Thread(target=self._animate_loop, daemon=True)
-        self._thread.start()
+        self.page.run_task(self._animate_loop)
 
     def will_unmount(self):
         self._running = False
 
-    def _animate_loop(self):
+    def _update_boxes(self) -> bool:
+        try:
+            self.red_box.update()
+            self.blue_box.update()
+            return True
+        except RuntimeError:
+            # El loader ya no está en la página
+            return False
+
+    async def _animate_loop(self):
         cw = pi / 4
         ccw = -2 * pi
         cnt = 0
         while self._running:
             if cnt <= 4:
-                self.red_box.rotate = Rotate(angle=ccw, alignment=alignment.center)
-                self.blue_box.rotate = Rotate(angle=cw, alignment=alignment.center)
-                self.red_box.update()
-                self.blue_box.update()
+                self.red_box.rotate = Rotate(angle=ccw, alignment=ft.Alignment.CENTER)
+                self.blue_box.rotate = Rotate(angle=cw, alignment=ft.Alignment.CENTER)
+                if not self._update_boxes():
+                    break
                 cw += pi / 2
                 ccw -= pi / 2
                 cnt += 1
             elif cnt <= 10:
                 cw -= pi / 2
                 ccw += pi / 2
-                self.red_box.rotate = Rotate(angle=ccw, alignment=alignment.center)
-                self.blue_box.rotate = Rotate(angle=cw, alignment=alignment.center)
-                self.red_box.update()
-                self.blue_box.update()
+                self.red_box.rotate = Rotate(angle=ccw, alignment=ft.Alignment.CENTER)
+                self.blue_box.rotate = Rotate(angle=cw, alignment=ft.Alignment.CENTER)
+                if not self._update_boxes():
+                    break
                 cnt += 1
             else:
                 cnt = 0
-            time.sleep(self.step_seconds)
+            await asyncio.sleep(self.step_seconds)

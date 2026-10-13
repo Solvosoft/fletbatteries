@@ -1,5 +1,6 @@
 
 import flet as ft
+from controls.utils import is_mounted
 import asyncio
 
 class Carousel(ft.Container):
@@ -28,7 +29,7 @@ class Carousel(ft.Container):
         self.image_controls = [
             ft.Image(
                 src=img,
-                fit=ft.ImageFit.FILL,
+                fit=ft.BoxFit.FILL,
                 width=self.width,
                 height=self.height,
                 opacity=1 if i == 0 else 0,
@@ -69,13 +70,13 @@ class Carousel(ft.Container):
                 *self.image_controls,
                 ft.Container(
                     content=self.indicators,
-                    alignment=ft.alignment.bottom_center,
-                    padding=ft.padding.only(bottom=15),
+                    alignment=ft.Alignment.BOTTOM_CENTER,
+                    padding=ft.Padding.only(bottom=15),
                     expand=True
                 ),
                 ft.Container(
                     content=nav_buttons,
-                    alignment=ft.alignment.center,
+                    alignment=ft.Alignment.CENTER,
                     expand=True
                 ),
             ]
@@ -96,7 +97,7 @@ class Carousel(ft.Container):
             while self._is_running:
                 await asyncio.sleep(self.interval)
                 # Si se destruyó el carrusel, detén
-                if not self.visible or not self.page:
+                if not self.visible or not is_mounted(self):
                     self._is_running = False
                     break
                 self.go_to_index(self.current_index + 1)

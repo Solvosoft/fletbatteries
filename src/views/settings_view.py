@@ -10,7 +10,7 @@ def build_view_settings(page: ft.Page) -> ft.Container:
     preview = ft.Container(width=36, height=36,
                            bgcolor=page.theme.color_scheme_seed,
                            border_radius=8,
-                           border=ft.border.all(1, ft.Colors.GREY_400),
+                           border=ft.Border.all(1, ft.Colors.GREY_400),
                            )
 
     sw = ft.Switch(thumb_icon=ft.Icons.LIGHT_MODE, on_change=lambda e: change_theme_mode(e, page, sw))
@@ -30,6 +30,6 @@ def build_view_settings(page: ft.Page) -> ft.Container:
                 ft.Text("Settings", size=20),
                 settings,
             ],
-            alignment=ft.alignment.center,
+            alignment=ft.MainAxisAlignment.CENTER,
         )
     )

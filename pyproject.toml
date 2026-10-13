@@ -1,42 +1,57 @@
 [project]
-name = "FletBatteries"
-version = "0.0.1"
+name = "fletbatteries"
+version = "0.1.0"
 description = "FletBatteries is a set of framework-like tools designed to simplify the development of applications with Flet."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 authors = [
     { name = "Solvo", email = "info@solvosoft.com" },
 ]
 dependencies = [
-    "flet",
-    "sqlmodel",
-    "pydantic>=1.10.0",
-    "pydantic-settings>=0.1.0",
-    "python-dotenv",
+    "flet==1.0.4",
+    "flet-charts==1.0.4",
+    "flet-rive==1.0.4",
+    "sqlalchemy>=2.0",
+    "bcrypt>=4.2",
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+    "requests>=2.32",
+    "python-dateutil>=2.9",
+    "python-dotenv>=1.0",
 ]
 
+[dependency-groups]
+dev = [
+    "flet[all]==1.0.4",
+    "pytest>=8",
+    "pytest-asyncio>=1.1",
+    "httpx2>=2.13",
+    "playwright>=1.48",
+    "pillow>=10",
+    "ruff>=0.6",
+]
+
+[tool.uv]
+package = false
+
 [tool.flet]
-org = "https://solvosoft.com/es/"
+org = "com.solvosoft"
 product = "FletBatteries"
 company = "Solvo"
 copyright = "Copyright (C) 2025 by Solvo"
 
 [tool.flet.app]
-# ruta al directorio donde está main.py
-path = "./src/main.py"
-name = "FletBatteries"
-icon = "./assets/image/icon.png"
-[tool.poetry]
-name = "fletbatteries"
-version = "0.1.0"
-description = ""
-authors = ["Your Name <you@example.com>"]
-readme = "README.md"
+path = "src"
+module = "main"
 
-[tool.poetry.dependencies]
-python = "^3.12"
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["src", "."]
 
+[tool.ruff]
+line-length = 120
+extend-exclude = ["src/assets"]
 
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[tool.ruff.lint]
+select = ["E9", "F63", "F7", "F82", "F811"]

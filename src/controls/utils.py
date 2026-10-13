@@ -58,3 +58,30 @@ def show_snackbar(message: str, success: bool):
         show_close_icon=True,
     )
 
+
+
+def is_mounted(control: ft.BaseControl) -> bool:
+    """True si el control ya está agregado a una página (en Flet 1.x `control.page` lanza si no lo está)."""
+    try:
+        return control.page is not None
+    except RuntimeError:
+        return False
+
+
+def safe_update(*controls: ft.BaseControl):
+    """Actualiza solo los controles que ya están montados en la página."""
+    for control in controls:
+        if is_mounted(control):
+            control.update()
+
+
+def close_dialog(dialog: ft.DialogControl):
+    """
+    Cierra un diálogo específico.
+
+    `page.pop_dialog()` cierra el diálogo abierto más reciente, que puede ser
+    un SnackBar mostrado encima; este helper cierra exactamente `dialog`.
+    """
+    if dialog.open:
+        dialog.open = False
+        safe_update(dialog)

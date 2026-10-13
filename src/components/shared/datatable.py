@@ -1,18 +1,19 @@
 import flet as ft
+from controls.utils import is_mounted
 from assets.fontawesome.fontawesome import get_icon
 
 header_style: dict = {
     "height": 60,
     "bgcolor": "#081d33",
-    "border_radius": ft.border_radius.only(top_left=15, top_right=15),
-    "padding": ft.padding.only(left=10, right=10),
+    "border_radius": ft.BorderRadius.only(top_left=15, top_right=15),
+    "padding": ft.Padding.only(left=10, right=10),
     "expand": False,
 }
 
 header_cols_style: dict = {
     "border_radius": 8,
-    "border": ft.border.all(1, "#ebebeb"),
-    "bgcolor": ft.Colors.WHITE10,
+    "border": ft.Border.all(1, "#ebebeb"),
+    "bgcolor": ft.Colors.WHITE_10,
     "padding": 10,
     "expand": True,
 }
@@ -42,7 +43,7 @@ class Header(ft.Container):
 
     def search_field(self):
         return ft.TextField(
-            border_color="transparent",
+            border=ft.NoInputBorder(),
             height=20,
             text_size=14,
             content_padding=0,
@@ -59,7 +60,7 @@ class Header(ft.Container):
             # expand=True,
             content=self.search_value,
             visible=False,
-            alignment=ft.alignment.center,
+            alignment=ft.Alignment.CENTER,
         )
 
     def toggle_search(self, e):
@@ -104,7 +105,7 @@ class HeaderColumn(ft.Container):
         self.filters_values = []
         self.top_actions = top_actions
 
-        self.btn_clear = ft.ElevatedButton(
+        self.btn_clear = ft.Button(
             content=get_icon("eraser", color="black", size=15),
             on_click=self.clear_filter,
         )
@@ -133,20 +134,20 @@ class HeaderColumn(ft.Container):
         self.dd_page_size = ft.Dropdown(
             width=90,
             options=[
-                ft.dropdown.Option("5"),
-                ft.dropdown.Option("10"),
-                ft.dropdown.Option("25"),
-                ft.dropdown.Option("50")
+                ft.DropdownOption("5"),
+                ft.DropdownOption("10"),
+                ft.DropdownOption("25"),
+                ft.DropdownOption("50")
             ],
             value="10",
-            on_change=lambda e: self._change_page_size(int(e.control.value)),
+            on_select=lambda e: self._change_page_size(int(e.control.value)),
         )
 
         self.lbl_page_info = ft.Text(size=12, color=ft.Colors.BLACK)
 
         self.row_headers = ft.Row(
             controls=self.create_columns(),
-            alignment=ft.alignment.center,
+            alignment=ft.MainAxisAlignment.CENTER,
         )
 
         self.header.datatable.on_pagination_update = lambda: self._update_page_info(do_update=True)
@@ -180,7 +181,7 @@ class HeaderColumn(ft.Container):
                 self.row_headers,
             ],
             expand=True,
-            alignment=ft.alignment.center,
+            alignment=ft.MainAxisAlignment.CENTER,
         )
 
     def create_columns(self):
@@ -210,7 +211,7 @@ class HeaderColumn(ft.Container):
     def text_column(self, name, expand=True):
         return ft.Container(
             expand=expand,
-            alignment=ft.alignment.top_center,
+            alignment=ft.Alignment.TOP_CENTER,
             content=ft.Text(
                 name,
                 size=13,
@@ -228,12 +229,12 @@ class HeaderColumn(ft.Container):
         )
         filter_input = ft.TextField(
             text_size=13,
-            content_padding=ft.padding.symmetric(horizontal=8),
+            content_padding=ft.Padding.symmetric(horizontal=8),
             # bgcolor="#E5E7EB",
-            border_radius=5,
+            border=ft.OutlineInputBorder(border_radius=5),
             cursor_color=ft.Colors.BLACK,
             cursor_width=2,
-            # border=ft.InputBorder.NONE,
+            # border=ft.NoInputBorder(),
             cursor_height=16,
             color=ft.Colors.BLACK,
             on_change=lambda e: self.on_change(e),
@@ -242,7 +243,7 @@ class HeaderColumn(ft.Container):
         self.filters_values.append(filter_input)
         return ft.Container(
             expand=expand,
-            alignment=ft.alignment.top_center,
+            alignment=ft.Alignment.TOP_CENTER,
             content=ft.Column(
                 spacing=4,
                 controls=[
@@ -278,7 +279,7 @@ class HeaderColumn(ft.Container):
         self.btn_last.disabled = self.btn_next.disabled = (dt.current_page >= dt.total_pages())
 
         # Solo llamar .update() si ya estamos montados en la Page
-        if do_update and self.page is not None:
+        if do_update and is_mounted(self):
             self.lbl_page_info.update()
             self.btn_first.update()
             self.btn_prev.update()
@@ -306,7 +307,7 @@ class DataTable(ft.DataTable):
         data,
         columns_names,
         color_text=ft.Colors.BLACK,
-        bgcolor=ft.Colors.WHITE10,
+        bgcolor=ft.Colors.WHITE_10,
         border_width=1,
         border_color=ft.Colors.BLACK,
         border_radius=5,
@@ -332,10 +333,10 @@ class DataTable(ft.DataTable):
             columns=cols,
             rows=rows,
             bgcolor=bgcolor,
-            border=ft.border.all(border_width, border_color),
+            border=ft.Border.all(border_width, border_color),
             border_radius=border_radius,
-            vertical_lines=ft.border.BorderSide(border_width, border_color),
-            horizontal_lines=ft.border.BorderSide(border_width, border_color),
+            vertical_lines=ft.BorderSide(border_width, border_color),
+            horizontal_lines=ft.BorderSide(border_width, border_color),
             sort_column_index=sort_index,
             sort_ascending=sort_as,
             expand=True,
@@ -380,7 +381,7 @@ class DataTable(ft.DataTable):
         if len(data) == 0:
             base_cells = [
                 ft.DataCell(
-                    ft.Container(content=ft.Text("-"), alignment=ft.alignment.center)
+                    ft.Container(content=ft.Text("-"), alignment=ft.Alignment.CENTER)
                 )
                 for _ in keys
             ]
@@ -462,11 +463,15 @@ class DataTable(ft.DataTable):
 class FBDataTable(ft.Container):
 
     def __init__(self, data, form, title="My DataTable",
-                 color_text=ft.Colors.BLACK, bgcolor=ft.Colors.WHITE10,
+                 color_text=ft.Colors.BLACK, bgcolor=ft.Colors.WHITE_10,
                  border_width=1, border_color=ft.Colors.BLACK,
                  border_radius=5, sort_as=True, sort_index=0,
                  actions: list = None, top_actions: list = None):
-        self.data= data
+        super().__init__(
+            expand=True,
+            alignment=ft.Alignment.TOP_CENTER,
+        )
+        self.data = data
         self.form = form
         self.actions = actions
         self.top_actions = top_actions
@@ -484,11 +489,6 @@ class FBDataTable(ft.Container):
                 self.table,
             ],
             spacing=5,
-        )
-        super().__init__(
-            expand=True,
-            content=self.content,
-            alignment=ft.alignment.top_center,
         )
 
     def reload(self, data):

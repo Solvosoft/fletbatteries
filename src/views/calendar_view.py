@@ -1,21 +1,17 @@
 import flet as ft
 from components.shared.calendar import Calendar
-import os
-from dotenv import load_dotenv
-load_dotenv()
-from supabase import create_client, Client
-url: str = os.environ.get("SUPABASE_URL")
-key: str = os.environ.get("SUPABASE_KEY")
-supabase: Client = create_client(url, key)
+from data.manager.calendar_event_manager import CalendarEventManager
+
 
 def build_view_calendar(page):
+    manager = CalendarEventManager()
 
     try:
-        response = supabase.table("Events").select("*").execute()
+        data = manager.get_all_events()
     except Exception as e:
-        print("Error fetching Events from Supabase:", e)
-        response = None
-    
+        print("Error fetching calendar events:", e)
+        data = []
+
     def event_to_dict(event):
         return {
             "title": event.title,
@@ -23,23 +19,19 @@ def build_view_calendar(page):
             "end_time": event.end_time.isoformat(),
             "description": event.description,
             "location": event.location,
-            "color": event.color
+            "color": event.color,
         }
 
     def add_event(event):
-        response = supabase.table("Events").insert(event_to_dict(event)).execute()
-        return response
+        return manager.create_event(event_to_dict(event))
 
     def remove_event(event_id):
-       supabase.table("Events").delete().eq("id", event_id).execute()
+        manager.delete_event(event_id)
 
     def update_event(event):
-        response = supabase.table("Events").update(event_to_dict(event)).eq("id", event.id).execute()
+        return manager.update_event(event.id, event_to_dict(event))
 
     return ft.Container(
-        content=Calendar(),
+        content=Calendar(data=data, add_event=add_event, remove_event=remove_event, update_event=update_event),
         expand=True,
     )
-
-if __name__ == "__main__":
-    ft.app(target=build_view_calendar)

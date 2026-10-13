@@ -1,5 +1,4 @@
 import flet as ft
-import datetime
 
 
 class DraggableModal:
@@ -24,7 +23,7 @@ class DraggableModal:
             content=self.modal_content,
             bgcolor=ft.Colors.WHITE,
             border_radius=10,
-            shadow=ft.BoxShadow(blur_radius=10, color=ft.Colors.BLACK26),
+            shadow=ft.BoxShadow(blur_radius=10, color=ft.Colors.BLACK_26),
             left=self.left,
             top=self.top,
             visible=self.visible,  
@@ -38,8 +37,10 @@ class DraggableModal:
 
     # Función para mover el modal
     def move_modal(self, e: ft.DragUpdateEvent):
-        self.modal.left += e.delta_x
-        self.modal.top += e.delta_y
+        if e.local_delta is None:
+            return
+        self.modal.left += e.local_delta.x
+        self.modal.top += e.local_delta.y
         self.modal.update()
 
     # Abrir el modal

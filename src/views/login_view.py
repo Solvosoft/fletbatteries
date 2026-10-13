@@ -11,7 +11,7 @@ def form_login(page: ft.Page):
                     controls=[
                         ft.TextField(label="Username", icon=ft.Icons.PERSON),
                         ft.TextField(label="Password", icon=ft.Icons.PASSWORD, password=True),
-                        ft.ElevatedButton("Login", on_click=lambda e: page.go("/")),
+                        ft.Button("Login", on_click=lambda e: page.navigate("/")),
                     ],
                     alignment=ft.MainAxisAlignment.CENTER,
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -19,7 +19,7 @@ def form_login(page: ft.Page):
                 padding=10,
             ),
         ),
-        alignment=ft.alignment.center,
+        alignment=ft.Alignment.CENTER,
         width=450,
         height=300,
     )
@@ -44,5 +44,5 @@ def build_view_login(page: ft.Page) -> ft.Container:
             alignment=ft.MainAxisAlignment.CENTER,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         ),
-        alignment=ft.alignment.center,
+        alignment=ft.Alignment.CENTER,
     )

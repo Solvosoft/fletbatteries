@@ -46,10 +46,17 @@ class PersonGroupManager:
         finally:
             self.dbm.close_session(db)
 
-    def get_by_id(self, group_id: int):
+    def get_by_id(self, group_id: int, eager: bool = False):
         db = self.dbm.get_session()
         try:
-            return db.query(PersonGroup).filter(PersonGroup.id == group_id).first()
+            query = db.query(PersonGroup)
+            if eager:
+                query = query.options(
+                    joinedload(PersonGroup.people),
+                    joinedload(PersonGroup.communities),
+                    joinedload(PersonGroup.country)
+                )
+            return query.filter(PersonGroup.id == group_id).first()
         finally:
             self.dbm.close_session(db)
 

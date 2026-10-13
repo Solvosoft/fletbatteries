@@ -3,15 +3,21 @@ from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.exc import SQLAlchemyError
 
 from data.manager.db_base import Base
+import settings
 
 class DatabaseManager:
+    _engines = {}
+
     def __init__(self):
-        # Database URL
-        self.db_url = f"sqlite:///template.db"
-        self.engine = create_engine(
-            self.db_url,
-            connect_args={"check_same_thread": False}  # Required for SQLite
-        )
+        # Database URL (FLETBATTERIES_DB_URL o template.db en la raíz del repo)
+        self.db_url = settings.DB_URL
+        # Un engine por URL, compartido entre managers
+        if self.db_url not in self._engines:
+            self._engines[self.db_url] = create_engine(
+                self.db_url,
+                connect_args={"check_same_thread": False}  # Required for SQLite
+            )
+        self.engine = self._engines[self.db_url]
 
         self.SessionLocal = sessionmaker(
             autocommit=False,

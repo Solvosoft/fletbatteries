@@ -40,17 +40,17 @@ def build_view_spinner(page: ft.Page) -> ft.Container:
                 ft.Container(
                     content=loader,
                     expand=True,
-                    alignment=ft.alignment.center,
+                    alignment=ft.Alignment.CENTER,
                 ),
                 ft.Divider(),
                 ft.Container(
                     content=spinner,
                     expand=True,
-                    alignment=ft.alignment.center,
+                    alignment=ft.Alignment.CENTER,
                 ),
             ],
-            alignment=ft.alignment.center,
+            alignment=ft.MainAxisAlignment.CENTER,
         ),
-        alignment=ft.alignment.center,
+        alignment=ft.Alignment.CENTER,
         padding=10,
     )

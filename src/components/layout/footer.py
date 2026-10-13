@@ -8,7 +8,7 @@ class Footer(ft.Container):
             bgcolor=ft.Colors.BLUE_GREY_900,
             content=ft.Row(
                 [
-                    ft.Image(src="src/assets/image/icon.png", width=32, height=32),
+                    ft.Image(src="image/icon.png", width=32, height=32),
                     ft.Text(
                         "© 2025 Solvo",
                         color=ft.Colors.WHITE,
@@ -25,5 +25,5 @@ class Footer(ft.Container):
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
             ),
-            padding=ft.padding.symmetric(horizontal=20),
+            padding=ft.Padding.symmetric(horizontal=20),
         )
