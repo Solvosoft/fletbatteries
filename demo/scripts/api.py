@@ -4,7 +4,7 @@ from typing import List, Optional
 from fastapi import FastAPI, HTTPException, Path, Query
 from pydantic import BaseModel
 
-from fletbatteries.api import crud_router
+from fletbatteries.api import auth_router, crud_router
 
 import settings  # noqa: F401  (configura la base de datos por defecto)
 from data.manager.abc_manager import ABCManager
@@ -49,6 +49,10 @@ app.include_router(crud_router(community_manager, prefix="/api/communities"))
 app.include_router(crud_router(person_group_manager, prefix="/api/person_groups"))
 app.include_router(crud_router(CustomerManager(), prefix="/api/customers"))
 app.include_router(crud_router(ProductManager(), prefix="/api/products"))
+
+# Endpoints protegidos con tokens: POST /api/auth/token y /api/secure/customers (permisos customers.*)
+app.include_router(auth_router(prefix="/api/auth"))
+app.include_router(crud_router(CustomerManager(), prefix="/api/secure/customers", auth=True, perms="customers"))
 
 
 # -----------------------------

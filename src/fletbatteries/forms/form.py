@@ -25,6 +25,20 @@ Modos de render (`render_type`): `plain` (columna), `horizontal` (etiqueta a la
 izquierda), `inline` (fila que se ajusta) y `grid` (filas y columnas según
 `grid_representation`; un nombre puede ser un campo o un método del formulario
 que devuelve un control).
+
+Grupos de campos (`fieldsets`), dibujados como secciones, pestañas o paneles
+colapsables (`fieldsets_style = "sections" | "tabs" | "collapsible"`):
+
+    class CustomerForm(Form):
+        fieldsets_style = "tabs"
+        fieldsets = [
+            ("Datos", {"fields": ["name", "email"], "description": "Datos básicos"}),
+            ("Dirección", {"fields": ["city", "address"], "grid": [[["city"], ["address"]]]}),
+        ]
+
+Cada grupo usa el `render_type` del formulario (o `grid` si trae `grid`). Los
+campos que no estén en ningún grupo se agregan al último. Al validar, el grupo
+con errores muestra un ícono y se abre.
 """
 
 import copy
@@ -38,6 +52,7 @@ from fletbatteries.utils import safe_update
 from fletbatteries.widgets.base import Widget
 
 RENDER_TYPES = ("plain", "horizontal", "inline", "grid")
+FIELDSET_STYLES = ("sections", "tabs", "collapsible")
 NON_FIELD_ERRORS = "__all__"
 
 
@@ -74,6 +89,8 @@ class BaseForm:
     title: Optional[str] = None
     render_type: str = "plain"
     grid_representation: Optional[list] = None
+    fieldsets: Optional[list] = None
+    fieldsets_style: str = "sections"
     label_width: int = 160
     inline_width: int = 240
     spacing: int = 12
@@ -107,6 +124,8 @@ class BaseForm:
         self._widgets: Optional[dict[str, Widget]] = None
         self._control: Optional[ft.Control] = None
         self._non_field_errors = ft.Text("", color=ft.Colors.ERROR, visible=False)
+        self._fieldset_parts: list[dict] = []
+        self._tabs: Optional[ft.Tabs] = None
 
     # ------------------------------------------------------------------
     # Widgets y valores
@@ -211,7 +230,11 @@ class BaseForm:
         self.show_errors()
         return not self.errors
 
-    def full_clean(self):
+    def full_clean(self, data: Optional[dict] = None):
+        """
+        Valida los valores de los widgets (o los de `data`, sin crear widgets) y
+        llena `cleaned_data` y `errors`.
+        """
         self.errors = {}
         self.cleaned_data = {}
         for name, field in self.fields.items():
@@ -219,7 +242,8 @@ class BaseForm:
                 self.cleaned_data[name] = self.get_initial_for_field(name, field)
                 continue
             try:
-                value = field.clean(self.widgets[name].value)
+                raw = data.get(name) if data is not None else self.widgets[name].value
+                value = field.clean(raw)
                 hook = getattr(self, f"clean_{name}", None)
                 if hook:
                     value = hook(value)
@@ -236,6 +260,17 @@ class BaseForm:
                     self.add_error(name, messages)
             else:
                 self.add_error(None, e.messages)
+
+    def validate_data(self, data: dict, from_text: bool = False) -> tuple[dict, dict]:
+        """
+        Valida un dict sin usar widgets (importaciones, APIs). Con
+        `from_text=True` los valores son texto (p. ej. celdas de un CSV) y se
+        convierten con `field.from_text`. Devuelve `(cleaned_data, errors)`.
+        """
+        if from_text:
+            data = {name: self.fields[name].from_text(value) for name, value in data.items() if name in self.fields}
+        self.full_clean(data=data)
+        return dict(self.cleaned_data), {k: list(v) for k, v in self.errors.items()}
 
     def save_data(self) -> dict:
         """`cleaned_data` lista para guardar: los archivos se copian a `upload_to` y se reemplazan por su nombre."""
@@ -272,6 +307,7 @@ class BaseForm:
         nfe = self.non_field_errors()
         self._non_field_errors.value = " ".join(nfe)
         self._non_field_errors.visible = bool(nfe)
+        self._mark_fieldset_errors()
         self.refresh()
 
     def clear_errors(self):
@@ -293,8 +329,11 @@ class BaseForm:
 
     def render(self, render_type: Optional[str] = None) -> ft.Control:
         render_type = render_type or self.render_type
-        body = getattr(self, f"as_{render_type}")()
+        body = self.as_fieldsets(render_type) if self.fieldsets else getattr(self, f"as_{render_type}")()
         return ft.Column([self._non_field_errors, body], spacing=self.spacing, tight=True)
+
+    def _names(self, names) -> list[str]:
+        return list(self.widgets) if names is None else [n for n in names if n in self.widgets]
 
     def _resolve(self, name: str) -> ft.Control:
         if name in self.fields:
@@ -304,12 +343,13 @@ class BaseForm:
             return method()
         raise KeyError(f"'{name}' no es un campo ni un método de {type(self).__name__}")
 
-    def as_plain(self) -> ft.Control:
-        return ft.Column(list(self.widgets.values()), spacing=self.spacing, tight=True)
+    def as_plain(self, names=None) -> ft.Control:
+        return ft.Column([self.widgets[n] for n in self._names(names)], spacing=self.spacing, tight=True)
 
-    def as_horizontal(self) -> ft.Control:
+    def as_horizontal(self, names=None) -> ft.Control:
         rows = []
-        for name, widget in self.widgets.items():
+        for name in self._names(names):
+            widget = self.widgets[name]
             label = widget.label
             widget.hide_label()
             widget.expand = True
@@ -329,19 +369,22 @@ class BaseForm:
             )
         return ft.Column(rows, spacing=self.spacing, tight=True)
 
-    def as_inline(self) -> ft.Control:
-        for widget in self.widgets.values():
+    def as_inline(self, names=None) -> ft.Control:
+        widgets = [self.widgets[n] for n in self._names(names)]
+        for widget in widgets:
             if widget.width is None:
                 widget.width = self.inline_width
-        return ft.Row(list(self.widgets.values()), wrap=True, spacing=self.spacing, run_spacing=self.spacing,
+        return ft.Row(widgets, wrap=True, spacing=self.spacing, run_spacing=self.spacing,
                       vertical_alignment=ft.CrossAxisAlignment.START)
 
-    def as_grid(self) -> ft.Control:
-        if not self.grid_representation:
-            return self.as_plain()
+    def as_grid(self, names=None, grid: Optional[list] = None) -> ft.Control:
+        grid = grid if grid is not None else self.grid_representation
+        if not grid:
+            return self.as_plain(names)
+        allowed = set(self._names(names))
         used = set()
         rows = []
-        for row in self.grid_representation:
+        for row in grid:
             columns = []
             for column in row:
                 names = [column] if isinstance(column, str) else list(column)
@@ -355,10 +398,133 @@ class BaseForm:
                     )
                 )
             rows.append(ft.ResponsiveRow(columns, spacing=self.spacing))
-        leftovers = [w for n, w in self.widgets.items() if n not in used]
+        leftovers = [w for n, w in self.widgets.items() if n not in used and n in allowed]
         if leftovers:
             rows.append(ft.Column(leftovers, spacing=self.spacing))
         return ft.Column(rows, spacing=self.spacing, tight=True)
+
+    # ------------------------------------------------------------------
+    # Fieldsets (secciones, pestañas o paneles colapsables)
+    # ------------------------------------------------------------------
+    def fieldset_groups(self) -> list[tuple[str, dict, list[str]]]:
+        """`[(título, opciones, campos)]`; los campos sin grupo van al último."""
+        groups = []
+        used = set()
+        for title, options in self.fieldsets or []:
+            options = dict(options or {})
+            names = [n for n in options.get("fields", []) if n in self.fields or callable(getattr(self, n, None))]
+            used.update(names)
+            groups.append((title, options, names))
+        leftovers = [n for n in self.fields if n not in used]
+        if leftovers:
+            if groups:
+                title, options, names = groups[-1]
+                groups[-1] = (title, options, names + leftovers)
+            else:
+                groups.append(("", {}, leftovers))
+        return groups
+
+    def _render_group(self, options: dict, names: list[str], render_type: str) -> ft.Control:
+        if options.get("grid"):
+            return self.as_grid(names, grid=options["grid"])
+        if render_type == "grid":
+            return self.as_plain(names)
+        return getattr(self, f"as_{render_type}")(names)
+
+    def as_fieldsets(self, render_type: Optional[str] = None) -> ft.Control:
+        render_type = render_type or self.render_type
+        style = self.fieldsets_style
+        if style not in FIELDSET_STYLES:
+            raise ValueError(f"fieldsets_style debe ser uno de {FIELDSET_STYLES}")
+        self._fieldset_parts = []
+        for index, (title, options, names) in enumerate(self.fieldset_groups()):
+            body = self._render_group(options, names, render_type)
+            if options.get("description"):
+                body = ft.Column([ft.Text(options["description"], size=12, color=ft.Colors.ON_SURFACE_VARIANT), body],
+                                 spacing=8, tight=True)
+            error_icon = ft.Icon(ft.Icons.ERROR_OUTLINE, color=ft.Colors.ERROR, size=16, visible=False)
+            self._fieldset_parts.append({"title": title, "names": names, "body": body, "error_icon": error_icon,
+                                         "options": options, "index": index})
+        if style == "tabs":
+            return self._as_tabs()
+        if style == "collapsible":
+            return self._as_collapsible()
+        return self._as_sections()
+
+    def _group_title(self, part: dict, size: int = 15) -> ft.Control:
+        return ft.Row([ft.Text(part["title"], size=size, weight=ft.FontWeight.W_600), part["error_icon"]],
+                      spacing=6, tight=True, vertical_alignment=ft.CrossAxisAlignment.CENTER)
+
+    def _as_sections(self) -> ft.Control:
+        sections = []
+        for part in self._fieldset_parts:
+            content = [self._group_title(part), part["body"]] if part["title"] else [part["body"]]
+            sections.append(ft.Container(
+                content=ft.Column(content, spacing=10, tight=True),
+                padding=12,
+                border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
+                border_radius=8,
+                key=f"fieldset-{part['index']}",
+            ))
+        return ft.Column(sections, spacing=self.spacing, tight=True)
+
+    def _as_collapsible(self) -> ft.Control:
+        tiles = []
+        for part in self._fieldset_parts:
+            tile = ft.ExpansionTile(
+                title=self._group_title(part),
+                expanded=part["options"].get("expanded", part["index"] == 0),
+                controls=[ft.Container(part["body"], padding=ft.Padding.only(left=12, right=12, bottom=12))],
+                key=f"fieldset-{part['index']}",
+            )
+            part["tile"] = tile
+            tiles.append(tile)
+        return ft.Column(tiles, spacing=4, tight=True)
+
+    def _as_tabs(self) -> ft.Control:
+        for part in self._fieldset_parts:
+            part["container"] = ft.Container(part["body"], padding=ft.Padding.only(top=12),
+                                             visible=part["index"] == 0, key=f"fieldset-{part['index']}")
+        tab_bar = ft.TabBar(tabs=[ft.Tab(label=self._group_title(p, size=14), key=f"fieldset-tab-{p['index']}")
+                                  for p in self._fieldset_parts])
+        self._tabs = ft.Tabs(
+            length=len(self._fieldset_parts),
+            selected_index=0,
+            on_change=lambda e: self.select_fieldset(int(e.control.selected_index)),
+            content=ft.Column([tab_bar, *[p["container"] for p in self._fieldset_parts]], tight=True, spacing=0),
+        )
+        return self._tabs
+
+    def select_fieldset(self, index: int):
+        """Muestra el grupo `index` (pestaña o panel)."""
+        for part in self._fieldset_parts:
+            if "container" in part:
+                part["container"].visible = part["index"] == index
+            if "tile" in part and part["index"] == index:
+                part["tile"].expanded = True
+        if self._tabs is not None:
+            self._tabs.selected_index = index
+        self.refresh()
+
+    def _mark_fieldset_errors(self):
+        if not self._fieldset_parts:
+            return
+        first = None
+        for part in self._fieldset_parts:
+            has_error = any(n in self.errors for n in part["names"])
+            part["error_icon"].visible = has_error
+            if has_error and first is None:
+                first = part["index"]
+        if first is None:
+            return
+        if self._tabs is not None:
+            current = self._tabs.selected_index
+            if not self._fieldset_parts[current]["error_icon"].visible:
+                self.select_fieldset(first)
+        else:
+            for part in self._fieldset_parts:
+                if "tile" in part and part["error_icon"].visible:
+                    part["tile"].expanded = True
 
     # ------------------------------------------------------------------
     # Compatibilidad con los formularios JSON

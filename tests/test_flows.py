@@ -374,3 +374,36 @@ async def test_markdown_preview_toggle(logged_app):
     assert notes.preview.value == "# Hola" and notes.preview in notes.preview_box.content.controls
     app.assert_no_errors()
 
+
+
+async def test_password_reset_page_without_session(app):
+    """La demo registra /password-reset (sin login ni layout) y el login enlaza a ella."""
+    await app.click(app.find_one(key="login_forgot"))
+    assert app.page.route == "/password-reset"
+    assert app.find_one(key="reset_identifier")
+    app.assert_no_errors()
+
+
+async def test_wizard_view(logged_app):
+    app = logged_app
+    await app.goto("/wizard")
+    await app.click(app.find_one(key="fieldsets_validate"))
+    assert app.find_one(key="wizard_result").value == "Hay errores"
+    await app.fill(app.find_one(key="name", root=app.find_one(key="wizard_body")).field, "Ana")
+    await app.fill(app.find_one(key="email", root=app.find_one(key="wizard_body")).field, "ana@x.com")
+    await app.click(app.find_one(key="wizard_next"))
+    await app.fill(app.find_one(key="city").field, "Cartago")
+    await app.click(app.find_one(key="wizard_next"))
+    assert app.find_one(key="wizard_result").value == "Wizard terminado: Ana"
+    app.assert_no_errors()
+
+
+async def test_language_switch(logged_app):
+    app = logged_app
+    await app.goto("/notes")
+    assert app.find(text="Agregar")
+    await app.click(app.find_one(key="language-en"))
+    assert app.find(text="Add")
+    await app.click(app.find_one(key="language-es"))
+    assert app.find(text="Agregar")
+    app.assert_no_errors()

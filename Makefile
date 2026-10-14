@@ -1,4 +1,4 @@
-.PHONY: help setup sync run build-linux run-build web api init_db reset_db update_schema test screenshots lint doctor requirements clean list
+.PHONY: help setup sync run build-linux run-build web api init_db reset_db update_schema makemigrations migrate test screenshots lint doctor requirements clean list
 
 UV ?= uv
 PYTHON_VERSION ?= 3.13
@@ -68,8 +68,14 @@ init_db: ## Crear las tablas que falten en la base de datos
 reset_db: ## Eliminar y volver a crear todas las tablas (pierdes datos)
 	$(SRC_ENV) $(RUN) python demo/scripts/init_db.py reset_db
 
-update_schema: ## Actualizar esquema de la base de datos
+update_schema: ## Aplicar las migraciones pendientes y los datos iniciales
 	$(SRC_ENV) $(RUN) python demo/scripts/init_db.py update_schema
+
+makemigrations: ## Crear una migración a partir de los cambios en los modelos (MSG="descripción")
+	$(RUN) fletbatteries makemigrations -m "$(or $(MSG),auto)"
+
+migrate: ## Aplicar las migraciones pendientes (fletbatteries migrate)
+	$(RUN) fletbatteries migrate
 
 ##--------------------------------------------------------
 ## Calidad
@@ -82,7 +88,7 @@ screenshots: ## Capturas PNG de cada ruta en screenshots/ (ROUTES="/calendar /ch
 	$(RUN) python tools/screenshots.py $(ROUTES)
 
 lint: ## Revisar errores con ruff
-	$(RUN) ruff check src demo tests tools
+	$(RUN) ruff check src demo tests tests_lib tools
 
 doctor: ## Diagnóstico del entorno de Flet
 	$(RUN) flet doctor

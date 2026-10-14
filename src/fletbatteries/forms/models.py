@@ -9,6 +9,10 @@
             widgets = {"phone": PhoneNumberMaskInput}
 
 Los campos declarados en la clase reemplazan a los generados.
+
+Las llaves foráneas (`country_id`) se convierten en `ModelChoiceField` y las
+relaciones de lista que se nombren en `fields` (`tags`) en
+`ModelMultipleChoiceField`; ambos buscan en el modelo relacionado.
 """
 
 import enum
@@ -21,14 +25,38 @@ from fletbatteries.forms.form import BaseForm, DeclarativeFieldsMetaclass
 from fletbatteries.widgets.inputs import Textarea
 
 
-def formfield_for_column(column: sa.Column, **overrides) -> Optional[f.Field]:
+def related_source(target_model):
+    """`SQLAlchemySource` de un modelo relacionado (para los selects de FK y M2M)."""
+    from fletbatteries.data.manager import BaseManager
+    from fletbatteries.data.source import SQLAlchemySource
+
+    return SQLAlchemySource(BaseManager(target_model))
+
+
+def _model_for_table(model, table):
+    for mapper in sa.inspect(model).registry.mappers:
+        if mapper.local_table is table:
+            return mapper.class_
+    return None
+
+
+def formfield_for_column(column: sa.Column, model=None, **overrides) -> Optional[f.Field]:
     """Crea el `Field` que corresponde a una columna (o `None` si no se puede editar)."""
     t = column.type
     required = not column.nullable and column.default is None and column.server_default is None
     kwargs = {"required": required}
     name = column.name.lower()
+    target = None
+    if model is not None and column.foreign_keys:
+        target = _model_for_table(model, next(iter(column.foreign_keys)).column.table)
 
-    if isinstance(t, sa.Enum):
+    if target is not None:
+        field = f.ModelChoiceField(source=related_source(target), **kwargs)
+        if name.endswith("_id"):
+            field.label = name[:-3].replace("_", " ").capitalize()
+    elif isinstance(t, sa.Uuid):
+        field = f.CharField(max_length=36, **kwargs)
+    elif isinstance(t, sa.Enum):
         if t.enum_class is not None:
             choices = [(m.name if isinstance(m, enum.Enum) else m, getattr(m, "value", m)) for m in t.enum_class]
         else:
@@ -66,23 +94,40 @@ def formfield_for_column(column: sa.Column, **overrides) -> Optional[f.Field]:
     return field
 
 
+def formfield_for_relationship(rel, **overrides) -> Optional[f.Field]:
+    """Relación de lista (muchos-a-muchos / uno-a-muchos) -> `ModelMultipleChoiceField`."""
+    if not rel.uselist:
+        return None
+    field = f.ModelMultipleChoiceField(source=related_source(rel.mapper.class_), required=False)
+    for key, value in overrides.items():
+        if value is not None:
+            setattr(field, key, value)
+    return field
+
+
 def fields_for_model(model, fields=None, exclude=None, widgets=None, labels=None, help_texts=None) -> dict:
     result = {}
-    columns = {c.key: c for c in sa.inspect(model).columns}
+    mapper = sa.inspect(model)
+    columns = {c.key: c for c in mapper.columns}
+    relationships = mapper.relationships
     names = fields if fields not in (None, "__all__") else list(columns)
     for name in names:
         if exclude and name in exclude:
             continue
         column = columns.get(name)
+        overrides = {"label": (labels or {}).get(name), "help_text": (help_texts or {}).get(name)}
         if column is None:
+            # Las relaciones solo se incluyen si se nombran en `fields`
+            if name in relationships:
+                field = formfield_for_relationship(relationships[name], **overrides)
+                if field is not None:
+                    if widgets and name in widgets:
+                        field.widget = widgets[name]
+                    result[name] = field
             continue
         if column.primary_key and fields in (None, "__all__"):
             continue
-        field = formfield_for_column(
-            column,
-            label=(labels or {}).get(name),
-            help_text=(help_texts or {}).get(name),
-        )
+        field = formfield_for_column(column, model=model, **overrides)
         if field is None:
             continue
         if widgets and name in widgets:

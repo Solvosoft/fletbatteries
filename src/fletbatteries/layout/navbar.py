@@ -41,15 +41,35 @@ class Navbar:
         ]
         self.top_menu.visible = bool(items)
 
-    def set_user(self, user, profile_route: Optional[str] = None):
-        if user is None:
+    def set_user(self, user, profile_route: Optional[str] = None, links: Sequence[tuple] = (),
+                 languages: Sequence[tuple] = (), language: Optional[str] = None, on_language=None):
+        """
+        Menú de usuario: perfil, `links` extra `(título, ruta, ícono)`, selector
+        de idioma (`languages=[("es", "Español"), ...]`) y salir.
+        """
+        if user is None and not languages:
             self.user_menu.visible = False
             self.user_menu.items = []
             return
-        items = [ft.PopupMenuItem(content=user.display_name, icon=ft.Icons.PERSON, disabled=profile_route is None,
-                                  on_click=(lambda e: self.on_navigate(profile_route)) if profile_route else None)]
-        if self.on_logout:
+        items = []
+        if user is not None:
+            items.append(ft.PopupMenuItem(content=user.display_name, icon=ft.Icons.PERSON,
+                                          disabled=profile_route is None,
+                                          on_click=(lambda e: self.on_navigate(profile_route)) if profile_route
+                                          else None))
+            for title, route, icon in links:
+                items.append(ft.PopupMenuItem(content=title, icon=icon, key=f"user-menu-{route}",
+                                              on_click=lambda e, r=route: self.on_navigate(r)))
+        if languages and on_language is not None:
+            items.append(ft.PopupMenuItem())  # separador
+            for code, label in languages:
+                items.append(ft.PopupMenuItem(content=label, checked=code == language, key=f"language-{code}",
+                                              on_click=lambda e, c=code: on_language(c)))
+        if user is not None and self.on_logout:
+            if languages:
+                items.append(ft.PopupMenuItem())
             items.append(ft.PopupMenuItem(content=_("Logout"), icon=ft.Icons.LOGOUT, key="logout",
                                           on_click=lambda e: self.on_logout()))
         self.user_menu.items = items
+        self.user_menu.icon = ft.Icons.ACCOUNT_CIRCLE if user is not None else ft.Icons.LANGUAGE
         self.user_menu.visible = True

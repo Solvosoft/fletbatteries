@@ -8,6 +8,8 @@ servidor (equivalente a la integración de DataTables de djgentelella).
         filter_form=CustomerFilterForm,             # opcional
         actions=[RowAction(ft.Icons.EDIT, "Editar", on_click=edit)],
         top_actions=[ft.Button(content="Nuevo", on_click=create)],
+        bulk_actions=[BulkAction("archive", "Archivar", ft.Icons.ARCHIVE, run=archive_ids)],
+        exportable=True,                            # botón "Exportar CSV"
     )
 
 Los filtros se arman a partir de un `Form`: texto -> `__icontains`, rangos ->
@@ -15,15 +17,18 @@ Los filtros se arman a partir de un `Form`: texto -> `__icontains`, rangos ->
 filtros puede definir `lookups = {"campo": "gte"}` para cambiarlo.
 """
 
+import asyncio
 import dataclasses
+import datetime
 import logging
+from pathlib import Path
 from typing import Any, Callable, Iterable, Optional, Sequence
 
 import flet as ft
 
 from fletbatteries.data.manager import EMPTY, Query
 from fletbatteries.i18n import _
-from fletbatteries.utils import safe_update
+from fletbatteries.utils import close_dialog, get_page, notify, safe_update
 
 log = logging.getLogger(__name__)
 
@@ -71,6 +76,22 @@ class RowAction:
             key=f"{self.name}-{item.get('id')}" if self.name else None,
             on_click=lambda e, it=item: self.on_click(it),
         )
+
+
+@dataclasses.dataclass
+class BulkAction:
+    """
+    Acción sobre los registros seleccionados. `run(ids)` puede devolver un
+    mensaje para mostrar (o `None`); si lanza una excepción se muestra como error.
+    """
+
+    name: str
+    label: str
+    run: Callable[[list], Any]
+    icon: Any = None
+    confirm: bool = True
+    confirm_text: Optional[str] = None
+    color: Any = None
 
 
 # ----------------------------------------------------------------------
@@ -174,6 +195,11 @@ class DataTable(ft.Container):
         order_by: Optional[str] = None,
         base_filters: Optional[dict] = None,
         auto_load: bool = True,
+        bulk_actions: Sequence[BulkAction] = (),
+        exportable: bool = False,
+        export_columns: Optional[Iterable] = None,
+        export_name: Optional[str] = None,
+        search_delay: float = 0.35,
         **kwargs,
     ):
         kwargs.setdefault("expand", True)
@@ -189,10 +215,16 @@ class DataTable(ft.Container):
         self.search = ""
         self.order_by = order_by
         self.filters: dict = {}
-        self.selectable = selectable
-        self.selected_ids: set = set()
+        self.bulk_actions = list(bulk_actions)
+        self.selectable = selectable or bool(self.bulk_actions)
+        # Selección (se conserva al cambiar de página): id -> registro
+        self.selected_rows: dict = {}
         self.on_selection_change = on_selection_change
         self.filter_form = filter_form() if isinstance(filter_form, type) else filter_form
+        self.export_columns = self._build_columns(export_columns, form) if export_columns is not None else None
+        self.export_name = export_name or title or "export"
+        self.search_delay = search_delay
+        self._search_generation = 0
 
         # --- Barra superior
         self.title_text = ft.Text(title or "", size=18, weight=ft.FontWeight.BOLD, visible=bool(title))
@@ -210,11 +242,41 @@ class DataTable(ft.Container):
             icon=ft.Icons.FILTER_LIST, tooltip=_("Filter"), visible=self.filter_form is not None,
             on_click=self.toggle_filters,
         )
+        self.export_button = ft.IconButton(
+            icon=ft.Icons.FILE_DOWNLOAD_OUTLINED, tooltip=_("Export CSV"), visible=exportable,
+            on_click=self.export, key="datatable_export",
+        )
         self.selection_text = ft.Text("", visible=False)
         toolbar = ft.Row(
             [self.title_text, ft.Container(expand=True), self.selection_text, self.search_field, self.filter_button,
-             *top_actions],
+             self.export_button, *top_actions],
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
+        )
+
+        # --- Barra de acciones masivas (visible con registros seleccionados)
+        self.bulk_text = ft.Text("", weight=ft.FontWeight.W_500, key="datatable_bulk_count")
+        self.select_all_button = ft.TextButton(on_click=self.select_all_matching, key="datatable_select_all")
+        self.bulk_bar = ft.Container(
+            visible=False,
+            padding=ft.Padding.symmetric(horizontal=10, vertical=4),
+            border_radius=8,
+            bgcolor=ft.Colors.SECONDARY_CONTAINER,
+            content=ft.Row(
+                [
+                    self.bulk_text,
+                    self.select_all_button,
+                    ft.Container(expand=True),
+                    *[
+                        ft.TextButton(a.label, icon=a.icon, key=f"bulk-{a.name}",
+                                      style=ft.ButtonStyle(color=a.color) if a.color else None,
+                                      on_click=lambda e, a=a: self.run_bulk_action(a))
+                        for a in self.bulk_actions
+                    ],
+                    ft.TextButton(_("Clear selection"), icon=ft.Icons.CLEAR, on_click=self.clear_selection,
+                                  key="datatable_clear_selection"),
+                ],
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
         )
 
         # --- Panel de filtros
@@ -276,6 +338,7 @@ class DataTable(ft.Container):
             [
                 toolbar,
                 self.filter_panel,
+                self.bulk_bar,
                 self.error_text,
                 ft.Row([self.table], scroll=ft.ScrollMode.AUTO),
                 pagination,
@@ -360,7 +423,7 @@ class DataTable(ft.Container):
                 cells.append(ft.DataCell(ft.Row(buttons, spacing=0, tight=True)))
             row = ft.DataRow(cells=cells, data=item.get("id"))
             if self.selectable:
-                row.selected = item.get("id") in self.selected_ids
+                row.selected = item.get("id") in self.selected_rows
                 row.on_select_change = lambda e, pk=item.get("id"): self._toggle_selected(pk, e.data)
             rows.append(row)
         if not rows:
@@ -380,8 +443,13 @@ class DataTable(ft.Container):
         self.page_info.value = info
         self.btn_first.disabled = self.btn_prev.disabled = self.page_number <= 1
         self.btn_last.disabled = self.btn_next.disabled = self.page_number >= self.pages
-        self.selection_text.visible = self.selectable and bool(self.selected_ids)
-        self.selection_text.value = _("{count} selected", count=len(self.selected_ids))
+        count = len(self.selected_rows)
+        self.selection_text.visible = self.selectable and not self.bulk_actions and bool(count)
+        self.selection_text.value = _("{count} selected", count=count)
+        self.bulk_bar.visible = bool(self.bulk_actions) and bool(count)
+        self.bulk_text.value = _("{count} selected", count=count)
+        self.select_all_button.visible = count < self.total
+        self.select_all_button.content = _("Select all {total}", total=self.total)
 
     # ------------------------------------------------------------------
     # Eventos
@@ -396,6 +464,24 @@ class DataTable(ft.Container):
         self.load()
 
     def _on_search(self, e):
+        """Al escribir espera `search_delay` antes de consultar; Enter busca de inmediato."""
+        if e is None or getattr(e, "name", "") == "submit" or self.search_delay <= 0:
+            return self._apply_search()
+        self._search_generation += 1
+        generation = self._search_generation
+        page = get_page(self)
+
+        async def later():
+            await asyncio.sleep(self.search_delay)
+            if generation == self._search_generation:
+                self._apply_search()
+
+        if page is None:
+            return self._apply_search()
+        page.run_task(later)
+
+    def _apply_search(self):
+        self._search_generation += 1
         value = self.search_field.value or ""
         if value != self.search:
             self.search = value
@@ -440,17 +526,132 @@ class DataTable(ft.Container):
         self.page_number = 1
         self.load()
 
+    # ------------------------------------------------------------------
+    # Selección y acciones masivas
+    # ------------------------------------------------------------------
+    @property
+    def selected_ids(self) -> set:
+        return set(self.selected_rows)
+
+    @property
+    def selected_items(self) -> list[dict]:
+        """Registros seleccionados, incluidos los de otras páginas."""
+        return list(self.selected_rows.values())
+
     def _toggle_selected(self, pk, selected):
         if str(selected).lower() == "true" or selected is True:
-            self.selected_ids.add(pk)
+            item = next((i for i in self.items if i.get("id") == pk), {"id": pk})
+            self.selected_rows[pk] = item
         else:
-            self.selected_ids.discard(pk)
+            self.selected_rows.pop(pk, None)
+        self._selection_changed()
+
+    def _selection_changed(self):
         self._render_rows()
         self._render_pagination()
         safe_update(self)
         if self.on_selection_change:
             self.on_selection_change(self.selected_items)
 
-    @property
-    def selected_items(self) -> list[dict]:
-        return [i for i in self.items if i.get("id") in self.selected_ids]
+    def select(self, ids: Iterable):
+        """Selecciona por id (los registros se completan con los de la página actual)."""
+        by_id = {i.get("id"): i for i in self.items}
+        for pk in ids:
+            self.selected_rows[pk] = by_id.get(pk, {"id": pk})
+        self._selection_changed()
+
+    def select_all_matching(self, e=None):
+        """Selecciona todos los registros que cumplen la búsqueda y los filtros (todas las páginas)."""
+        query = dataclasses.replace(self.query(), page=1, size=0)
+        try:
+            items = self.source.list(query).items
+        except Exception as ex:
+            log.exception("Error seleccionando todos los registros")
+            self._show_error(str(ex))
+            return
+        self.selected_rows = {i.get("id"): i for i in items}
+        self._selection_changed()
+
+    def clear_selection(self, e=None):
+        self.selected_rows = {}
+        self._selection_changed()
+
+    def run_bulk_action(self, action: BulkAction, confirmed: bool = False):
+        ids = list(self.selected_rows)
+        if not ids:
+            return
+        page = get_page(self)
+        if action.confirm and not confirmed and page is not None:
+            dialog = ft.AlertDialog(
+                modal=True,
+                title=ft.Text(action.label),
+                content=ft.Text(action.confirm_text or _("Apply \"{action}\" to {count} records?",
+                                                         action=action.label, count=len(ids))),
+            )
+
+            def accept(e):
+                close_dialog(dialog)
+                self.run_bulk_action(action, confirmed=True)
+
+            dialog.actions = [
+                ft.TextButton(_("Cancel"), on_click=lambda e: close_dialog(dialog)),
+                ft.Button(_("Confirm"), on_click=accept, key="bulk_confirm"),
+            ]
+            page.show_dialog(dialog)
+            return
+        try:
+            message = action.run(ids)
+            success = True
+        except Exception as ex:
+            log.exception("Error en la acción masiva %s", action.name)
+            message, success = str(ex) or _("Sorry, an error occurred"), False
+        if success:
+            self.selected_rows = {}
+        self.load()
+        self._selection_changed()
+        if message and page is not None:
+            notify(page, str(message), success=success)
+
+    def _show_error(self, message: str):
+        self.error_text.value = message or _("Sorry, an error occurred")
+        self.error_text.visible = True
+        safe_update(self)
+
+    # ------------------------------------------------------------------
+    # Exportar
+    # ------------------------------------------------------------------
+    def export_csv(self) -> bytes:
+        """CSV con todos los registros de la consulta actual (búsqueda, filtros y orden)."""
+        from fletbatteries.data.export import export_csv
+
+        query = dataclasses.replace(self.query(), page=1)
+        return export_csv(self.source, query, self.export_columns or self.columns)
+
+    def export_file_name(self) -> str:
+        stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M")
+        safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in str(self.export_name)).strip("_")
+        return f"{safe or 'export'}-{stamp}.csv"
+
+    async def export(self, e=None):
+        page = get_page(self)
+        try:
+            data = self.export_csv()
+        except Exception as ex:
+            log.exception("Error exportando la tabla")
+            self._show_error(str(ex))
+            return
+        await save_bytes(page, self.export_file_name(), data)
+
+
+async def save_bytes(page, file_name: str, data: bytes, extensions: Sequence[str] = ("csv",)) -> Optional[str]:
+    """Guarda `data` con el diálogo "Guardar como" (en web se descarga)."""
+    picker = ft.FilePicker()
+    path = await picker.save_file(file_name=file_name, src_bytes=data, file_type=ft.FilePickerFileType.CUSTOM,
+                                  allowed_extensions=list(extensions))
+    if path and page is not None and not page.web:
+        # En escritorio el cliente devuelve la ruta; se escribe aquí por si no lo hizo
+        try:
+            Path(path).write_bytes(data)
+        except OSError:
+            log.exception("No se pudo escribir %s", path)
+    return path

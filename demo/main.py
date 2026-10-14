@@ -36,6 +36,7 @@ app = FletBatteriesApp(
     footer=Footer("© 2025 Solvo", logo="image/icon.png", links=[("Solvo", "https://solvosoft.com/es/")]),
     assets_dir=ASSETS_DIR,
     initial_route=INITIAL_ROUTE,
+    languages=[("es", "Español"), ("en", "English")],
 )
 register_views(app)
 

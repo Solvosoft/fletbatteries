@@ -10,8 +10,13 @@
     page = manager.list(Query(page=1, size=10, search="ana", filters={"active": True}, order_by="-name"))
     page.items, page.total
 
-Filtros: `campo`, `campo__icontains`, `campo__in`, `campo__gte`, `campo__lte`,
-`campo__range` (tupla). Los valores vacíos se ignoran.
+Filtros (`campo__operador`; los valores vacíos se ignoran):
+
+    exact (o sin operador), iexact, ne, contains, icontains, startswith,
+    istartswith, endswith, iendswith, in, gt, gte, lt, lte, range (tupla), isnull
+
+Un filtro puede pasar por una relación: `country__name__icontains="cos"`.
+Para condiciones "o": `{"__or__": [{"name__icontains": "ana"}, {"email__icontains": "ana"}]}`.
 """
 
 from __future__ import annotations
@@ -124,32 +129,34 @@ class BaseManager(Generic[M]):
         return attr
 
     def apply_filters(self, stmt, filters: Optional[dict]):
+        for clause in self.filter_clauses(filters):
+            stmt = stmt.where(clause)
+        return stmt
+
+    def filter_clauses(self, filters: Optional[dict], model=None) -> list:
+        """Condiciones SQLAlchemy para un dict de filtros (ver la documentación del módulo)."""
+        model = model or self.model
+        clauses = []
         for key, value in (filters or {}).items():
+            if key == "__or__":
+                options = [sa.and_(*self.filter_clauses(f, model)) for f in value or [] if f]
+                if options:
+                    clauses.append(sa.or_(*options))
+                continue
             if value in EMPTY:
                 continue
-            name, _sep, op = key.partition("__")
-            column = self._column(name)
-            if op in ("", "exact"):
-                stmt = stmt.where(column == value)
-            elif op == "icontains":
-                stmt = stmt.where(column.ilike(f"%{value}%"))
-            elif op == "in":
-                stmt = stmt.where(column.in_(list(value)))
-            elif op == "gte":
-                stmt = stmt.where(column >= value)
-            elif op == "lte":
-                stmt = stmt.where(column <= value)
-            elif op == "range":
-                start, end = value
-                if isinstance(start, date) and not isinstance(start, datetime) and _is_datetime(column):
-                    start = datetime.combine(start, datetime.min.time())
-                    end = datetime.combine(end, datetime.max.time())
-                stmt = stmt.where(column.between(start, end))
-            elif op == "isnull":
-                stmt = stmt.where(column.is_(None) if value else column.is_not(None))
-            else:
-                raise ValueError(f"Operador de filtro no soportado: {op}")
-        return stmt
+            name, _sep, rest = key.partition("__")
+            relationships = sa.inspect(model).relationships
+            if name in relationships and rest and rest.split("__")[0] not in LOOKUPS:
+                rel = relationships[name]
+                inner = sa.and_(*self.filter_clauses({rest: value}, rel.mapper.class_))
+                clauses.append(getattr(model, name).any(inner) if rel.uselist else getattr(model, name).has(inner))
+                continue
+            attr = getattr(model, name, None)
+            if attr is None:
+                raise ValueError(f"{model.__name__} no tiene el campo '{name}'")
+            clauses.append(lookup_clause(attr, rest, value))
+        return clauses
 
     def apply_search(self, stmt, search: str):
         search = (search or "").strip()
@@ -220,10 +227,13 @@ class BaseManager(Generic[M]):
             setattr(obj, key, value)
 
     def validate_unique(self, s: Session, obj, data: dict):
+        """Lanza `ValidationError({campo: mensaje})` si un valor de `unique_fields` ya existe."""
+        from fletbatteries.forms.validators import ValidationError
         from fletbatteries.i18n import _
 
         pk_col = self._column(self.pk_name)
         current_pk = getattr(obj, self.pk_name, None)
+        errors = {}
         for name in self.unique_fields:
             if name not in data or data[name] in EMPTY:
                 continue
@@ -231,7 +241,9 @@ class BaseManager(Generic[M]):
             if current_pk is not None:
                 stmt = stmt.where(pk_col != current_pk)
             if s.scalar(stmt.limit(1)) is not None:
-                raise ValueError(_("{field} \"{value}\" already exists.", field=name, value=data[name]))
+                errors[name] = [_("{field} \"{value}\" already exists.", field=name, value=data[name])]
+        if errors:
+            raise ValidationError(errors)
 
     def before_save(self, s: Session, obj, data: dict, created: bool):
         """Hook antes de guardar (dentro de la transacción)."""
@@ -286,6 +298,32 @@ class BaseManager(Generic[M]):
     def perform_delete(self, s: Session, obj):
         s.delete(obj)
 
+    # ------------------------------------------------------------------
+    # Operaciones masivas (registro por registro: se ejecutan los hooks,
+    # el historial y la papelera)
+    # ------------------------------------------------------------------
+    def delete_many(self, pks: Iterable) -> BulkResult:
+        result = BulkResult()
+        for pk in pks:
+            try:
+                if self.delete(pk):
+                    result.done.append(pk)
+                else:
+                    result.failed[pk] = "not found"
+            except Exception as ex:  # noqa: BLE001 - se informa por registro
+                result.failed[pk] = str(ex) or type(ex).__name__
+        return result
+
+    def update_many(self, pks: Iterable, **data) -> BulkResult:
+        result = BulkResult()
+        for pk in pks:
+            try:
+                self.update(pk, **data)
+                result.done.append(pk)
+            except Exception as ex:  # noqa: BLE001 - se informa por registro
+                result.failed[pk] = str(ex) or type(ex).__name__
+        return result
+
     def _load(self, obj):
         """Carga las relaciones antes de cerrar la sesión para usarlas después."""
         for rel in self.mapper.relationships:
@@ -313,6 +351,67 @@ class BaseManager(Generic[M]):
             if value:
                 return str(value)
         return str(getattr(obj, self.pk_name, obj))
+
+
+@dataclasses.dataclass
+class BulkResult:
+    """Resultado de una operación masiva: ids procesados y errores por id."""
+
+    done: list = dataclasses.field(default_factory=list)
+    failed: dict = dataclasses.field(default_factory=dict)
+
+    @property
+    def count(self) -> int:
+        return len(self.done)
+
+
+LOOKUPS = ("exact", "iexact", "ne", "contains", "icontains", "startswith", "istartswith", "endswith", "iendswith",
+           "in", "gt", "gte", "lt", "lte", "range", "isnull")
+
+
+def lookup_clause(column, op: str, value):
+    """Condición SQLAlchemy para `columna <op> valor`."""
+    if op in ("", "exact"):
+        return column == value
+    if op == "iexact":
+        return sa.func.lower(column) == str(value).lower()
+    if op == "ne":
+        return column != value
+    if op == "contains":
+        return column.contains(value, autoescape=True)
+    if op == "icontains":
+        return column.ilike(f"%{_escape_like(value)}%", escape="\\")
+    if op == "startswith":
+        return column.startswith(value, autoescape=True)
+    if op == "istartswith":
+        return column.ilike(f"{_escape_like(value)}%", escape="\\")
+    if op == "endswith":
+        return column.endswith(value, autoescape=True)
+    if op == "iendswith":
+        return column.ilike(f"%{_escape_like(value)}", escape="\\")
+    if op == "in":
+        return column.in_(list(value))
+    if op == "gt":
+        return column > value
+    if op == "gte":
+        return column >= value
+    if op == "lt":
+        return column < value
+    if op == "lte":
+        return column <= value
+    if op == "range":
+        start, end = value
+        if isinstance(start, date) and not isinstance(start, datetime) and _is_datetime(column):
+            start = datetime.combine(start, datetime.min.time())
+            end = datetime.combine(end, datetime.max.time())
+        return column.between(start, end)
+    if op == "isnull":
+        return column.is_(None) if value else column.is_not(None)
+    raise ValueError(f"Operador de filtro no soportado: {op}")
+
+
+def _escape_like(value) -> str:
+    return str(value).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
 def _is_datetime(column) -> bool:

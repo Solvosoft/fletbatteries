@@ -166,6 +166,38 @@ class Field:
             return ""
         return str(value)
 
+    def from_text(self, text):
+        """
+        Texto de un archivo (p. ej. una celda de CSV al importar) -> valor como
+        el del widget, listo para `clean()`. Es el inverso de `display()`.
+        """
+        if text is None:
+            return None
+        text = str(text)
+        return None if not text.strip() else text
+
+
+def _split_list(text) -> list[str]:
+    if text in EMPTY_VALUES:
+        return []
+    if isinstance(text, (list, tuple)):
+        return [str(t) for t in text]
+    separator = ";" if ";" in str(text) else ","
+    return [part.strip() for part in str(text).split(separator) if part.strip()]
+
+
+def _match_choice(text: str, choices) -> str:
+    """Llave de la opción cuyo valor o texto coincide con `text` (sin importar mayúsculas)."""
+    text = str(text).strip()
+    keys = dict(choices)
+    if text in keys:
+        return text
+    lowered = text.lower()
+    for key, label in keys.items():
+        if str(label).strip().lower() == lowered or str(key).lower() == lowered:
+            return key
+    return text
+
 
 class CharField(Field):
     empty_value = ""
@@ -350,7 +382,7 @@ class NullBooleanField(BooleanField):
 class _BaseDateField(Field):
     widget = date_widgets.DateInput
     kind: type = date
-    fmt = date_widgets.DATE_FORMAT
+    fmt = date_widgets.LocaleFormat("date")
     default_error_messages = {"invalid": "Enter a valid date."}
 
     def to_python(self, value):
@@ -386,22 +418,22 @@ class DateField(_BaseDateField):
         lo = date_widgets.resolve_date(self.min_date, is_min=True)
         hi = date_widgets.resolve_date(self.max_date, is_min=False)
         if lo and day < lo:
-            raise self.error("min_date", min_date=lo.strftime(date_widgets.DATE_FORMAT))
+            raise self.error("min_date", min_date=lo.strftime(date_widgets.get_format("date")))
         if hi and day > hi:
-            raise self.error("max_date", max_date=hi.strftime(date_widgets.DATE_FORMAT))
+            raise self.error("max_date", max_date=hi.strftime(date_widgets.get_format("date")))
 
 
 class DateTimeField(DateField):
     widget = date_widgets.DateTimeInput
     kind = datetime
-    fmt = date_widgets.DATETIME_FORMAT
+    fmt = date_widgets.LocaleFormat("datetime")
     default_error_messages = {"invalid": "Enter a valid date/time."}
 
 
 class TimeField(_BaseDateField):
     widget = date_widgets.TimeInput
     kind = time
-    fmt = date_widgets.TIME_FORMAT
+    fmt = date_widgets.LocaleFormat("time")
     default_error_messages = {"invalid": "Enter a valid time."}
 
 
@@ -410,7 +442,7 @@ class DateRangeField(Field):
 
     widget = date_widgets.DateRangeInput
     kind: type = date
-    fmt = date_widgets.DATE_FORMAT
+    fmt = date_widgets.LocaleFormat("date")
     default_error_messages = {
         "invalid": "Enter a valid date range.",
         "order": "The start date must be before the end date.",
@@ -440,7 +472,7 @@ class DateRangeField(Field):
 class DateTimeRangeField(DateRangeField):
     widget = date_widgets.DateTimeRangeInput
     kind = datetime
-    fmt = date_widgets.DATETIME_FORMAT
+    fmt = date_widgets.LocaleFormat("datetime")
 
 
 class ChoiceField(Field):
@@ -490,6 +522,10 @@ class ChoiceField(Field):
             return ""
         return dict(self.choices).get(str(value), str(value))
 
+    def from_text(self, text):
+        text = super().from_text(text)
+        return None if text is None else _match_choice(text, self.choices)
+
 
 class MultipleChoiceField(ChoiceField):
     widget = selects.AutocompleteSelectMultiple
@@ -516,6 +552,9 @@ class MultipleChoiceField(ChoiceField):
     def display(self, value):
         texts = dict(self.choices)
         return ", ".join(texts.get(str(v), str(v)) for v in (value or []))
+
+    def from_text(self, text):
+        return [_match_choice(part, self.choices) for part in _split_list(text)]
 
 
 class TreeChoiceField(Field):
@@ -571,6 +610,13 @@ class TreeChoiceField(Field):
         values = value if self.multiple else ([value] if value not in EMPTY_VALUES else [])
         return ", ".join(texts.get(str(v), str(v)) for v in values or [])
 
+    def from_text(self, text):
+        texts = list(self._texts().items())
+        if self.multiple:
+            return [_match_choice(part, texts) for part in _split_list(text)]
+        text = super().from_text(text)
+        return None if text is None else _match_choice(text, texts)
+
 
 def _default_coerce_key(value):
     text = str(value)
@@ -616,6 +662,27 @@ class ModelChoiceField(Field):
         label = self.source.label_for(key) if self.source is not None else None
         return label if label is not None else str(value)
 
+    def _key_from_text(self, text: str):
+        """Id del registro: el texto si es un id válido, o el registro cuya etiqueta coincide."""
+        text = str(text).strip()
+        if self.source is None:
+            return text
+        try:
+            if self.source.label_for(self.coerce(text)) is not None:
+                return text
+        except Exception:  # noqa: BLE001 - el texto no es un id
+            pass
+        found = self.source.lookup(skip=0, limit=20, q=text).get("results", {})
+        items = found.values() if isinstance(found, dict) else found
+        for item in items:
+            if str(item.get("text", "")).strip().lower() == text.lower():
+                return str(item.get("id"))
+        return text
+
+    def from_text(self, text):
+        text = Field.from_text(self, text)
+        return None if text is None else self._key_from_text(text)
+
 
 class ModelMultipleChoiceField(ModelChoiceField):
     widget = selects.AutocompleteSelectMultiple
@@ -634,6 +701,9 @@ class ModelMultipleChoiceField(ModelChoiceField):
 
     def display(self, value):
         return ", ".join(ModelChoiceField.display(self, v) for v in (value or []))
+
+    def from_text(self, text):
+        return [self._key_from_text(part) for part in _split_list(text)]
 
 
 class FileField(Field):
@@ -751,6 +821,9 @@ class TagsField(Field):
     def display(self, value):
         return ", ".join(value or [])
 
+    def from_text(self, text):
+        return _split_list(text)
+
 
 class RangeField(Field):
     """Rango numérico `(inicio, fin)` con un slider doble."""
@@ -771,6 +844,15 @@ class RangeField(Field):
 
     def display(self, value):
         return "" if not value else f"{value[0]} – {value[1]}"
+
+    def from_text(self, text):
+        parts = [p.strip() for p in str(text or "").replace("–", ";").replace(",", ";").split(";") if p.strip()]
+        if len(parts) != 2:
+            return None
+        try:
+            return tuple(float(p) for p in parts)
+        except ValueError:
+            return None
 
 
 class MarkdownField(CharField):

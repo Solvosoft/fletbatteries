@@ -187,17 +187,17 @@ async def test_customer_crud_flow(logged_app):
     zoe = CustomerManager().first(email="zoe@flow.test")
     assert zoe.phone == "6000-1234"
 
-    # Buscar
-    await app.fill(app.find_one(key="datatable_search"), "zoe@flow")
+    # Buscar (Enter busca de inmediato; al escribir hay debounce)
+    await app.fill(app.find_one(key="datatable_search"), "zoe@flow", event="submit")
     assert app.find(text="Zoe") and app.find(key=f"edit-{zoe.id}")
 
-    # Correo duplicado: error general en el formulario
+    # Correo duplicado: el error se muestra en el campo
     await app.click(app.find_one(key="crud_add"))
     await app.fill(app.find_one(key="name").field, "Otra")
     await app.fill(app.find_one(key="last_name").field, "Persona")
     await app.fill(app.find_one(key="email").field, "zoe@flow.test")
     await app.click(app.find_one(type=ft.Button, text="Guardar"))
-    assert app.find(contains="Ya existe un registro")
+    assert "Ya existe un registro" in (app.find_one(key="email").error or "")
     await app.click(app.find_one(type=ft.TextButton, text="Cancelar"))
 
     # Editar

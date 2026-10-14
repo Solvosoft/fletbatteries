@@ -9,6 +9,8 @@ import fletbatteries.contrib.history  # noqa: F401
 import fletbatteries.contrib.notifications  # noqa: F401
 import fletbatteries.contrib.settings  # noqa: F401
 
+from fletbatteries.data import migrations
+
 from data.manager.db_manager import DatabaseManager
 
 # Modelos de la demo
@@ -51,14 +53,17 @@ def main():
 
     if cmd == "create_db":
         db.create_db()
+        # La BD nueva ya tiene el esquema completo: se marca con la última migración
+        migrations.stamp("head")
         seed()
     elif cmd == "reset_db":
         confirm = input("⚠️ Esto eliminará todos los datos. ¿Estás seguro? (s/n): ")
         if confirm.lower() == "s":
             db.reset_db()
+            migrations.stamp("head")
             seed()
     elif cmd == "update_schema":
-        db.update_schema()
+        migrations.migrate("head")
         seed()
     else:
         print(f"Comando desconocido: {cmd}")

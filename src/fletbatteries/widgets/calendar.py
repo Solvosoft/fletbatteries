@@ -18,6 +18,7 @@ from typing import Any, Optional
 
 import flet as ft
 
+from fletbatteries.i18n import _
 from fletbatteries.utils import safe_update
 from fletbatteries.widgets.draggable_modal import DraggableModal
 
@@ -99,9 +100,9 @@ class CalendarHeader(ft.Column):
             controls=[
                 ft.Container(width=80, height=100,
                     border=ft.Border.only(
-                        top=ft.BorderSide(0.2, ft.Colors.GREY_400),
-                        right=ft.BorderSide(0.2, ft.Colors.GREY_400),
-                        bottom=ft.BorderSide(0.2, ft.Colors.GREY_400)
+                        top=ft.BorderSide(0.2, ft.Colors.OUTLINE_VARIANT),
+                        right=ft.BorderSide(0.2, ft.Colors.OUTLINE_VARIANT),
+                        bottom=ft.BorderSide(0.2, ft.Colors.OUTLINE_VARIANT)
                     ),
                 ),
                 *[
@@ -112,19 +113,19 @@ class CalendarHeader(ft.Column):
                                     day.strftime("%a"),
                                     size=11,
                                     weight=ft.FontWeight.W_700,
-                                    color="red" if day == self.today else "blue" if day == self.day_selected else "black",
+                                    color=ft.Colors.ERROR if day == self.today else ft.Colors.PRIMARY if day == self.day_selected else ft.Colors.ON_SURFACE,
                                 ),
                                 ft.Container(
                                     content=ft.Text(
                                         day.strftime("%d"),
                                         size=21,
-                                        color="White" if day == self.day_selected else "red" if day == self.today else "black",
+                                        color=ft.Colors.ON_PRIMARY if day == self.day_selected else ft.Colors.ERROR if day == self.today else ft.Colors.ON_SURFACE,
                                     ),
                                     alignment=ft.Alignment.CENTER,
                                     height=50,
                                     width=50,
                                     border_radius=100,
-                                    bgcolor="blue" if self.day_selected == day else None,
+                                    bgcolor=ft.Colors.PRIMARY if self.day_selected == day else None,
                                     on_click=lambda e, d=day: self.change_day(d),
                                 ),
                             ],
@@ -133,8 +134,8 @@ class CalendarHeader(ft.Column):
                             spacing=4,
                         ),
                         border=ft.Border.only(
-                            top=ft.BorderSide(0.2, ft.Colors.GREY_400),
-                            bottom=ft.BorderSide(0.2, ft.Colors.GREY_400)
+                            top=ft.BorderSide(0.2, ft.Colors.OUTLINE_VARIANT),
+                            bottom=ft.BorderSide(0.2, ft.Colors.OUTLINE_VARIANT)
                         ),
                         expand=True,
                         height=100,
@@ -203,7 +204,7 @@ class CalendarGrid(ft.Column):
                         left=0,
                         right=0,
                         height=self.hour_height,
-                        border=ft.Border.all(0.2, ft.Colors.GREY_400),
+                        border=ft.Border.all(0.2, ft.Colors.OUTLINE_VARIANT),
                         on_click=lambda e, d=day, hr=h: self.new_event(day=d, hour=f"{hr:02d}:00") if self.new_event else None,
                         on_hover= self.on_hover
                     )
@@ -226,7 +227,7 @@ class CalendarGrid(ft.Column):
                          height=self.hour_height * duration / 60,
                         bgcolor=ev.color,
                         alignment=ft.Alignment.CENTER,
-                        content=ft.Text(ev.title, size=14, color="white"),
+                        content=ft.Text(ev.title, size=14, color=ft.Colors.WHITE),
                         on_click=lambda e, ev=ev: self.open_edit_event(ev) if self.open_edit_event else None  
                     )
                 )
@@ -242,7 +243,7 @@ class CalendarGrid(ft.Column):
     
     def on_hover(self, e: ft.Event[ft.Container]):
         if e.data is True or e.data == "true":
-            e.control.bgcolor = ft.Colors.LIGHT_BLUE_50
+            e.control.bgcolor = ft.Colors.with_opacity(0.08, ft.Colors.PRIMARY)
         else:
             e.control.bgcolor = None
         e.control.update()
@@ -267,7 +268,7 @@ class FormCalendar(ft.Column):
             self.horaInicio = self.event.start_time.strftime("%I:%M %p").lstrip("0")
             self.fechaFin = self.event.end_time.strftime("%d/%m/%Y")
             self.horaFin = self.event.end_time.strftime("%I:%M %p").lstrip("0")
-            self.NombreEvento = self.event.title or "Evento"
+            self.event_title = self.event.title or _("Event")
             self.descripcion = self.event.description or ""
             self.ubicacion = self.event.location or ""
             self.color = self.event.color or ft.Colors.BLUE_400
@@ -284,7 +285,7 @@ class FormCalendar(ft.Column):
                     self.horaFin = (hh + datetime.timedelta(hours=1)).strftime("%I:%M %p").lstrip("0")
             except Exception:
                 self.horaFin = (datetime.datetime.now() + datetime.timedelta(hours=1)).strftime("%I:%M %p").lstrip("0")
-            self.NombreEvento = ""
+            self.event_title = ""
             self.descripcion = ""
             self.ubicacion = ""
             self.color = ft.Colors.BLUE_400
@@ -329,28 +330,28 @@ class FormCalendar(ft.Column):
         # Header
         self.header = ft.Container(
                 content=ft.Row(controls=[
-                    ft.Text("Editar evento" if self.event else "Nuevo evento", size=18, weight=ft.FontWeight.W_400, text_align=ft.TextAlign.CENTER, color=ft.Colors.WHITE),
-                    ft.CupertinoButton(icon=ft.Icons.CLOSE, on_click=self.close_callback, icon_color=ft.Colors.WHITE)
+                    ft.Text(_("Edit event") if self.event else _("New event"), size=18, weight=ft.FontWeight.W_400, text_align=ft.TextAlign.CENTER, color=ft.Colors.ON_PRIMARY_CONTAINER),
+                    ft.CupertinoButton(icon=ft.Icons.CLOSE, on_click=self.close_callback, icon_color=ft.Colors.ON_PRIMARY_CONTAINER)
                 ],
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN
                 ),
                 alignment=ft.Alignment.CENTER_LEFT,
                 expand=True,
                 padding=ft.Padding.only(top=10, bottom=10, left=20, right=20),
-                bgcolor=ft.Colors.BLUE_GREY_800,
+                bgcolor=ft.Colors.PRIMARY_CONTAINER,
                 width=500,
-                border=ft.Border.only(bottom=ft.BorderSide(0.5, ft.Colors.GREY_400)),    
+                border=ft.Border.only(bottom=ft.BorderSide(0.5, ft.Colors.OUTLINE_VARIANT)),    
         )
         
         # Titulo
         self.tf_nombre = ft.Container(
             content=ft.TextField(
                 border=ft.NoInputBorder(),
-                hint_text="Agregar título",
-                on_change=lambda e: setattr(self, 'NombreEvento', e.control.value),
-                value=self.NombreEvento
+                hint_text=_("Add title"),
+                on_change=lambda e: setattr(self, 'event_title', e.control.value),
+                value=self.event_title
             ),
-            bgcolor=ft.Colors.BLUE_GREY_100,
+            bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
             border_radius=5,
             padding=ft.Padding.only(left=10, right=10),
             expand=True,
@@ -360,14 +361,14 @@ class FormCalendar(ft.Column):
         self.tf_descripcion = ft.Container(
             content=ft.TextField(
                 border=ft.NoInputBorder(),
-                hint_text="Agregar descripción",
+                hint_text=_("Add description"),
                 on_change=lambda e: setattr(self, 'descripcion', e.control.value),
                 value=self.descripcion,
                 max_lines=3,
                 min_lines=3,
                 multiline=True,
             ),
-            bgcolor=ft.Colors.BLUE_GREY_100,
+            bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
             border_radius=5,
             padding=ft.Padding.only(left=10, right=10),
             expand=True,
@@ -377,11 +378,11 @@ class FormCalendar(ft.Column):
         self.tf_ubicacion = ft.Container(
             content=ft.TextField(
                 border=ft.NoInputBorder(),
-                hint_text="Agregar ubicación",
+                hint_text=_("Add location"),
                 on_change=lambda e: setattr(self, 'ubicacion', e.control.value),
                 value=self.ubicacion
             ),
-            bgcolor=ft.Colors.BLUE_GREY_100,
+            bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
             border_radius=5,
             padding=ft.Padding.only(left=10, right=10),
             expand=True,
@@ -391,11 +392,11 @@ class FormCalendar(ft.Column):
         self.tf_fechaInicio = ft.Container(
             content=ft.TextField(
                 border=ft.NoInputBorder(),
-                label="Fecha inicio",
+                label=_("Start date"),
                 hint_text="dd/mm/YYYY",
                 value=self.fechaInicio,
                 width=200,
-                on_blur=self.verifyForm,
+                on_blur=self.verify_form,
             ),
             border_radius=5,
             padding=ft.Padding.only(left=10, right=10)
@@ -405,10 +406,10 @@ class FormCalendar(ft.Column):
         self.tf_horaInicio = ft.TextField(
             hint_text="HH:MM",
             value=self.horaInicio,
-            label="Hora inicio",
+            label=_("Start time"),
             width=100,
             border=ft.NoInputBorder(),
-            on_blur=self.verifyForm,
+            on_blur=self.verify_form,
         )
 
         self.dropdown_horaInicio = ft.Dropdown(
@@ -423,7 +424,7 @@ class FormCalendar(ft.Column):
 
         self.dd_horaInicio = ft.Container(
             content=ft.Row([self.tf_horaInicio, self.dropdown_horaInicio]),
-            bgcolor=ft.Colors.BLUE_GREY_100,
+            bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
             border_radius=5,
             padding=ft.Padding.only(left=10, right=10),
         )
@@ -431,10 +432,10 @@ class FormCalendar(ft.Column):
         self.tf_horaFin = ft.TextField(
             hint_text="HH:MM",
             value=self.horaFin,
-            label="Hora fin",
+            label=_("End time"),
             width=100,
             border=ft.NoInputBorder(),
-            on_blur=self.verifyForm,
+            on_blur=self.verify_form,
         )
 
         self.dropdown_horaFin = ft.Dropdown(
@@ -449,17 +450,17 @@ class FormCalendar(ft.Column):
 
         self.dd_horaFin = ft.Container(
             content=ft.Row([self.tf_horaFin, self.dropdown_horaFin]),
-            bgcolor=ft.Colors.BLUE_GREY_100,
+            bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
             border_radius=5,
             padding=ft.Padding.only(left=10, right=10),
         )
 
     
         # botones 
-        self.saveButton = ft.FilledButton("Guardar", on_click=self.on_save_click, bgcolor=ft.Colors.BLUE_500, width=460, height=40)
+        self.saveButton = ft.FilledButton(_("Save"), on_click=self.on_save_click, width=460, height=40)
 
         if self.event:
-            self.delete_button = ft.CupertinoButton(icon=ft.Icons.DELETE, icon_color=ft.Colors.RED, on_click=lambda e, id=self.event.id: self.delete_event(id))
+            self.delete_button = ft.CupertinoButton(icon=ft.Icons.DELETE, icon_color=ft.Colors.ERROR, on_click=lambda e, id=self.event.id: self.delete_event(id))
         else:
             self.delete_button = ft.Container(height=40)  
 
@@ -467,11 +468,11 @@ class FormCalendar(ft.Column):
             [self.header,
             ft.Container( padding=ft.Padding.all(20), 
                 content=ft.Column([ 
-                    ft.Row([ft.Row([ft.Icon(icon=ft.Icons.CALENDAR_MONTH_OUTLINED, color=ft.Colors.BLACK),self.tf_fechaInicio]), self.delete_button], alignment=ft.MainAxisAlignment.SPACE_BETWEEN, width=460),
-                    ft.Row([ft.Icon(icon=ft.Icons.ACCESS_TIME, color=ft.Colors.BLACK), ft.Row([self.dd_horaInicio, ft.Icon(icon=ft.Icons.ARROW_FORWARD, color=ft.Colors.BLACK), self.dd_horaFin],alignment=ft.MainAxisAlignment.SPACE_AROUND, expand=1)], width=460),
-                    ft.Row([ft.Icon(icon=ft.Icons.EDIT_SHARP, color=ft.Colors.BLACK),self.tf_nombre],expand=1, width=460),
-                    ft.Row([ft.Icon(icon=ft.Icons.LOCATION_ON, color=ft.Colors.BLACK),self.tf_ubicacion],expand=1, width=460),
-                    ft.Row([ft.Icon(icon=ft.Icons.DESCRIPTION, color=ft.Colors.BLACK),self.tf_descripcion],expand=1, width=460),
+                    ft.Row([ft.Row([ft.Icon(icon=ft.Icons.CALENDAR_MONTH_OUTLINED, color=ft.Colors.ON_SURFACE_VARIANT),self.tf_fechaInicio]), self.delete_button], alignment=ft.MainAxisAlignment.SPACE_BETWEEN, width=460),
+                    ft.Row([ft.Icon(icon=ft.Icons.ACCESS_TIME, color=ft.Colors.ON_SURFACE_VARIANT), ft.Row([self.dd_horaInicio, ft.Icon(icon=ft.Icons.ARROW_FORWARD, color=ft.Colors.ON_SURFACE_VARIANT), self.dd_horaFin],alignment=ft.MainAxisAlignment.SPACE_AROUND, expand=1)], width=460),
+                    ft.Row([ft.Icon(icon=ft.Icons.EDIT_SHARP, color=ft.Colors.ON_SURFACE_VARIANT),self.tf_nombre],expand=1, width=460),
+                    ft.Row([ft.Icon(icon=ft.Icons.LOCATION_ON, color=ft.Colors.ON_SURFACE_VARIANT),self.tf_ubicacion],expand=1, width=460),
+                    ft.Row([ft.Icon(icon=ft.Icons.DESCRIPTION, color=ft.Colors.ON_SURFACE_VARIANT),self.tf_descripcion],expand=1, width=460),
                     self.saveButton,
                 ],spacing=20)
             )]
@@ -482,21 +483,21 @@ class FormCalendar(ft.Column):
         if is_horaInicio:
             self.horaInicio = hour
             self.tf_horaInicio.value = hour
-            self.verifyForm()
+            self.verify_form()
             safe_update(self.tf_horaInicio)
         else:
             self.horaFin = hour
             self.tf_horaFin.value = hour
             safe_update(self.tf_horaFin)
 
-    def verifyForm(self,  e=None):
+    def verify_form(self,  e=None):
         # Limpia espacios
 
         self.fechaInicio = (self.fechaInicio or "").strip()
         self.fechaFin = (self.fechaFin or "").strip()
         self.horaInicio = (self.horaInicio or "").strip()
         self.horaFin = (self.horaFin or "").strip()
-        self.NombreEvento = (self.NombreEvento or "").strip()
+        self.event_title = (self.event_title or "").strip()
 
         # Validadores: dd/mm/YYYY y HH:MM (24h)
         date_pattern = r"^\d{2}/\d{2}/\d{4}$"
@@ -550,14 +551,14 @@ class FormCalendar(ft.Column):
             self.tf_horaFin.update()
             self.dropdown_horaFin.update()
             return False
-        if not self.NombreEvento:
-            self.NombreEvento = "Nuevo evento"
+        if not self.event_title:
+            self.event_title = _("New event")
 
         return True
 
     def on_save_click(self, e):
         # validar / corregir campos
-        istrue = self.verifyForm()
+        istrue = self.verify_form()
         
     
         if istrue:
@@ -617,10 +618,10 @@ class Calendar(ft.Container):
 
         # Botones de navegación
         self.week_navigator = ft.Row([
-            ft.IconButton(icon=ft.Icons.ARROW_BACK, icon_color=ft.Colors.BLACK, on_click=self.back_week),
+            ft.IconButton(icon=ft.Icons.ARROW_BACK, icon_color=ft.Colors.ON_SURFACE, on_click=self.back_week),
             self.month_label,
-            ft.IconButton(icon=ft.Icons.ARROW_FORWARD, icon_color=ft.Colors.BLACK, on_click=self.next_week),
-            ft.IconButton(icon=ft.Icons.ADD, icon_color=ft.Colors.BLACK,  on_click=lambda e: self.open_new_event()),
+            ft.IconButton(icon=ft.Icons.ARROW_FORWARD, icon_color=ft.Colors.ON_SURFACE, on_click=self.next_week),
+            ft.IconButton(icon=ft.Icons.ADD, icon_color=ft.Colors.ON_SURFACE,  on_click=lambda e: self.open_new_event()),
         ])
 
         # Layout principal
@@ -675,7 +676,7 @@ class Calendar(ft.Container):
         
         new_event = CalendarEvent(
             id=str(uuid.uuid4()),
-            title=self.formCalendar.NombreEvento,
+            title=self.formCalendar.event_title,
             start_time= datetime.datetime.strptime(f"{self.formCalendar.fechaInicio} {self.formCalendar.horaInicio}", "%d/%m/%Y %I:%M %p"),
             end_time= datetime.datetime.strptime(f"{self.formCalendar.fechaFin} {self.formCalendar.horaFin}", "%d/%m/%Y %I:%M %p"),
             description=self.formCalendar.descripcion,
@@ -703,7 +704,7 @@ class Calendar(ft.Container):
 
     # actualizar evento existente
     def update_event(self, event: CalendarEvent):
-        event.title = self.formCalendar.NombreEvento
+        event.title = self.formCalendar.event_title
         event.start_time = datetime.datetime.strptime(f"{self.formCalendar.fechaInicio} {self.formCalendar.horaInicio}", "%d/%m/%Y %I:%M %p")
         event.end_time = datetime.datetime.strptime(f"{self.formCalendar.fechaFin} {self.formCalendar.horaFin}", "%d/%m/%Y %I:%M %p")
         event.description = self.formCalendar.descripcion

@@ -1,12 +1,31 @@
 """Conexión a la base de datos (un engine por URL) y sesiones transaccionales."""
 
+import importlib
 from contextlib import contextmanager
-from typing import Iterator, Optional
+from typing import Iterable, Iterator, Optional
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
 Base = declarative_base()
+
+# Módulos con los modelos que trae el framework (tablas `fb_*`)
+FRAMEWORK_MODEL_MODULES = (
+    "fletbatteries.auth.models",
+    "fletbatteries.contrib.settings",
+    "fletbatteries.contrib.notifications",
+    "fletbatteries.contrib.help",
+    "fletbatteries.contrib.history",
+)
+
+
+def import_models(modules: Iterable[str] = (), framework: bool = True) -> list:
+    """
+    Importa los módulos de modelos para registrarlos en `Base.metadata` (antes
+    de `create_all` o de generar migraciones). Incluye los del framework.
+    """
+    names = [*(FRAMEWORK_MODEL_MODULES if framework else ()), *modules]
+    return [importlib.import_module(name) for name in names if name]
 
 
 class Database:

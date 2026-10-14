@@ -20,9 +20,14 @@ looking to create applications efficiently and quickly
 
 ## 🚀 Features
 
-* View routing system.
-* Modular and extensible architecture.
-* Modern and responsive UI with Flet.
+* App shell: routing with parameters, login and permission guards, menu with badges, breadcrumbs, theme and per-session language.
+* Declarative forms and model forms (30 field types), fieldsets as tabs/sections/collapsible panels and multi-step wizards.
+* Widgets inspired by django-gentelella-widgets: selects with search, masks, dates, files, color, Markdown, maps, calendar, charts.
+* Server-side `DataTable` and `CRUDView`: search, filters, bulk actions, CSV export and import, clone, undo delete.
+* Auth: users, groups and permissions, login lockout, session expiry, password change and reset by email code.
+* FastAPI integration: `crud_router` with token authentication and per-endpoint permissions.
+* Contrib apps: settings (with admin UI), notifications, help, history (audit log), trash (soft delete), email.
+* Database migrations with Alembic through the `fletbatteries` CLI.
 
 ---
 
@@ -62,6 +67,7 @@ looking to create applications efficiently and quickly
 | `make web` | App in the browser (`PORT=8550`) |
 | `make api` | FastAPI server used by the *Autocomplete* views (`API_PORT=8000`) |
 | `make init_db` / `make update_schema` / `make reset_db` | Database management |
+| `make makemigrations MSG="..."` / `make migrate` | Create / apply Alembic migrations (`fletbatteries` CLI) |
 | `make help` | All targets |
 
 Configuration (environment variables or a `.env` file at the repo root):

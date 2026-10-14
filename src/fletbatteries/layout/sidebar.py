@@ -13,6 +13,7 @@ class Sidebar(ft.Container):
         self.on_navigate = on_navigate
         self.selected_route: Optional[str] = None
         self.items: list[MenuItem] = []
+        self.badges: dict[str, str] = {}
         self.list = ft.ListView(spacing=2, expand=True)
         header = [ft.Text(title, weight=ft.FontWeight.BOLD)] if title else []
         super().__init__(
@@ -30,19 +31,33 @@ class Sidebar(ft.Container):
         self.selected_route = route
         self._render()
 
+    def set_badges(self, badges: dict):
+        """`{ruta: texto}` de los badges a mostrar (ver `MenuItem.badge`)."""
+        self.badges = {k: v for k, v in badges.items() if v}
+        self._render()
+
+    def _icon(self, item: MenuItem):
+        if not item.icon:
+            return None
+        badge = self.badges.get(item.route) if item.route else None
+        if badge:
+            return ft.Icon(item.icon, badge=ft.Badge(label=badge), key=f"menu-badge-{item.route}")
+        return ft.Icon(item.icon)
+
     def _tile(self, item: MenuItem) -> ft.Control:
         if item.children:
             expanded = any(c.route == self.selected_route for c in item.children)
             return ft.ExpansionTile(
                 title=ft.Text(item.title),
-                leading=ft.Icon(item.icon) if item.icon else None,
+                leading=ft.Icon(item.icon, badge=ft.Badge(small_size=8) if any(
+                    self.badges.get(c.route) for c in item.children) else None) if item.icon else None,
                 expanded=expanded,
                 controls=[self._tile(c) for c in item.children],
                 key=f"menu-group-{item.title}",
             )
         return ft.ListTile(
             title=ft.Text(item.title, size=14),
-            leading=ft.Icon(item.icon) if item.icon else None,
+            leading=self._icon(item),
             selected=item.route == self.selected_route,
             selected_tile_color=ft.Colors.SECONDARY_CONTAINER,
             dense=True,

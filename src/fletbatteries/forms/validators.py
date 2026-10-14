@@ -1,12 +1,14 @@
 """Errores y validadores reutilizables (al estilo de `django.core.validators`)."""
 
+import ipaddress
+import os
 import re
 from typing import Iterable, Union
 
 from fletbatteries.i18n import _
 
 
-class ValidationError(Exception):
+class ValidationError(ValueError):
     """Error de validación. `messages` es la lista de mensajes para mostrar."""
 
     def __init__(self, message: Union[str, Iterable[str], dict], **params):
@@ -121,5 +123,78 @@ class URLValidator(RegexValidator):
         super().__init__(pattern, message, flags=re.IGNORECASE)
 
 
+class SlugValidator(RegexValidator):
+    message = "Enter a valid slug (letters, numbers, hyphens or underscores)."
+
+    def __init__(self, message=None):
+        super().__init__(r"^[-a-zA-Z0-9_]+\Z", message)
+
+
+class PhoneValidator(RegexValidator):
+    """Teléfono con dígitos y separadores comunes (+, espacios, guiones, paréntesis); 7 a 15 dígitos."""
+
+    message = "Enter a valid phone number."
+
+    def __init__(self, message=None, min_digits: int = 7, max_digits: int = 15):
+        super().__init__(r"^\+?[\d\s().-]+$", message)
+        self.min_digits = min_digits
+        self.max_digits = max_digits
+
+    def check(self, value):
+        digits = sum(c.isdigit() for c in str(value))
+        return super().check(value) or not (self.min_digits <= digits <= self.max_digits)
+
+
+class IPAddressValidator(BaseValidator):
+    message = "Enter a valid IP address."
+
+    def __init__(self, protocol: str = "both", message=None):
+        super().__init__(protocol, message)
+
+    def check(self, value):
+        try:
+            ip = ipaddress.ip_address(str(value).strip())
+        except ValueError:
+            return True
+        return (self.limit_value == "ipv4" and ip.version != 4) or (self.limit_value == "ipv6" and ip.version != 6)
+
+
+class ProhibitNullCharactersValidator(BaseValidator):
+    message = "Null characters are not allowed."
+
+    def check(self, value):
+        return "\x00" in str(value)
+
+
+class MaxFileSizeValidator(BaseValidator):
+    """Tamaño máximo de un archivo (`UploadedFile` u objeto con `size`/`path`), en bytes."""
+
+    message = "The file is too large (maximum {max_size})."
+
+    def params(self):
+        return {"max_size": human_size(self.limit_value)}
+
+    def check(self, value):
+        size = getattr(value, "size", None)
+        if size is None and getattr(value, "path", None) and os.path.exists(value.path):
+            size = os.path.getsize(value.path)
+        if size is None and getattr(value, "content", None) is not None:
+            size = len(value.content)
+        if getattr(value, "stored", False) and not getattr(value, "is_new", True):
+            return False
+        return size is not None and size > self.limit_value
+
+
+def human_size(size: float) -> str:
+    for unit in ("B", "KB", "MB", "GB"):
+        if size < 1024 or unit == "GB":
+            return f"{size:.0f} {unit}" if unit == "B" else f"{size:.1f} {unit}"
+        size /= 1024
+    return str(size)
+
+
 validate_email = EmailValidator()
 validate_url = URLValidator()
+validate_slug = SlugValidator()
+validate_ipv46_address = IPAddressValidator()
+validate_phone = PhoneValidator()

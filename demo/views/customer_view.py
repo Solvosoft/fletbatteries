@@ -14,6 +14,10 @@ class CustomerCRUD(CRUDView):
     list_fields = ["name", "last_name", "email", "phone"]
     filter_fields = ["name", "email"]
     selectable = True
+    bulk_delete = True
+    export = True
+    importable = True
+    import_key_field = "email"
 
 
 def build_view_customer(page: ft.Page) -> ft.Control:

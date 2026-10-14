@@ -18,9 +18,12 @@ class CrudModal:
     AlertDialog con estado "procesando" y SnackBar de resultado.
 
     `on_accept` devuelve `True` (éxito: cierra y muestra `success_text`),
-    `False` (error: muestra `error_text` y deja el diálogo abierto) o `None`
-    (deja el diálogo abierto sin mensaje, p. ej. porque el formulario tiene
-    errores que ya se muestran en los campos).
+    `False` (error: muestra `error_text` y deja el diálogo abierto), un `str`
+    (error con ese mensaje) o `None` (deja el diálogo abierto sin mensaje, p.
+    ej. porque el formulario tiene errores que ya se muestran en los campos).
+
+    `success_action=(texto, callback)` agrega un botón al SnackBar de éxito
+    (por ejemplo "Deshacer" después de eliminar).
     """
 
     def __init__(self, page: ft.Page):
@@ -36,6 +39,7 @@ class CrudModal:
         self._on_accept: Optional[Callable[[], Optional[bool]]] = None
         self._success_text = _("Operation successful")
         self._error_text = _("Sorry, an error occurred")
+        self._success_action = None
 
     def open(
         self,
@@ -47,10 +51,13 @@ class CrudModal:
         error_text: Optional[str] = None,
         width: Optional[int] = 520,
         accept_text: Optional[str] = None,
+        success_action: Optional[tuple] = None,
+        actions: Optional[list] = None,
     ):
         self._on_accept = on_accept
         self._success_text = success_text or _("Operation successful")
         self._error_text = error_text or _("Sorry, an error occurred")
+        self._success_action = success_action
 
         title_ctl = ft.Container(
             width=width,
@@ -73,10 +80,12 @@ class CrudModal:
         self._btn_accept = None
         if kind in ("create", "edit", "delete") and on_accept is not None:
             label = accept_text or {"create": _("Save"), "edit": _("Update"), "delete": _("Delete")}[kind]
-            style = ft.ButtonStyle(bgcolor=ft.Colors.RED_600, color=ft.Colors.WHITE) if kind == "delete" else None
+            style = ft.ButtonStyle(bgcolor=ft.Colors.ERROR, color=ft.Colors.ON_ERROR) if kind == "delete" else None
             self._btn_accept = ft.Button(label, on_click=self._on_accept_click, style=style)
 
-        actions = [self._btn_cancel] if self._btn_accept is None else [self._btn_cancel, self._btn_accept]
+        actions = [*(actions or []), self._btn_cancel]
+        if self._btn_accept is not None:
+            actions.append(self._btn_accept)
 
         self.dialog = ft.AlertDialog(
             modal=True,
@@ -117,6 +126,9 @@ class CrudModal:
 
         if result is True:
             self.close()
-            self.page.show_dialog(show_snackbar(self._success_text, success=True))
+            label, callback = self._success_action or (None, None)
+            self.page.show_dialog(show_snackbar(self._success_text, success=True, action=label, on_action=callback))
         elif result is False:
             self.page.show_dialog(show_snackbar(self._error_text, success=False))
+        elif isinstance(result, str):
+            self.page.show_dialog(show_snackbar(result, success=False))

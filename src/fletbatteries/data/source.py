@@ -23,7 +23,7 @@ from datetime import date, datetime, time
 from decimal import Decimal
 from typing import Any, Callable, Iterable, Optional
 
-from fletbatteries.data.manager import EMPTY, BaseManager, Page, Query
+from fletbatteries.data.manager import EMPTY, BaseManager, BulkResult, Page, Query
 from fletbatteries.widgets.selects import normalize_text
 
 
@@ -48,6 +48,29 @@ class DataSource:
         raise NotImplementedError
 
     # --- Comunes -------------------------------------------------------
+    def delete_many(self, pks) -> BulkResult:
+        """Elimina varios registros (uno por uno); devuelve los eliminados y los errores por id."""
+        result = BulkResult()
+        for pk in pks:
+            try:
+                if self.delete(pk):
+                    result.done.append(pk)
+                else:
+                    result.failed[pk] = "not found"
+            except Exception as ex:  # noqa: BLE001 - se informa por registro
+                result.failed[pk] = str(ex) or type(ex).__name__
+        return result
+
+    def update_many(self, pks, data: dict) -> BulkResult:
+        result = BulkResult()
+        for pk in pks:
+            try:
+                self.update(pk, data)
+                result.done.append(pk)
+            except Exception as ex:  # noqa: BLE001 - se informa por registro
+                result.failed[pk] = str(ex) or type(ex).__name__
+        return result
+
     def all(self, **filters) -> list[dict]:
         return self.list(Query(page=1, size=0, filters=filters)).items
 
@@ -116,6 +139,12 @@ class SQLAlchemySource(DataSource):
     def delete(self, pk) -> bool:
         return self.manager.delete(pk)
 
+    def delete_many(self, pks) -> BulkResult:
+        return self.manager.delete_many(pks)
+
+    def update_many(self, pks, data: dict) -> BulkResult:
+        return self.manager.update_many(pks, **data)
+
 
 class ListSource(DataSource):
     """Registros en memoria (útil para demos, pruebas y tablas locales)."""
@@ -129,23 +158,8 @@ class ListSource(DataSource):
         self._ids = itertools.count(start)
 
     def _matches(self, item, query: Query) -> bool:
-        for key, value in query.filters.items():
-            if value in EMPTY:
-                continue
-            name, _sep, op = key.partition("__")
-            current = item.get(name)
-            if op in ("", "exact") and current != value:
-                return False
-            if op == "icontains" and normalize_text(str(value)) not in normalize_text(str(current or "")):
-                return False
-            if op == "in" and current not in value:
-                return False
-            if op == "gte" and (current is None or current < value):
-                return False
-            if op == "lte" and (current is None or current > value):
-                return False
-            if op == "range" and (current is None or not value[0] <= current <= value[1]):
-                return False
+        if not _match_filters(item, query.filters):
+            return False
         if query.search:
             q = normalize_text(query.search)
             fields = self.search_fields or list(item)
@@ -193,6 +207,61 @@ class ListSource(DataSource):
         return True
 
 
+def _match_filters(item: dict, filters: dict) -> bool:
+    """Evalúa en memoria los mismos filtros que `BaseManager` (sin relaciones)."""
+    for key, value in (filters or {}).items():
+        if key == "__or__":
+            options = [f for f in value or [] if f]
+            if options and not any(_match_filters(item, f) for f in options):
+                return False
+            continue
+        if value in EMPTY:
+            continue
+        name, _sep, op = key.partition("__")
+        if not _match_value(item.get(name), op, value):
+            return False
+    return True
+
+
+def _match_value(current, op: str, value) -> bool:
+    text = normalize_text(str(current if current is not None else ""))
+    if op in ("", "exact"):
+        return current == value
+    if op == "iexact":
+        return text == normalize_text(str(value))
+    if op == "ne":
+        return current != value
+    if op == "contains":
+        return str(value) in str(current or "")
+    if op == "icontains":
+        return normalize_text(str(value)) in text
+    if op == "startswith":
+        return str(current or "").startswith(str(value))
+    if op == "istartswith":
+        return text.startswith(normalize_text(str(value)))
+    if op == "endswith":
+        return str(current or "").endswith(str(value))
+    if op == "iendswith":
+        return text.endswith(normalize_text(str(value)))
+    if op == "in":
+        return current in value
+    if op == "isnull":
+        return (current is None) == bool(value)
+    if current is None:
+        return False
+    if op == "gt":
+        return current > value
+    if op == "gte":
+        return current >= value
+    if op == "lt":
+        return current < value
+    if op == "lte":
+        return current <= value
+    if op == "range":
+        return value[0] <= current <= value[1]
+    raise ValueError(f"Operador de filtro no soportado: {op}")
+
+
 def to_jsonable(value: Any):
     if isinstance(value, (datetime, date, time)):
         return value.isoformat()
@@ -214,15 +283,27 @@ class APISource(DataSource):
         GET    {url}?page=&size=&search=&order_by=&<filtros>  -> {"items": [...], "total": n}
         GET    {url}/lookup?skip=&limit=&q=                     -> formato select2
         GET    {url}/{id}    POST {url}    PUT {url}/{id}    DELETE {url}/{id}
+
+    `token` envía `Authorization: Bearer <token>` (ver `fletbatteries.api.auth`).
+    Un 401/403 lanza `PermissionError`; un 400 con errores por campo lanza
+    `ValidationError` (se muestran en el formulario).
     """
 
     def __init__(self, url: str, label_field: Optional[str] = None, timeout: float = 10, headers: Optional[dict] = None,
-                 session=None):
+                 session=None, token: Optional[str] = None):
         self.url = url.rstrip("/")
         self.label_field = label_field
         self.timeout = timeout
-        self.headers = headers or {}
+        self.headers = dict(headers or {})
+        if token:
+            self.headers["Authorization"] = f"Bearer {token}"
         self._session = session
+
+    def set_token(self, token: Optional[str]):
+        if token:
+            self.headers["Authorization"] = f"Bearer {token}"
+        else:
+            self.headers.pop("Authorization", None)
 
     @property
     def http(self):
@@ -241,6 +322,15 @@ class APISource(DataSource):
                 detail = response.json().get("detail")
             except Exception:
                 detail = response.text
+            if response.status_code in (401, 403):
+                from fletbatteries.i18n import _
+
+                raise PermissionError(detail if isinstance(detail, str) and detail else
+                                      _("You do not have permission to perform this action."))
+            if isinstance(detail, dict) and detail.get("errors"):
+                from fletbatteries.forms.validators import ValidationError
+
+                raise ValidationError(detail["errors"])
             raise ValueError(detail or f"Error {response.status_code}")
         return response.json()
 
@@ -249,6 +339,8 @@ class APISource(DataSource):
         if query.order_by:
             params["order_by"] = query.order_by
         for key, value in query.filters.items():
+            if key == "__or__":
+                raise ValueError("APISource no soporta filtros __or__")
             if value in EMPTY:
                 continue
             params[key] = ",".join(str(to_jsonable(v)) for v in value) if isinstance(value, (list, tuple)) else \

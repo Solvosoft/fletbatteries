@@ -29,6 +29,11 @@ ROUTES = [
     ("/maps", "Mapa de notas"),
     ("/history", "Historial"),
     ("/trash", "Papelera"),
+    ("/admin/settings", "Configuración"),
+    ("/admin/logins", "Intentos de ingreso"),
+    ("/account/password", "Cambiar contraseña"),
+    ("/account/tokens", "Tokens del API"),
+    ("/wizard", "Grupos de campos"),
 ]
 
 
@@ -117,7 +122,8 @@ def _all_routes():
 
 
 def test_route_list_covers_all_views():
-    tested = {"/login", "/customers/:id"} | {r for r, _ in ROUTES}
+    # /password-reset no usa el layout (se prueba en test_flows sin sesión)
+    tested = {"/login", "/customers/:id", "/password-reset"} | {r for r, _ in ROUTES}
     assert set(_all_routes()) == tested
 
 

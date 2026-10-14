@@ -75,3 +75,50 @@ class User(Base):
 
     def __str__(self):
         return self.username
+
+
+class LoginAttempt(Base):
+    """Registro de cada intento de ingreso (para el bloqueo por intentos y la auditoría)."""
+
+    __tablename__ = "fb_login_attempts"
+
+    id = Column(Integer, primary_key=True)
+    username = Column(String(150), nullable=False, index=True)
+    success = Column(Boolean, nullable=False, default=False)
+    reason = Column(String(50), nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.now, index=True)
+
+
+class PasswordReset(Base):
+    """Código de un solo uso para recuperar la contraseña (se guarda solo su hash)."""
+
+    __tablename__ = "fb_password_resets"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(ForeignKey("fb_users.id", ondelete="CASCADE"), nullable=False, index=True)
+    code_hash = Column(String(200), nullable=False)
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.now)
+    expires_at = Column(DateTime, nullable=False)
+    used_at = Column(DateTime, nullable=True)
+    attempts = Column(Integer, nullable=False, default=0)
+
+
+class ApiToken(Base):
+    """Token para el API (se guarda el hash; el token completo se muestra una sola vez)."""
+
+    __tablename__ = "fb_api_tokens"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(ForeignKey("fb_users.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+    prefix = Column(String(12), nullable=False, index=True)
+    key_hash = Column(String(64), nullable=False, unique=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.now)
+    last_used_at = Column(DateTime, nullable=True)
+    expires_at = Column(DateTime, nullable=True)
+    revoked = Column(Boolean, nullable=False, default=False)
+
+    user = relationship(User, lazy="selectin")
+
+    def __str__(self):
+        return f"{self.name} ({self.prefix}…)"

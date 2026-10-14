@@ -43,7 +43,7 @@ class ColorPicker(ft.Column):
             height=40,
             border_radius=8,
             bgcolor=self.color,
-            border=ft.Border.all(1, ft.Colors.GREY_400),
+            border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
         )
         self.hex_field = ft.TextField(
             key="color_picker_hex",
@@ -149,7 +149,7 @@ class ColorInput(Widget):
 
     def __init__(self, label=None, help_text=None, default: str = "#1E88E5", **kwargs):
         super().__init__(label=label, help_text=help_text, **kwargs)
-        self.swatch = ft.Container(width=28, height=28, border_radius=6, border=ft.Border.all(1, ft.Colors.GREY_400))
+        self.swatch = ft.Container(width=28, height=28, border_radius=6, border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT))
         self.field = ft.TextField(
             label=label,
             helper=help_text,

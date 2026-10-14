@@ -16,6 +16,8 @@ make test                  # pruebas headless (siempre antes de terminar un camb
 make test PYTEST_ARGS="-k calendar -x"
 make screenshots ROUTES="/calendar"   # revisión visual: screenshots/calendar.png
 make lint
+make makemigrations MSG="agregar campo"   # nueva migración (Alembic) a partir de los modelos
+make migrate                              # aplicar migraciones
 ```
 
 Para agregar una dependencia usa `uv add <paquete>` (o `uv add --dev <paquete>`) y luego `make requirements`.
@@ -37,6 +39,10 @@ Para agregar una dependencia usa `uv add <paquete>` (o `uv add --dev <paquete>`)
 3. **Escritorio (`make run`)**. En Linux, Flet usa el cliente "light", que no incluye extensiones como Rive o mapas ("Unknown control: Rive"). `make run FLAVOR=full` usa el cliente full (requiere `libmpv2`), pero en Debian 13 se cierra al arrancar: la `libstdc++` que carga libmpv reemplaza el `operator new` de la libc++ de Flutter. Para tener Rive, charts y mapas en escritorio: `make build-linux` (requiere `clang`; la primera vez descarga Flutter) compila la app solo con las extensiones de `[tool.flet.linux]` en `pyproject.toml`, sin libmpv, y `make run-build` la ejecuta con el `template.db` del repo y `GDK_GL=gles` (con GLX, `rive_native` avisa "EGLImage unavailable" y no dibuja o rompe el contexto GL). Para depurar la app compilada: `FLETBATTERIES_INITIAL_ROUTE=/ruta` abre directo en esa vista y `FLETBATTERIES_LOG_FILE=/tmp/app.log` guarda el log de Python.
 
 Si agregas una vista nueva, regístrala en `demo/controls/router/views.py` y añádela a `ROUTES` en `tests/test_routes.py`. Una prueba falla si falta. Agrega también una prueba de flujo en `tests/test_flows.py` si la vista tiene interacción.
+
+**La librería no depende de la demo.** Lo genérico se configura con parámetros, settings o variables `FLETBATTERIES_*` que lee la propia librería; las vistas del framework se registran con helpers (`app.add_admin_views()`, `app.add_account_views()`). `tests_lib/` prueba la librería con sus propios modelos (`tests_lib/models.py`, otra `Base`) y una app mínima, sin importar `demo/`; `tests_lib/test_independence.py` falla si `src/` importa módulos de la demo.
+
+Si cambias un modelo (de la demo o del framework), genera la migración con `make makemigrations MSG="..."` (las revisiones de la demo están en `demo/migrations/`) y aplica `make migrate` también sobre `template.db`. `tests/test_migrations.py` verifica que las migraciones y `template.db` coincidan con los modelos.
 
 ## Flet 1.x: diferencias que importan (respecto a 0.28)
 
@@ -70,16 +76,17 @@ Si agregas una vista nueva, regístrala en `demo/controls/router/views.py` y añ
 
 ### Paquete `src/fletbatteries/`
 
-- `app.py`: `FletBatteriesApp` (registro de vistas con `add_view` / `@app.view` / `add_crud`, rutas con parámetros `/x/:id`, guards de login y permisos, menú, breadcrumbs, tema persistente) y `AppShell` (estado por sesión, `shell_of(page)`).
-- `forms/`: `Form` y `ModelForm` declarativos (render `plain`/`horizontal`/`inline`/`grid`), `fields.py` (CharField, DateField, ChoiceField, ModelChoiceField, FileField, MarkdownField, MapPointField, …), validadores, `formset_factory`. Campos dependientes con `depends_on` + `related_choices`/`related_filter`.
-- `widgets/`: controles con el contrato `value` / `error` / `on_change` (`base.Widget`): inputs, máscaras, fechas, selects con búsqueda (`selects.py`), choices avanzados, sliders, archivos, color, Markdown, mapas, `DataTable` server-side, `CardList`, `CrudModal`, calendario, gráficos y stat tiles.
-- `data/`: `Database`/`set_default_database`, `BaseManager` (CRUD, filtros `campo__op`, búsqueda, orden, paginación, `unique_fields`) y `DataSource` (`SQLAlchemySource`, `APISource`, `ListSource`).
-- `crud/`: `CRUDView` e `InlineCRUD`.
-- `api/`: `crud_router(manager, prefix=...)` para FastAPI (lo consume `APISource`).
-- `auth/`: sesión (`login`, `get_user`, `has_perm`), modelos `fb_users`/`fb_groups`/`fb_permissions`, `DatabaseAuthBackend`, vista de login y CRUD de administración.
+- `app.py`: `FletBatteriesApp` (registro de vistas con `add_view` / `@app.view` / `add_crud`, rutas con parámetros `/x/:id`, guards de login y permisos, menú con badges y ítems de footer, breadcrumbs, tema persistente, selector de idioma, `password_validators`, `session_idle_minutes`/`session_max_minutes`, `add_account_views()` y `add_admin_views()`) y `AppShell` (estado por sesión, `shell_of(page)`).
+- `cli.py` / `data/migrations.py` / `migrations/`: CLI `fletbatteries` (`makemigrations`, `migrate`, `check`, `createdb`, `createsuperuser`…) con un `env.py` de Alembic genérico; se configura con `[tool.fletbatteries]` en `pyproject.toml` o variables `FLETBATTERIES_*`.
+- `forms/`: `Form` y `ModelForm` declarativos (render `plain`/`horizontal`/`inline`/`grid`; `fieldsets` como `sections`/`tabs`/`collapsible`; FK y M2M a selects de registros), `fields.py` (CharField, DateField, ChoiceField, ModelChoiceField, FileField, MarkdownField, MapPointField, …; `from_text()` para importar), validadores, `formset_factory`, `FormWizard` (pasos con condiciones), `validate_data()` (validar sin widgets). Campos dependientes con `depends_on` + `related_choices`/`related_filter`.
+- `widgets/`: controles con el contrato `value` / `error` / `on_change` (`base.Widget`): inputs, máscaras, fechas (formato según el idioma), selects con búsqueda (`selects.py`), choices avanzados, sliders, archivos, color, Markdown, mapas, `DataTable` server-side (búsqueda con debounce, `BulkAction`, selección entre páginas, exportar CSV), `CardList`, `CrudModal`, calendario, gráficos y stat tiles.
+- `data/`: `Database`/`set_default_database`/`import_models`, `BaseManager` (CRUD, filtros `campo__op` con `gt`/`lt`/`ne`/`startswith`/…, relaciones `rel__campo`, `__or__`, búsqueda, orden, paginación, `unique_fields` con error por campo, `delete_many`/`update_many`), `DataSource` (`SQLAlchemySource`, `APISource` con `token`, `ListSource`), `export.py` (CSV) e `importer.py` (`CSVImporter` con vista previa).
+- `crud/`: `CRUDView` (opcionales: `clone`, `bulk_delete`/`bulk_actions`, `export`, `importable`, deshacer al borrar con papelera), `InlineCRUD` e `ImportDialog`.
+- `api/`: `crud_router(manager, prefix=..., auth=True, perms="app")` para FastAPI (lo consume `APISource`), `auth_router()` (tokens) y las dependencias `current_api_user` / `require_perms`.
+- `auth/`: sesión (`login`, `get_user`, `has_perm`), modelos `fb_users`/`fb_groups`/`fb_permissions`/`fb_login_attempts`/`fb_password_resets`/`fb_api_tokens`, `DatabaseAuthBackend` (bloqueo por intentos, `AuthError`), `password_validation`, `reset.py` (código por correo), `tokens.py`, vistas de login, cuenta (cambiar/recuperar contraseña, tokens) y CRUD de administración (incluido el registro de ingresos).
 - `layout/`: navbar, sidebar, breadcrumbs, footer, `MenuItem`.
-- `contrib/`: `settings` (configuración en BD), `notifications` (campana), `help` (ayuda editable), `history` (`HistoryMixin`, `HistoryCRUD`), `trash` (`SoftDeleteMixin`, `TrashMixin`, `build_trash_view`).
-- `i18n/`: `_()`, `set_language()`; catálogo español en `es.py`.
+- `contrib/`: `settings` (configuración en BD y `SettingCRUD` en `/admin/settings`), `notifications` (campana), `help` (ayuda editable), `history` (`HistoryMixin`, `HistoryCRUD`), `trash` (`SoftDeleteMixin`, `TrashMixin`, `build_trash_view`), `email` (`send_mail`, backends SMTP/consola/memoria, `FLETBATTERIES_EMAIL_BACKEND`).
+- `i18n/`: `_()`, `ngettext()`, `set_language(lang, page)` (por sesión), `set_default_language()`, `get_format("date")`; catálogo español en `es.py`. Los textos evaluados al definir una clase (`title = _("...")`) usan el idioma por defecto.
 
 ### Demo `demo/`
 
@@ -89,7 +96,9 @@ Si agregas una vista nueva, regístrala en `demo/controls/router/views.py` y añ
 - `demo/app_forms.py`: formularios de la demo.
 - `demo/data/models` y `demo/data/manager`: modelos y managers (`BaseManager`). Un modelo nuevo se importa en `demo/data/models/__init__.py` y en `demo/scripts/init_db.py`.
 - `demo/scripts/api.py`: API FastAPI (`make api`). `init_db.py create_db` crea el usuario `admin`/`admin` (solo desarrollo).
-- `tests/`: harness y pruebas. `logged_app` deja un superusuario en la sesión.
+- `tests/`: harness y pruebas de la demo. `logged_app` deja un superusuario en la sesión.
+- `tests_lib/`: pruebas de la librería sin la demo (fixtures `db`, `admin`, `outbox`, `lib_app`).
+- `demo/migrations/`: revisiones de Alembic de la demo (`[tool.fletbatteries]` en `pyproject.toml`).
 - `tools/screenshots.py`: capturas.
 
 ### Ejemplo mínimo

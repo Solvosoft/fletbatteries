@@ -21,6 +21,12 @@ charts = ["flet-charts==1.0.4"]
 maps = [
     "flet-map==1.0.4",
 ]
+migrations = [
+    "alembic>=1.13",
+]
+
+[project.scripts]
+fletbatteries = "fletbatteries.cli:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -48,6 +54,7 @@ dev = [
     "playwright>=1.48",
     "pillow>=10",
     "ruff>=0.6",
+    "alembic>=1.13",
 ]
 
 [tool.uv]
@@ -78,9 +85,16 @@ dependencies = [
 [tool.flet.linux.dev_packages]
 fletbatteries = "."
 
+# Migraciones de la demo (`fletbatteries makemigrations` / `migrate`, ver fletbatteries.data.migrations)
+[tool.fletbatteries]
+pythonpath = ["demo"]
+setup = ["settings"]
+models = ["data.models"]
+migrations_dir = "demo/migrations"
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = ["tests"]
+testpaths = ["tests", "tests_lib"]
 pythonpath = ["demo", "src", "."]
 
 [tool.ruff]

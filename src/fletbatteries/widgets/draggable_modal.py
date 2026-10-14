@@ -21,7 +21,7 @@ class DraggableModal:
         # Container principal posicionado en el Stack
         self.modal = ft.Container(
             content=self.modal_content,
-            bgcolor=ft.Colors.WHITE,
+            bgcolor=ft.Colors.SURFACE,
             border_radius=10,
             shadow=ft.BoxShadow(blur_radius=10, color=ft.Colors.BLACK_26),
             left=self.left,

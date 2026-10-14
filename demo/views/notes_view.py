@@ -1,7 +1,7 @@
 import flet as ft
 
 from fletbatteries import forms
-from fletbatteries.crud import CRUDView
+from fletbatteries.crud import ACTIONS, CRUDView
 from fletbatteries.data import SQLAlchemySource
 from fletbatteries.widgets.datatable import Column, color_swatch, yes_no
 from fletbatteries.widgets.maps import MapView, parse_point
@@ -37,6 +37,17 @@ class NoteCRUD(CRUDView):
     list_fields = ["title", "category", Column("color", render=color_swatch), Column("pinned", render=yes_no)]
     filter_fields = ["title", "category"]
     route = "/notes"
+    # Funciones del CRUD: duplicar, acciones masivas, exportar e importar CSV
+    actions = ACTIONS + ("clone",)
+    bulk_delete = True
+    export = True
+    importable = True
+    import_key_field = "title"
+
+
+def notes_badge(page) -> int:
+    """Cantidad de notas fijadas (se muestra como badge en el menú)."""
+    return NoteManager().count(pinned=True)
 
 
 def build_view_notes(page: ft.Page) -> ft.Control:

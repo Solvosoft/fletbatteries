@@ -6,11 +6,26 @@ from typing import Optional, Union
 import flet as ft
 from dateutil.relativedelta import relativedelta
 
+from fletbatteries.i18n import get_format
 from fletbatteries.widgets.base import Widget
 
+# Formatos del idioma por defecto (español); los widgets usan los del idioma activo
 DATE_FORMAT = "%d/%m/%Y"
 TIME_FORMAT = "%H:%M"
 DATETIME_FORMAT = f"{DATE_FORMAT} {TIME_FORMAT}"
+
+
+class LocaleFormat:
+    """
+    Formato que depende del idioma activo (`i18n.get_format`). Es un descriptor
+    sin `__set__`: asignar `self.fmt = "..."` en una instancia lo reemplaza.
+    """
+
+    def __init__(self, kind: str):
+        self.kind = kind
+
+    def __get__(self, obj, owner=None) -> str:
+        return get_format(self.kind)
 RANGE_SEPARATOR = " - "
 
 DateSpec = Union[date, datetime, str, None]
@@ -82,7 +97,7 @@ def format_value(value, fmt: str) -> str:
 class _PickerInput(Widget):
     """TextField editable con un botón que abre el selector nativo."""
 
-    fmt = DATE_FORMAT
+    fmt = LocaleFormat("date")
     kind: type = date
     icon = ft.Icons.CALENDAR_MONTH
 
@@ -161,7 +176,7 @@ class DateInput(_PickerInput):
 
 
 class TimeInput(_PickerInput):
-    fmt = TIME_FORMAT
+    fmt = LocaleFormat("time")
     kind = time
     icon = ft.Icons.ACCESS_TIME
 
@@ -181,7 +196,7 @@ class TimeInput(_PickerInput):
 class DateTimeInput(_PickerInput):
     """Fecha y hora: abre el selector de fecha y luego el de hora."""
 
-    fmt = DATETIME_FORMAT
+    fmt = LocaleFormat("datetime")
     kind = datetime
 
     def open_picker(self, e=None):

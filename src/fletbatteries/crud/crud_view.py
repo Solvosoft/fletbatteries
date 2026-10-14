@@ -14,21 +14,36 @@ Equivale a `CRUDView` / `ObjectManagement` de djgentelella.
     content = CustomerCRUD(page).build()
 
 Hooks para personalizar: `get_initial(item)`, `prepare_data(data, item)`,
-`after_save(item, created)`, `detail_controls(item)`, `get_extra_actions()`.
+`after_save(item, created)`, `detail_controls(item)`, `get_extra_actions()`,
+`get_bulk_actions()`.
+
+Opciones extra (todas desactivadas por defecto):
+
+- `actions = ACTIONS + ("clone",)`: botón "Duplicar" (abre "Agregar" con los datos).
+- `bulk_delete = True` / `bulk_actions = [BulkAction(...)]`: selección y acciones masivas.
+- `export = True` (`export_fields`): botón "Exportar CSV" con la búsqueda y filtros actuales.
+- `importable = True` (`import_fields`, `import_key_field`): importar desde CSV.
+- `undo_delete = True` (por defecto): si el manager usa `TrashMixin`, el aviso
+  de "Eliminado" trae el botón "Deshacer".
+
+Permisos opcionales en `permissions`: "clone" (si falta usa el de "create"),
+"export" e "import".
 """
 
 import logging
 from typing import Any, Optional, Sequence
 
 import flet as ft
+from sqlalchemy.exc import IntegrityError
 
 from fletbatteries.auth.session import get_user, has_perm
 from fletbatteries.data.manager import BaseManager
 from fletbatteries.data.source import DataSource, SQLAlchemySource
 from fletbatteries.forms.validators import ValidationError
-from fletbatteries.i18n import _
+from fletbatteries.i18n import _, ngettext
+from fletbatteries.utils import notify
 from fletbatteries.widgets.cardlist import CardList, default_card
-from fletbatteries.widgets.datatable import DataTable, RowAction, filter_form_for
+from fletbatteries.widgets.datatable import BulkAction, DataTable, RowAction, filter_form_for
 from fletbatteries.widgets.modals import CrudModal
 
 log = logging.getLogger(__name__)
@@ -56,6 +71,14 @@ class CRUDView:
     order_by: Optional[str] = None
     fixed_filters: dict = {}
     selectable: bool = False
+    bulk_delete: bool = False
+    bulk_actions: Sequence[BulkAction] = ()
+    export: bool = False
+    export_fields: Optional[Sequence] = None
+    importable: bool = False
+    import_fields: Optional[Sequence[str]] = None
+    import_key_field: Optional[str] = None
+    undo_delete: bool = True
 
     # Registro en el app shell (ver fletbatteries.app)
     route: Optional[str] = None
@@ -109,8 +132,15 @@ class CRUDView:
         return None
 
     def can(self, action: str) -> bool:
+        if action == "export":
+            return self.export and has_perm(self.page, self.permissions.get("export"))
+        if action == "import":
+            return self.importable and self.form_class is not None and has_perm(self.page,
+                                                                                 self.permissions.get("import"))
         if action not in self.actions:
             return False
+        if action == "clone":
+            return has_perm(self.page, self.permissions.get("clone", self.permissions.get("create")))
         return has_perm(self.page, self.permissions.get(action))
 
     def get_extra_actions(self) -> list[RowAction]:
@@ -128,15 +158,30 @@ class CRUDView:
             actions.append(RowAction(ft.Icons.VISIBILITY_OUTLINED, _("Detail"), self.open_detail, name="detail"))
         if self.can("edit"):
             actions.append(RowAction(ft.Icons.EDIT_OUTLINED, _("Edit"), self.open_edit, name="edit"))
+        if self.can("clone"):
+            actions.append(RowAction(ft.Icons.CONTENT_COPY, _("Duplicate"), self.open_clone, name="clone"))
         if self.can("delete"):
             actions.append(RowAction(ft.Icons.DELETE_OUTLINE, _("Delete"), self.open_delete, name="delete",
                                      color=ft.Colors.ERROR))
         return actions + self.get_extra_actions()
 
     def top_actions(self) -> list[ft.Control]:
-        if not self.can("create"):
-            return []
-        return [ft.Button(content=_("Add"), icon=ft.Icons.ADD, key="crud_add", on_click=lambda e: self.open_create())]
+        controls = []
+        if self.can("import"):
+            controls.append(ft.IconButton(icon=ft.Icons.UPLOAD_FILE, tooltip=_("Import CSV"), key="crud_import",
+                                          on_click=lambda e: self.open_import()))
+        if self.can("create"):
+            controls.append(ft.Button(content=_("Add"), icon=ft.Icons.ADD, key="crud_add",
+                                      on_click=lambda e: self.open_create()))
+        return controls
+
+    def get_bulk_actions(self) -> list[BulkAction]:
+        actions = list(self.bulk_actions)
+        if self.bulk_delete and self.can("delete"):
+            actions.append(BulkAction("delete", _("Delete selected"), self.delete_many, icon=ft.Icons.DELETE_OUTLINE,
+                                      color=ft.Colors.ERROR,
+                                      confirm_text=_("Are you sure you want to delete the selected records?")))
+        return actions
 
     # ------------------------------------------------------------------
     # Construcción
@@ -161,6 +206,10 @@ class CRUDView:
             order_by=self.order_by,
             base_filters=self.fixed_filters,
             selectable=self.selectable,
+            bulk_actions=self.get_bulk_actions(),
+            exportable=self.can("export"),
+            export_columns=self.export_fields,
+            export_name=self.get_title(),
         )
 
     def build(self) -> ft.Control:
@@ -205,6 +254,25 @@ class CRUDView:
             width=self.modal_width,
         )
 
+    def open_clone(self, item: dict):
+        """Abre "Agregar" con los datos del registro (sin su id ni los campos únicos)."""
+        fresh = self.source.get(item["id"]) or item
+        data = dict(fresh)
+        data.pop(getattr(self.source, "pk_field", "id"), None)
+        data.pop("id", None)
+        manager = getattr(self.source, "manager", None)
+        for name in getattr(manager, "unique_fields", ()) or ():
+            data.pop(name, None)
+        form = self.current_form = self.form_class(initial={**data, **self.get_initial(None)})
+        self.modal.open(
+            kind="create",
+            title=_("Duplicate {name}", name=self.get_name()),
+            content_controls=[form.control],
+            on_accept=lambda: self.save(form, None),
+            success_text=_("Saved successfully"),
+            width=self.modal_width,
+        )
+
     def open_delete(self, item: dict):
         self.modal.open(
             kind="delete",
@@ -213,8 +281,40 @@ class CRUDView:
                               ft.Text(self.source.to_label(item), weight=ft.FontWeight.BOLD)],
             on_accept=lambda: self.delete(item),
             success_text=_("Deleted successfully"),
+            success_action=self.undo_action(item),
             width=self.modal_width,
         )
+
+    def can_restore(self) -> bool:
+        return self.undo_delete and hasattr(getattr(self.source, "manager", None), "restore")
+
+    def undo_action(self, item: dict) -> Optional[tuple]:
+        """Botón "Deshacer" del aviso de eliminado (solo si el manager tiene papelera)."""
+        if not self.can_restore():
+            return None
+        return _("Undo"), lambda: self.restore(item)
+
+    def restore(self, item: dict) -> bool:
+        try:
+            with self.acting_user():
+                ok = self.source.manager.restore(item["id"])
+        except Exception:
+            log.exception("Error restaurando %s", self.get_name())
+            ok = False
+        self.reload()
+        notify(self.page, _("Restored successfully") if ok else _("Sorry, an error occurred"), success=ok)
+        return ok
+
+    def open_import(self):
+        from fletbatteries.crud.import_dialog import ImportDialog
+        from fletbatteries.data.importer import CSVImporter
+
+        importer = CSVImporter(self.form_class, self.source, key_field=self.import_key_field,
+                               fields=self.import_fields, fixed_data=self.fixed_filters)
+        dialog = ImportDialog(self.page, importer, title=f"{_('Import CSV')}: {self.get_title()}",
+                              on_done=lambda counts: self.reload(), wrap=self.acting_user)
+        dialog.open()
+        return dialog
 
     def open_detail(self, item: dict):
         fresh = self.source.get(item["id"]) or item
@@ -273,7 +373,11 @@ class CRUDView:
                 else:
                     saved = self.source.update(item["id"], data)
         except ValidationError as e:
-            form.add_error(None, e)
+            if e.error_dict:
+                for name, messages in e.error_dict.items():
+                    form.add_error(name if name in form.fields else None, messages)
+            else:
+                form.add_error(None, e)
             form.show_errors()
             return None
         except Exception as e:
@@ -285,15 +389,33 @@ class CRUDView:
         self.reload()
         return True
 
-    def delete(self, item: dict) -> bool:
+    def delete_error_message(self, error: Exception) -> str:
+        if isinstance(error, IntegrityError):
+            return _("This record is in use by other records and cannot be deleted.")
+        if isinstance(error, (ValidationError, PermissionError)):
+            return str(error)
+        return _("The record could not be deleted: {error}", error=str(error) or type(error).__name__)
+
+    def delete(self, item: dict):
+        """`True` si se eliminó; si no, el mensaje de error que verá el usuario."""
         try:
             with self.acting_user():
                 ok = self.source.delete(item["id"])
-        except Exception:
+        except Exception as e:
             log.exception("Error eliminando %s", self.get_name())
-            return False
+            return self.delete_error_message(e)
         self.reload()
-        return bool(ok)
+        return True if ok else _("The record no longer exists.")
+
+    def delete_many(self, ids: list) -> str:
+        """Acción masiva "Eliminar seleccionados"; devuelve el resumen para mostrar."""
+        with self.acting_user():
+            result = self.source.delete_many(ids)
+        message = ngettext("{n} record deleted.", "{n} records deleted.", result.count)
+        if result.failed:
+            message += " " + ngettext("{n} record could not be deleted.", "{n} records could not be deleted.",
+                                      len(result.failed))
+        return message
 
     # ------------------------------------------------------------------
     # Atajo para registrar en el router

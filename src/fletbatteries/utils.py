@@ -1,5 +1,7 @@
 """Helpers para trabajar con controles de Flet 1.x."""
 
+from typing import Any, Callable, Optional
+
 import flet as ft
 
 
@@ -38,26 +40,39 @@ def close_dialog(dialog: ft.DialogControl):
         safe_update(dialog)
 
 
-def show_snackbar(message: str, success: bool):
+def show_snackbar(message: str, success: bool, action: Optional[str] = None,
+                  on_action: Optional[Callable[[], Any]] = None, duration: Optional[int] = None):
+    """
+    SnackBar de éxito o error con los colores del tema (se ve bien en modo claro
+    y oscuro). `action` + `on_action` agregan un botón, p. ej. "Deshacer".
+    """
+    kwargs = {}
+    if action and on_action:
+        kwargs["action"] = ft.SnackBarAction(label=action, on_click=lambda e: on_action())
+    if duration is not None:
+        kwargs["duration"] = duration
     return ft.SnackBar(
         content=ft.Row(
             spacing=8,
             controls=[
                 ft.Icon(
                     ft.Icons.CHECK_CIRCLE_OUTLINE if success else ft.Icons.ERROR_OUTLINE,
-                    color=ft.Colors.GREEN_600 if success else ft.Colors.RED_600,
+                    color=ft.Colors.GREEN_600 if success else ft.Colors.ERROR,
                 ),
-                ft.Text(message, color=ft.Colors.BLACK),
+                ft.Text(message, color=ft.Colors.ON_SURFACE, expand=True),
             ],
         ),
-        bgcolor=ft.Colors.GREEN_50 if success else ft.Colors.RED_50,
+        bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
         show_close_icon=True,
+        close_icon_color=ft.Colors.ON_SURFACE,
+        **kwargs,
     )
 
 
-def notify(page: ft.Page, message: str, success: bool = True):
-    """Muestra un SnackBar de éxito o error."""
-    page.show_dialog(show_snackbar(message, success))
+def notify(page: ft.Page, message: str, success: bool = True, action: Optional[str] = None,
+           on_action: Optional[Callable[[], Any]] = None):
+    """Muestra un SnackBar de éxito o error (opcionalmente con un botón de acción)."""
+    page.show_dialog(show_snackbar(message, success, action=action, on_action=on_action))
 
 
 def truncate_str(data, max_length=30):
@@ -70,7 +85,7 @@ def truncate_str(data, max_length=30):
     return full, ""
 
 
-def text_with_truncate(data, size=12, bold=False, color=ft.Colors.BLACK, max_length=30, max_line=1):
+def text_with_truncate(data, size=12, bold=False, color=None, max_length=30, max_line=1):
     msg, tooltip = truncate_str(data, max_length)
 
     text = ft.Text(
